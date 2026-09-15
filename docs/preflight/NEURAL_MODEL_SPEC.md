@@ -1,7 +1,7 @@
 # Neural Model Specification
 
 Status: **FROZEN for MVP implementation**  
-Version: P-1.0  
+Version: P-1.1  
 Date: 2026-09-15
 
 ## 1. Modeling principle
@@ -72,17 +72,26 @@ For the MVP, incoming dynamics use a **non-negative unsigned graph** so that unc
 For each presynaptic neuron `j`:
 
 ```text
-W[j,i] = raw_weight[j,i] / sum_k(raw_weight[j,k])
+full_outgoing_sum[j] = sum_k(raw_weight[j,k])
+                       over all retained-confidence outgoing MaleCNS v1.0 edges
+                       in the source graph, before subgraph filtering
+
+W[j,i] = raw_weight[j,i] / full_outgoing_sum[j]
 ```
+
+**Normalization scope is the pinned source graph, not the extracted runtime subgraph.** This is mandatory so that an edge keeps the same normalized weight when the same neuron is evaluated in a small pathway subgraph versus the full graph.
+
+The graph manifest must record the confidence/filter rules used to define the source graph whose outgoing sums are used.
 
 Properties:
 
 - relative outgoing routing from a neuron is preserved,
 - a high raw synapse count remains more influential relative to that neuron's other targets,
-- the total outgoing contribution of each firing neuron is bounded,
-- stability is easier to reason about than with unnormalized synapse counts.
+- the total outgoing contribution of each firing neuron is bounded in the full source graph,
+- subgraph extraction does not renormalize surviving edges and therefore does not silently amplify them,
+- stability is easier to reason about than with raw unnormalized synapse counts.
 
-If a neuron has no outgoing edges in the extracted graph, its row contributes zero.
+If a source neuron has no outgoing edges after the frozen source-graph confidence/filter rules, its row contributes zero.
 
 ## 6. Neurotransmitter handling
 
@@ -134,6 +143,8 @@ The runtime must support two execution modes:
 ### Subgraph mode
 
 Used for early pathway bring-up and unit/integration tests. The extracted graph contains selected sensory populations, candidate downstream paths, and readout neurons.
+
+Subgraph mode uses the same source-graph normalization constants as full-graph mode; it must never renormalize surviving edges merely because other nodes were removed.
 
 ### Full-graph mode
 
@@ -189,6 +200,7 @@ Every run must record:
 
 ```text
 MaleCNS dataset version
+source-graph confidence/filter config hash
 graph extraction hash
 neural model spec version
 parameter config hash
@@ -203,7 +215,8 @@ The following require an ADR + independent review:
 
 - changing unsigned to signed recurrent weights,
 - adding plasticity,
-- changing normalization family,
+- changing normalization family or normalization scope,
+- changing source-graph confidence/filter rules used by normalization,
 - changing timestep semantics,
 - using asynchronous neuron updates,
 - adding learned recurrent weights,
@@ -213,7 +226,8 @@ The following require an ADR + independent review:
 ## 15. Preflight exit criteria
 
 - [x] neuron dynamics are explicit,
-- [x] edge normalization is explicit,
+- [x] edge normalization and source-graph scope are explicit,
+- [x] subgraph/full-graph normalization consistency is required,
 - [x] neurotransmitter treatment is explicit,
 - [x] sensory input interface is bounded,
 - [x] readout semantics are explicit,
