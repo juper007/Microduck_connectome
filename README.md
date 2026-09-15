@@ -1,0 +1,82 @@
+# MicroDuck Connectome
+
+**MaleCNS × MicroDuck NeuroRobotics Project**
+
+This project explores whether the complete adult male *Drosophila* central nervous system connectome (MaleCNS v1.0) can serve as a biologically structured high-level controller for MicroDuck.
+
+The connectome **does not directly command servo joints**. Instead, it receives encoded sensory stimuli and produces high-level behavioral intent such as steering, stop/escape, backward motion, or target pursuit. MicroDuck's existing `robotd`, safety layer, and reinforcement-learning motion policies remain responsible for balance, gait, and actuator control.
+
+## Project hypothesis
+
+> Does the real MaleCNS connectivity provide useful inductive structure for embodied robot behavior compared with shuffled-connectome, random-reservoir, and conventional controller baselines?
+
+## Target architecture
+
+```text
+Camera / ToF / IMU
+        │
+        ▼
+Perception + Sensory Encoder
+        │
+        ▼
+MaleCNS Runtime / Reservoir
+        │
+        ▼
+Descending-Neuron Readout
+        │
+        ▼
+Behavior Decoder
+        │
+        ▼
+Safety Gate
+        │
+        ▼
+MicroDuck robotd / RL Motion Policy @ 50 Hz
+        │
+        ▼
+15 actuators
+```
+
+## Execution sequence
+
+1. Freeze dataset/runtime versions and establish reproducible environment.
+2. Build a MaleCNS data/query layer.
+3. Validate candidate sensor-to-descending-neuron pathways.
+4. Build a deterministic connectome runtime or reservoir prototype.
+5. Implement sensory encoders.
+6. Implement behavior decoder and safety gate.
+7. Integrate with the official MicroDuck MuJoCo simulator.
+8. Demonstrate visual steering and looming avoidance.
+9. Run real-vs-shuffled-vs-random baseline experiments.
+10. Move the validated controller to physical MicroDuck.
+
+## Documentation
+
+- [`docs/PROJECT_EXECUTION_PLAN.md`](docs/PROJECT_EXECUTION_PLAN.md) — end-to-end execution plan
+- [`docs/AGENT_ROLES.md`](docs/AGENT_ROLES.md) — agent roles, responsibilities, handoffs
+- [`docs/TASK_BREAKDOWN.md`](docs/TASK_BREAKDOWN.md) — detailed task/WBS plan
+- [`docs/COMPLETION_CRITERIA.md`](docs/COMPLETION_CRITERIA.md) — Definition of Done and phase gates
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture and interfaces
+- [`docs/TEST_AND_EVALUATION_PLAN.md`](docs/TEST_AND_EVALUATION_PLAN.md) — test strategy and scientific evaluation
+- [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) — technical/scientific risks and mitigations
+- [`docs/SOURCES.md`](docs/SOURCES.md) — primary references
+
+## Key principles
+
+- Simulation first.
+- Connectome output never bypasses MicroDuck safety.
+- Every biological mapping must be traceable to a source or explicitly marked as a hypothesis.
+- Every experiment must be reproducible from configuration + seed + commit SHA.
+- Claims about biological advantage require controlled baselines.
+
+## Current status
+
+Planning / Phase 0.
+
+## Upstream projects
+
+- MaleCNS project: https://male-cns.janelia.org/
+- MicroDuck runtime: https://github.com/pollen-robotics/microduck
+- MicroDuck RL simulation/training: https://github.com/pollen-robotics/microduck_rl
+
+> This is an independent research/education project and is not an official Pollen Robotics, HHMI Janelia, Google Research, or University of Cambridge project.
