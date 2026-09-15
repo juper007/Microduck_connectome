@@ -50,10 +50,17 @@ MicroDuck robotd / RL Motion Policy @ 50 Hz
 9. Run real-vs-shuffled-vs-random baseline experiments.
 10. Move the validated controller to physical MicroDuck.
 
+## Codex agent team
+
+Repo-scoped Codex role skills live under [`.agents/skills/`](.agents/skills/). Root [`AGENTS.md`](AGENTS.md) defines task-to-role routing and shared project constraints.
+
+The practical project team is documented in [`docs/PM_AGENT_HIRING_PLAN.md`](docs/PM_AGENT_HIRING_PLAN.md). It defines 11 operational roles: PM/Systems Architect, Connectome Research, Connectome Data Engineering, Neural Runtime, Perception/Sensory Encoding, Behavior/Control, MicroDuck Integration, Robot Safety, Experiment/Evaluation, Reproducibility/DevOps, and Independent Phase Review.
+
 ## Documentation
 
 - [`docs/PROJECT_EXECUTION_PLAN.md`](docs/PROJECT_EXECUTION_PLAN.md) — end-to-end execution plan
-- [`docs/AGENT_ROLES.md`](docs/AGENT_ROLES.md) — agent roles, responsibilities, handoffs
+- [`docs/PM_AGENT_HIRING_PLAN.md`](docs/PM_AGENT_HIRING_PLAN.md) — practical agent team, hiring capabilities, and Codex skill mapping
+- [`docs/AGENT_ROLES.md`](docs/AGENT_ROLES.md) — detailed responsibility catalog and handoffs
 - [`docs/TASK_BREAKDOWN.md`](docs/TASK_BREAKDOWN.md) — detailed task/WBS plan
 - [`docs/COMPLETION_CRITERIA.md`](docs/COMPLETION_CRITERIA.md) — Definition of Done and phase gates
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture and interfaces
