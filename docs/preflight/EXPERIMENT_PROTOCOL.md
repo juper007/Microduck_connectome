@@ -1,7 +1,7 @@
 # Experiment Protocol
 
 Status: **FROZEN before benchmark implementation**  
-Version: P-1.0  
+Version: P-1.1  
 Date: 2026-09-15
 
 ## 1. Research question
@@ -14,9 +14,9 @@ A successful demo is not sufficient evidence. The project must compare the real 
 
 ## 2. Primary MVP hypotheses
 
-### H1 — steering
+### H1 — target-following steering
 
-A MaleCNS-derived controller can convert lateralized visual input into correct-direction MicroDuck steering in simulation.
+A MaleCNS-derived controller can convert lateralized visual input into MicroDuck steering **toward the target** in simulation.
 
 ### H2 — looming
 
@@ -80,16 +80,17 @@ All controllers in a comparison must share:
 - identical scenario seeds,
 - identical high-level output limits,
 - identical downstream safety gate,
+- identical robot-facing stop mechanism within a looming experiment version,
 - identical success/failure definitions,
 - equivalent readout fitting budget where learning is used.
 
 A controller may not receive privileged ground truth unavailable to another controller in the same comparison.
 
-## 5. Behavior A — visual steering protocol
+## 5. Behavior A — visual target-following steering protocol
 
 ### Scenario
 
-A target appears/moves at known horizontal positions within the camera field.
+A target appears/moves at known horizontal positions within the camera field. The required behavior is to rotate the MicroDuck **toward the target bearing**.
 
 Trial dimensions should include at minimum:
 
@@ -105,7 +106,7 @@ Trial dimensions should include at minimum:
 correct_direction_rate
 ```
 
-A trial is correct when the first sustained turn response after the valid stimulus is in the direction defined by the pre-validated yaw-sign fixture.
+A trial is correct when the first sustained turn response after the valid stimulus rotates the robot toward the target side using the `vyaw` sign established by the pre-validated official-simulator yaw-sign fixture.
 
 ### Frozen steering acceptance thresholds
 
@@ -139,6 +140,8 @@ Secondary metrics:
 An obstacle approaches along controlled trajectories while distractor trials include static or receding objects.
 
 The scenario generator must expose a ground-truth time-to-boundary or distance-to-boundary independent of perception estimates.
+
+Before benchmark trials begin, the pinned upstream MicroDuck integration must verify and freeze exactly one robot-facing stop mechanism for the entire experiment version, for example verified `robot.stop` semantics or continuous zero twist. Controllers may not mix different stop transports in the same comparison.
 
 ### Frozen looming acceptance thresholds
 
@@ -224,6 +227,7 @@ Before a benchmark batch begins, freeze:
 - thresholds,
 - trial seeds,
 - safety config,
+- robot-facing stop mechanism for looming,
 - readout training/tuning budget.
 
 Any change after results are seen creates a new experiment version and requires rerunning all affected controller classes.
@@ -256,8 +260,10 @@ Do not convert “robot moved” into “fly connectome improves robotics.”
 ## 14. Preflight exit criteria
 
 - [x] hypotheses are explicit,
+- [x] target-following direction is explicit,
 - [x] four controller classes are defined,
 - [x] comparison fairness rules are frozen,
+- [x] looming stop mechanism must be fixed per experiment version,
 - [x] steering and looming acceptance thresholds are defined,
 - [x] trial-count floor is defined,
 - [x] seed/randomization policy is defined,
