@@ -1,7 +1,7 @@
 # Interface and Timing Contract
 
 Status: **FROZEN for Phase 0/MVP**  
-Version: P-1.0  
+Version: P-1.1  
 Date: 2026-09-15
 
 ## 1. Purpose
@@ -88,6 +88,8 @@ steering_yaw_sign: +1 | -1
 ```
 
 This sign is calibrated once from the official simulator fixture and must not be silently changed to make an experiment pass.
+
+The MVP behavior is **target-following**: after calibration, a left-image target must map to the simulator-proven left-turn yaw sign and a right-image target to the opposite sign.
 
 ## 7. Perception frame contract
 
@@ -239,19 +241,35 @@ Required fixture before Behavior Demo A:
 
 ## 14. Stop semantics
 
-For an urgent looming response, the preferred interface is the upstream discrete `robot.stop` request when its current semantics are appropriate. Otherwise the controller must continuously publish zero twist until the behavior state returns to normal.
+The internal behavior contract is always `stop: true`; transport choice belongs to the MicroDuck integration/safety boundary.
 
-The integration agent must verify actual upstream behavior in the pinned MicroDuck commit; documentation wording alone is not enough for a safety claim.
+Before any looming benchmark batch, the integration agent must verify the pinned upstream MicroDuck behavior and freeze exactly one robot-facing transport in versioned config:
+
+```yaml
+stop_transport: robot_stop | zero_twist
+```
+
+Rules:
+
+- `robot_stop` means use the verified discrete upstream `robot.stop` request semantics.
+- `zero_twist` means continuously publish zero `vx/vy/vyaw` for the stop state at the controller/watchdog cadence.
+- the chosen transport is the same for every controller in that experiment version,
+- switching transport creates a new experiment/config version,
+- stale or unhealthy controller output still enters the safe stop/neutral path independent of the neural model.
+
+The project does not assume `robot.stop` semantics from documentation alone; an integration fixture must verify them for the pinned upstream commit.
 
 ## 15. Preflight exit criteria
 
 - [x] time source is defined,
 - [x] perception coordinates are defined,
 - [x] neural side is explicit,
+- [x] target-following steering semantics are explicit,
 - [x] robot yaw sign is empirically calibrated rather than guessed,
 - [x] message schemas are defined,
 - [x] rates and TTLs are defined,
 - [x] MVP motion envelope is defined,
+- [x] stop transport is frozen per experiment version after integration verification,
 - [x] stale/invalid behavior is fail-safe,
 - [x] `robotd` remains authoritative.
 
