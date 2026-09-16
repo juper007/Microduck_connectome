@@ -18,6 +18,22 @@ Use the narrowest matching skill for the work:
 - `$reproducibility-devops-engineer` — environment pinning, CI, manifests, seeds, config hashes, artifact/log discipline.
 - `$independent-phase-reviewer` — defect-first independent review and phase-gate verification.
 
+## Mandatory token/context efficiency
+
+These rules apply to every agent and are subordinate only to correctness, safety, scientific traceability, and reproducibility.
+
+1. Use **lazy context loading**. Start with `AGENTS.md`, the selected `SKILL.md`, the task packet, and only the exact task-specific sections/files needed to begin.
+2. Do not preload the whole `docs/` tree, all skill files, the whole repository, long chat history, raw datasets, or full logs without a concrete need.
+3. PM-assigned implementation/research work should use a compact task packet based on `docs/TASK_PACKET_TEMPLATE.md`.
+4. Use `docs/AGENT_CONTEXT_MAP.md` for role-specific starting context and recommended reasoning effort.
+5. Follow the context-budget targets in `docs/TOKEN_EFFICIENCY_POLICY.md`; tasks expected to exceed 100K input tokens should be split or explicitly justified.
+6. Summarize large tool/data/log outputs before handing them to another agent. Keep raw artifacts by path/hash for targeted follow-up.
+7. Reviewers begin with acceptance criteria, PR diff, changed files, validation summary, and relevant contract sections; expand to unrelated files only when a finding/dependency requires it.
+8. Prefer a fresh task/session for each independent WBS task or PR. Durable state lives in Git, issues, task packets, ADRs/specs, manifests, and artifacts—not in accumulated conversation history.
+9. Use the lowest reasoning effort that reliably completes the task. `xhigh/max` is exceptional rather than a default.
+
+Detailed policy: `docs/TOKEN_EFFICIENCY_POLICY.md`.
+
 ## Mandatory Git workflow for every agent
 
 These rules apply to every agent, every task, including documentation-only changes.
@@ -63,7 +79,7 @@ Detailed procedure: `docs/AGENT_GIT_WORKFLOW.md`.
 
 ## Mandatory project constraints
 
-1. Read the relevant project docs before changing architecture or interfaces: `docs/ARCHITECTURE.md`, `docs/PROJECT_EXECUTION_PLAN.md`, `docs/COMPLETION_CRITERIA.md`, and `docs/RISK_REGISTER.md`.
+1. Read only the relevant sections needed for the task before changing architecture or interfaces; use the task packet/context map to locate them. Expand context when necessary rather than preloading `docs/ARCHITECTURE.md`, `docs/PROJECT_EXECUTION_PLAN.md`, `docs/COMPLETION_CRITERIA.md`, and `docs/RISK_REGISTER.md` in full.
 2. MaleCNS-derived control selects behavior intent; it must not directly command servos.
 3. `robotd` and the existing MicroDuck motion/safety stack retain motor ownership.
 4. Simulation precedes physical robot testing.
@@ -74,10 +90,13 @@ Detailed procedure: `docs/AGENT_GIT_WORKFLOW.md`.
 ## Multi-agent handoff contract
 
 Every handoff must state:
+- task packet/task ID,
 - input commit/version,
 - fetched `origin/main` base SHA,
 - working branch name,
 - isolated worktree/checkout when applicable,
+- context scope/budget and any exceptional expansion,
+- recommended/used reasoning effort when materially relevant,
 - configuration and random seed when applicable,
 - files/artifacts produced,
 - tests/commands run and outcomes,

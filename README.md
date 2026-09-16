@@ -52,9 +52,11 @@ MicroDuck robotd / RL Motion Policy @ 50 Hz
 
 ## Codex agent team
 
-Repo-scoped Codex role skills live under [`.agents/skills/`](.agents/skills/). Root [`AGENTS.md`](AGENTS.md) defines task-to-role routing and shared project constraints.
+Repo-scoped Codex role skills live under [`.agents/skills/`](.agents/skills/). Root [`AGENTS.md`](AGENTS.md) defines task-to-role routing, Git workflow, project constraints, and mandatory token/context-efficiency rules.
 
 The practical project team is documented in [`docs/PM_AGENT_HIRING_PLAN.md`](docs/PM_AGENT_HIRING_PLAN.md). It defines 11 operational roles: PM/Systems Architect, Connectome Research, Connectome Data Engineering, Neural Runtime, Perception/Sensory Encoding, Behavior/Control, MicroDuck Integration, Robot Safety, Experiment/Evaluation, Reproducibility/DevOps, and Independent Phase Review.
+
+Agent work uses lazy context loading and compact task packets so large-model context is spent only on relevant evidence. See [`docs/TOKEN_EFFICIENCY_POLICY.md`](docs/TOKEN_EFFICIENCY_POLICY.md), [`docs/TASK_PACKET_TEMPLATE.md`](docs/TASK_PACKET_TEMPLATE.md), and [`docs/AGENT_CONTEXT_MAP.md`](docs/AGENT_CONTEXT_MAP.md).
 
 ## Documentation
 
@@ -66,6 +68,10 @@ The practical project team is documented in [`docs/PM_AGENT_HIRING_PLAN.md`](doc
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture and interfaces
 - [`docs/TEST_AND_EVALUATION_PLAN.md`](docs/TEST_AND_EVALUATION_PLAN.md) — test strategy and scientific evaluation
 - [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) — technical/scientific risks and mitigations
+- [`docs/AGENT_GIT_WORKFLOW.md`](docs/AGENT_GIT_WORKFLOW.md) — mandatory branch/review/PR workflow
+- [`docs/TOKEN_EFFICIENCY_POLICY.md`](docs/TOKEN_EFFICIENCY_POLICY.md) — lazy context, context budgets, reasoning and log discipline
+- [`docs/TASK_PACKET_TEMPLATE.md`](docs/TASK_PACKET_TEMPLATE.md) — compact agent task handoff template
+- [`docs/AGENT_CONTEXT_MAP.md`](docs/AGENT_CONTEXT_MAP.md) — role-specific starting context and reasoning defaults
 - [`docs/SOURCES.md`](docs/SOURCES.md) — primary references
 
 ## Key principles
@@ -75,10 +81,11 @@ The practical project team is documented in [`docs/PM_AGENT_HIRING_PLAN.md`](doc
 - Every biological mapping must be traceable to a source or explicitly marked as a hypothesis.
 - Every experiment must be reproducible from configuration + seed + commit SHA.
 - Claims about biological advantage require controlled baselines.
+- Large context is capacity, not a target; load only the evidence needed for the current task.
 
 ## Current status
 
-Planning / Phase 0.
+Preflight definitions frozen; Phase 0 ready.
 
 ## Upstream projects
 
