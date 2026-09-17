@@ -1,0 +1,125 @@
+{
+  "dataset": "male-cns:v1.0",
+  "example_rule": "lexicographically first two-edge path; no strength or functional ranking",
+  "g1_producer_commit": "bfddc9822630240a92b28359c1914792a8158ac7",
+  "graph_cache_key": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+  "limitations": [
+    "No new raw-data extraction; inherits reviewed G1 source provenance.",
+    "G1 graph excludes VNC intrinsic population; not a full DNa02 output census.",
+    "Connectivity is structural, not causal function or signed efficacy."
+  ],
+  "path_scope": "G1 selected LC10a induced graph; directed <=2 hops, raw weight >=1",
+  "readouts": [
+    {
+      "body_id": 523769,
+      "example_two_edge_path": [
+        {
+          "bodyId": 10573,
+          "class": null,
+          "instance": "LC10a_L",
+          "somaNeuromere": null,
+          "somaSide": "L",
+          "superclass": "visual_projection",
+          "type": "LC10a"
+        },
+        {
+          "bodyId": 11219,
+          "class": null,
+          "instance": "LT82a_L",
+          "somaNeuromere": null,
+          "somaSide": "L",
+          "superclass": "visual_projection",
+          "type": "LT82a"
+        },
+        {
+          "bodyId": 523769,
+          "class": null,
+          "instance": "DNa02_L",
+          "somaNeuromere": null,
+          "somaSide": "L",
+          "superclass": "descending_neuron",
+          "type": "DNa02"
+        }
+      ],
+      "raw_source_record": {
+        "bodyId": 523769,
+        "class": null,
+        "instance": "DNa02_L",
+        "somaNeuromere": null,
+        "somaSide": "L",
+        "superclass": "descending_neuron",
+        "type": "DNa02"
+      },
+      "reachable_LC10a_body_count": 275,
+      "side": "left",
+      "simple_two_edge_path_count": 3361
+    },
+    {
+      "body_id": 10360,
+      "example_two_edge_path": [
+        {
+          "bodyId": 10573,
+          "class": null,
+          "instance": "LC10a_L",
+          "somaNeuromere": null,
+          "somaSide": "L",
+          "superclass": "visual_projection",
+          "type": "LC10a"
+        },
+        {
+          "bodyId": 10070,
+          "class": null,
+          "instance": "AOTU019_L",
+          "somaNeuromere": null,
+          "somaSide": "L",
+          "superclass": "cb_intrinsic",
+          "type": "AOTU019"
+        },
+        {
+          "bodyId": 10360,
+          "class": null,
+          "instance": "DNa02_R",
+          "somaNeuromere": null,
+          "somaSide": "R",
+          "superclass": "descending_neuron",
+          "type": "DNa02"
+        }
+      ],
+      "raw_source_record": {
+        "bodyId": 10360,
+        "class": null,
+        "instance": "DNa02_R",
+        "somaNeuromere": null,
+        "somaSide": "R",
+        "superclass": "descending_neuron",
+        "type": "DNa02"
+      },
+      "reachable_LC10a_body_count": 272,
+      "side": "right",
+      "simple_two_edge_path_count": 3210
+    }
+  ],
+  "schema_version": "dna02-evidence-v1",
+  "side_rule": "literal source somaSide L -> left, R -> right; no fallback",
+  "source_g1_sha256": {
+    "pathway-report.json": "5eeed1f5fb5c43af80f08f42c8eaebac97e3d8c8c4c39f7d70d6902b9d7d6407",
+    "query-report.json": "bf7cb25c774e08415f76dfc63b77d17acf2ada0671317ffb755888d38d6c5d1e",
+    "source-metadata.json": "4748b141ba5a6c28f093ad225a610c59abc4a934c2318377ec8b9ad1c7ed2a99"
+  },
+  "source_manifest": {
+    "annotations": {
+      "expected_rows": 211577,
+      "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather"
+    },
+    "checksum_origin": "Project-observed downloads; not upstream signed checksums",
+    "confidence_filter": "official flat-connectome minconf-0.5; no additional confidence or weight filtering",
+    "dataset": "male-cns:v1.0",
+    "source_page": "https://male-cns.janelia.org/download/",
+    "weights": {
+      "expected_rows": 151856684,
+      "sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1",
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/connectome-weights-male-cns-v1.0-minconf-0.5.feather"
+    }
+  }
+}
