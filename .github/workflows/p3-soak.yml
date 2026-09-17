@@ -3,10 +3,13 @@ name: P3 neural soak
 on:
   pull_request:
     paths:
-      - 'microduck_connectome/soak.py'
       - 'microduck_connectome/sparse_runtime.py'
       - 'microduck_connectome/performance.py'
+      - 'microduck_connectome/soak.py'
+      - 'microduck_connectome/workload_identity.py'
       - 'scripts/soak_neural_runtime.py'
+      - 'tests/test_sparse_runtime.py'
+      - 'tests/test_performance.py'
       - 'tests/test_soak.py'
       - 'docs/evidence/p3-07/**'
       - '.github/workflows/p3-soak.yml'
@@ -17,10 +20,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Focused tests
+      - name: Affected tests
         run: |
           python -m unittest discover -s tests -p 'test_sparse_runtime.py'
           python -m unittest discover -s tests -p 'test_performance.py'
