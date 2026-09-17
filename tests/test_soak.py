@@ -5,6 +5,7 @@ import unittest
 
 from microduck_connectome.soak import run_soak
 from microduck_connectome.workload_identity import (
+    graph_content_sha256,
     matched_scale_graph_fixture,
     soak_workload_definition,
     workload_sha256,
@@ -52,7 +53,7 @@ class SoakTests(unittest.TestCase):
         fixture = matched_scale_graph_fixture()
         self.assertEqual(
             definition["graph"]["fixture_sha256"],
-            workload_sha256(fixture),
+            graph_content_sha256(fixture["body_ids"], fixture["edges"]),
         )
 
     def test_workload_hash_is_deterministic_and_parameter_sensitive(self):
