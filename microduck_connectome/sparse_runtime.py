@@ -1,8 +1,14 @@
 """Deterministic sparse CPU runtime for the frozen MVP neural model."""
 
 import math
+import struct
 
 from .neural_model import validate_model_config
+
+
+def _f32(value):
+    """Round one finite numeric value to IEEE-754 binary32."""
+    return struct.unpack("!f", struct.pack("!f", float(value)))[0]
 
 
 class NeuralRuntimeError(ValueError):
@@ -113,7 +119,10 @@ class SparseNeuralRuntime:
                 self._fail("external input references unknown body_id")
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 self._fail("external input must be finite numeric values")
-            value = float(value)
+            try:
+                value = _f32(value)
+            except (OverflowError, struct.error, ValueError):
+                self._fail("external input must fit finite float32")
             if not math.isfinite(value):
                 self._fail("external input must be finite numeric values")
             injected[self._index[body_id]] = value
@@ -139,14 +148,15 @@ class SparseNeuralRuntime:
                     + injected[target_index]
                     + recurrent_gain * recurrent
                 )
+                value = _f32(value)
                 if not math.isfinite(value) or abs(value) > self.max_abs_state:
                     self._fail("non-finite or excessive neural state")
                 candidate[target_index] = value
             for index, value in enumerate(candidate):
                 spiked = value >= threshold
                 next_spikes[index] = spiked
-                next_state[index] = reset_value if spiked else value
-        except OverflowError:
+                next_state[index] = _f32(reset_value) if spiked else value
+        except (OverflowError, struct.error):
             self._fail("neural state overflow")
 
         self._state = next_state
