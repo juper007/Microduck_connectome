@@ -1,15 +1,25 @@
 import json
 from pathlib import Path
+import tempfile
 import unittest
 
 from microduck_connectome.performance import (
     build_matched_scale_graph,
     percentile_nearest_rank,
     profile_runtime,
+    read_linux_process_memory,
+)
+from microduck_connectome.workload_identity import (
+    graph_content_sha256,
+    matched_scale_graph_fixture,
+    performance_workload_definition,
+    workload_sha256,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config" / "neural_model_v1.json").read_text(encoding="utf-8"))
+EVIDENCE_V2 = ROOT / "docs" / "evidence" / "p3-06" / "performance-v2.json"
+EVIDENCE_V3 = ROOT / "docs" / "evidence" / "p3-06" / "performance-v3.json"
 
 
 class FakeClock:
@@ -25,6 +35,14 @@ class FakeClock:
         self._now += next(self._durations)
         self._start = True
         return self._now
+
+
+class FakeMemoryReader:
+    def __init__(self, samples):
+        self._samples = iter(samples)
+
+    def __call__(self):
+        return next(self._samples)
 
 
 class PerformanceTests(unittest.TestCase):
@@ -43,15 +61,111 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(len(first.edges()), 21142)
         self.assertEqual(len({(e["source_body_id"], e["target_body_id"]) for e in first.edges()}), 21142)
 
-    def test_profile_report_schema_with_fake_clock(self):
-        # 2 warmup steps are untimed; 5 measured steps consume five durations.
+    def test_graph_fixture_hash_binds_actual_generated_content(self):
+        graph = build_matched_scale_graph()
+        actual_fixture = {
+            "body_ids": list(graph.body_ids),
+            "edges": list(graph.edges()),
+        }
+        expected_fixture = matched_scale_graph_fixture()
+        definition = performance_workload_definition()
+        self.assertEqual(actual_fixture, expected_fixture)
+        self.assertEqual(
+            definition["graph"]["fixture_sha256"],
+            graph_content_sha256(graph.body_ids, graph.edges()),
+        )
+
+    def test_profile_report_schema_with_fake_clock_and_memory(self):
         clock = FakeClock([1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000])
-        report = profile_runtime(CONFIG, warmup_steps=2, measured_steps=5, clock_ns=clock)
+        memory = FakeMemoryReader([
+            {"measurement_method": "fake-rss", "rss_bytes": 1000, "peak_rss_bytes": 1200},
+            {"measurement_method": "fake-rss", "rss_bytes": 5000, "peak_rss_bytes": 5200},
+            {"measurement_method": "fake-rss", "rss_bytes": 5500, "peak_rss_bytes": 7000},
+        ])
+        report = profile_runtime(
+            CONFIG,
+            warmup_steps=2,
+            measured_steps=5,
+            clock_ns=clock,
+            memory_reader=memory,
+        )
         self.assertEqual(report["measured_steps"], 5)
         self.assertEqual(report["p50_ms"], 3.0)
         self.assertEqual(report["p95_ms"], 5.0)
         self.assertEqual(report["p99_ms"], 5.0)
         self.assertTrue(report["preferred_p95_target_met"])
+        self.assertEqual(report["memory_measurement_method"], "fake-rss")
+        self.assertEqual(report["baseline_rss_bytes"], 1000)
+        self.assertEqual(report["runtime_constructed_rss_bytes"], 5000)
+        self.assertEqual(report["post_profile_rss_bytes"], 5500)
+        self.assertEqual(report["peak_rss_bytes"], 7000)
+        self.assertEqual(report["runtime_rss_delta_bytes"], 4000)
+        expected = performance_workload_definition(warmup_steps=2, measured_steps=5)
+        self.assertEqual(report["workload_definition"], expected)
+        self.assertEqual(report["workload_sha256"], workload_sha256(expected))
+
+    def test_workload_hash_is_deterministic_and_parameter_sensitive(self):
+        first = performance_workload_definition()
+        second = performance_workload_definition()
+        changed = performance_workload_definition(measured_steps=501)
+        self.assertEqual(workload_sha256(first), workload_sha256(second))
+        self.assertNotEqual(workload_sha256(first), workload_sha256(changed))
+
+    def test_committed_v3_evidence_matches_current_executable_workload(self):
+        evidence = json.loads(EVIDENCE_V3.read_text(encoding="utf-8"))
+        definition = performance_workload_definition()
+        graph = build_matched_scale_graph()
+        self.assertEqual(evidence["schema_version"], "p3-06-performance-v3")
+        self.assertEqual(evidence["dataset"], "male-cns:v1.0")
+        self.assertEqual(evidence["fixture_kind"], "synthetic_matched_scale")
+        self.assertEqual(evidence["workload_definition"], definition)
+        self.assertEqual(evidence["workload_sha256"], workload_sha256(definition))
+        self.assertEqual(
+            evidence["workload_definition"]["graph"]["fixture_sha256"],
+            graph_content_sha256(graph.body_ids, graph.edges()),
+        )
+        self.assertEqual(evidence["runner"]["python_version"], "3.12.14")
+        self.assertEqual(evidence["random_seed"], "none")
+        self.assertRegex(evidence["source_branch_head"], r"^[0-9a-f]{40}$")
+        self.assertTrue(evidence["latency"]["preferred_p95_target_met"])
+        self.assertLessEqual(
+            evidence["latency"]["p95_ms"],
+            evidence["latency"]["preferred_p95_target_ms"],
+        )
+        memory = evidence["memory"]
+        self.assertEqual(memory["measurement_method"], "linux-proc-status-vmrss-vmhwm")
+        self.assertEqual(
+            memory["runtime_rss_delta_bytes"],
+            memory["runtime_constructed_rss_bytes"] - memory["baseline_rss_bytes"],
+        )
+        self.assertGreaterEqual(memory["peak_rss_bytes"], memory["runtime_constructed_rss_bytes"])
+
+    def test_historical_v2_evidence_remains_self_consistent(self):
+        evidence = json.loads(EVIDENCE_V2.read_text(encoding="utf-8"))
+        self.assertEqual(evidence["schema_version"], "p3-06-performance-v2")
+        self.assertEqual(evidence["dataset"], "male-cns:v1.0")
+        self.assertEqual(evidence["fixture_kind"], "synthetic_matched_scale")
+        self.assertLessEqual(
+            evidence["latency"]["p95_ms"],
+            evidence["latency"]["preferred_p95_target_ms"],
+        )
+        self.assertTrue(evidence["latency"]["preferred_p95_target_met"])
+        self.assertEqual(
+            evidence["memory"]["measurement_method"],
+            "linux-proc-status-vmrss-vmhwm",
+        )
+
+    def test_linux_proc_memory_parser(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "status"
+            path.write_text(
+                "Name:\tpython\nVmHWM:\t2048 kB\nVmRSS:\t1536 kB\n",
+                encoding="utf-8",
+            )
+            sample = read_linux_process_memory(path)
+        self.assertEqual(sample["measurement_method"], "linux-proc-status-vmrss-vmhwm")
+        self.assertEqual(sample["rss_bytes"], 1536 * 1024)
+        self.assertEqual(sample["peak_rss_bytes"], 2048 * 1024)
 
     def test_invalid_percentile_inputs(self):
         with self.assertRaises(ValueError):

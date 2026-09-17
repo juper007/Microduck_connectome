@@ -1,0 +1,78 @@
+{
+  "schema_version": "p3-07-soak-v2",
+  "dataset": "male-cns:v1.0",
+  "fixture_kind": "synthetic_matched_scale",
+  "source_branch_head": "9499d5aa80798e3f05a78750c18806723d440a39",
+  "workflow_run_id": 35281257416,
+  "workflow_job_id": 105403476864,
+  "runner": {
+    "image": "ubuntu-24.04",
+    "image_version": "20260907.300.1",
+    "machine": "x86_64",
+    "cpu_count": 4,
+    "python_version": "3.12.14",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39"
+  },
+  "runtime_backend": "python-cpu-float32-contract",
+  "neural_config_sha256": "6fb682ee73302142d75d54c81ef3c2a7acb647ca8e70a59dc3c93b04df8f7a15",
+  "workload_definition": {
+    "schema_version": "p3-07-workload-v2",
+    "fixture_kind": "synthetic_matched_scale",
+    "graph": {
+      "node_count": 570,
+      "edge_count": 21142,
+      "normalized_weight": 0.01,
+      "generation_rule": "round_robin_offset_unique_directed_nonself-v1"
+    },
+    "timestep_ms": 20,
+    "steps_per_mode": 30000,
+    "modes": {
+      "zero": {
+        "external": {}
+      },
+      "bounded": {
+        "period_steps": 10,
+        "external": {
+          "1": 1,
+          "200": 0.75
+        }
+      }
+    }
+  },
+  "workload_sha256": "191354438f84809050c7e739964b0a862bac0571451bca8d44db1de17a828c88",
+  "all_healthy": true,
+  "nonfinite_detected": false,
+  "runs": [
+    {
+      "mode": "zero",
+      "steps": 30000,
+      "timestep_ms": 20,
+      "simulated_seconds": 600,
+      "node_count": 570,
+      "edge_count": 21142,
+      "healthy": true,
+      "nonfinite_detected": false,
+      "max_abs_state": 0,
+      "total_spikes": 0,
+      "final_step_count": 30000,
+      "wall_seconds": 34.413714367000004,
+      "workload_sha256": "191354438f84809050c7e739964b0a862bac0571451bca8d44db1de17a828c88"
+    },
+    {
+      "mode": "bounded",
+      "steps": 30000,
+      "timestep_ms": 20,
+      "simulated_seconds": 600,
+      "node_count": 570,
+      "edge_count": 21142,
+      "healthy": true,
+      "nonfinite_detected": false,
+      "max_abs_state": 0.75,
+      "total_spikes": 4500,
+      "final_step_count": 30000,
+      "wall_seconds": 34.445097195,
+      "workload_sha256": "191354438f84809050c7e739964b0a862bac0571451bca8d44db1de17a828c88"
+    }
+  ],
+  "scope": "Supported-environment synthetic matched-scale numerical stability evidence; not actual full MaleCNS topology, biological validity, closed-loop robot stability, or hardware safety."
+}

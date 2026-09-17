@@ -3,6 +3,7 @@ import math
 from pathlib import Path
 import unittest
 
+from microduck_connectome.annotations import MAX_BODY_ID
 from microduck_connectome.sparse_runtime import NeuralRuntimeError, SparseNeuralRuntime
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +49,14 @@ class SparseRuntimeTests(unittest.TestCase):
         with self.assertRaises(NeuralRuntimeError):
             runtime.step()
 
+    def test_external_body_id_aliases_are_rejected(self):
+        for body_id in (True, False, 1.0, "1", 0, -1, MAX_BODY_ID + 1):
+            with self.subTest(body_id=body_id):
+                runtime = SparseNeuralRuntime(StubGraph(), CONFIG)
+                with self.assertRaises(NeuralRuntimeError):
+                    runtime.step({body_id: 0.5})
+                self.assertFalse(runtime.healthy)
+
     def test_nonfinite_external_fails_closed(self):
         for value in (math.nan, math.inf, -math.inf):
             with self.subTest(value=value):
@@ -69,6 +78,39 @@ class SparseRuntimeTests(unittest.TestCase):
                 return ()
         with self.assertRaises(NeuralRuntimeError):
             SparseNeuralRuntime(BadGraph(), CONFIG)
+
+    def test_rejects_invalid_graph_body_ids(self):
+        for bad_id in (True, 1.0, "1", 0, -1, MAX_BODY_ID + 1):
+            with self.subTest(body_id=bad_id):
+                class BadGraph:
+                    body_ids = (bad_id,)
+                    def edges(self):
+                        return ()
+                with self.assertRaises(NeuralRuntimeError):
+                    SparseNeuralRuntime(BadGraph(), CONFIG)
+
+    def test_rejects_edge_endpoint_aliases_and_invalid_ids(self):
+        bad_ids = (True, False, 1.0, "1", 0, -1, MAX_BODY_ID + 1, 99)
+        for endpoint in ("source_body_id", "target_body_id"):
+            for bad_id in bad_ids:
+                with self.subTest(endpoint=endpoint, body_id=bad_id):
+                    class BadGraph:
+                        body_ids = (1, 2)
+                        def edges(self):
+                            edge = {
+                                "source_body_id": 1,
+                                "target_body_id": 2,
+                                "normalized_weight": 0.5,
+                            }
+                            edge[endpoint] = bad_id
+                            return (edge,)
+                    with self.assertRaises(NeuralRuntimeError):
+                        SparseNeuralRuntime(BadGraph(), CONFIG)
+
+    def test_valid_integer_edge_endpoints_still_work(self):
+        runtime = SparseNeuralRuntime(StubGraph(), CONFIG)
+        self.assertTrue(runtime.healthy)
+        self.assertEqual(runtime.body_ids, (1, 2, 3))
 
     def test_rejects_negative_or_nonfinite_weight(self):
         for bad_weight in (-0.1, math.nan):

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Profile the P3 sparse runtime on the deterministic matched-scale fixture."""
+"""Profile Phase 3 sparse-runtime latency and process memory."""
 
 import json
 import os
 from pathlib import Path
 import platform
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,21 +15,34 @@ from microduck_connectome.neural_model import load_model_config, model_config_sh
 from microduck_connectome.performance import profile_runtime
 
 
+def _git_head():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def main():
     config_path = ROOT / "config" / "neural_model_v1.json"
     config = load_model_config(config_path)
     report = profile_runtime(config)
     report.update({
-        "schema_version": "p3-06-performance-v1",
+        "schema_version": "p3-06-performance-v3",
         "fixture_kind": "synthetic_matched_scale",
         "dataset": "male-cns:v1.0",
         "neural_config_sha256": model_config_sha256(config),
-        "workload_sha256": "297f11c6248142fc89c875d7547574a7c97e44eb46335069af82a1935a4540d9",
+        "source_commit_sha": _git_head(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "machine": platform.machine(),
         "cpu_count": os.cpu_count(),
         "runtime_backend": "python-cpu-float32-contract",
+        "random_seed": "none",
     })
     print(json.dumps(report, sort_keys=True, separators=(",", ":")))
 
