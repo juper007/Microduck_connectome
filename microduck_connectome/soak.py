@@ -21,7 +21,7 @@ def run_soak(config, *, mode, steps=30_000, clock=time.perf_counter):
 
     for step in range(steps):
         if mode == "bounded" and step % 10 == 0:
-            external = {1: 0.5, 200: 0.25}
+            external = {1: 1.0, 200: 0.75}
         else:
             external = {}
         snapshot = runtime.step(external)
