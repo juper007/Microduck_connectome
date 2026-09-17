@@ -1,7 +1,16 @@
 {
   "schema_version": "p3-05-determinism-v1",
+  "dataset": "male-cns:v1.0",
+  "fixture_kind": "synthetic_contract_fixture",
   "model_spec_version": "P-1.1",
+  "neural_config_sha256": "6fb682ee73302142d75d54c81ef3c2a7acb647ca8e70a59dc3c93b04df8f7a15",
+  "runtime_backend": "python-cpu-float32-contract",
+  "random_seed": "none",
+  "base_runtime_commit": "b9181d908e4497a0e691aedb47831297b345033c",
+  "producer_commit": "a6d5932f4502515b9bb1ecee8cecef5a8ec269e5",
   "timestep_ms": 20,
+  "graph_fixture_sha256": "95a67ef359da2ec4317e8b9aad367f0cc25fe740a3a40df226cde9d37f3b8167",
+  "input_trace_sha256": "a14bd46ecdd3df5be0486e229c9e023d9fe2150c770fd66e71d870c6f84b9660",
   "graph": {
     "body_ids": [101, 102, 103],
     "edges": [
@@ -19,5 +28,5 @@
   "steps": 5,
   "exact_replay_equal": true,
   "trace_sha256": "e03ac3bbe892f45b2d2797a4618fa1de952ca29b58c7b07b879c7353cafaa702",
-  "scope": "small deterministic contract fixture; not a performance or biological-validity result"
+  "scope": "small deterministic synthetic contract fixture; not a performance or biological-validity result"
 }
