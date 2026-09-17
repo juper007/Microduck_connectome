@@ -61,6 +61,16 @@ class StimulusTests(unittest.TestCase):
         external[1] = 9.0
         self.assertEqual(self.injector.build_external({"left": 0.2})[1], 0.2)
 
+    def test_population_specs_are_detached_from_validated_state(self):
+        specs = self.injector.population_specs()
+        specs["left"]["max_amplitude"] = -1.0
+        specs["left"]["body_ids"].clear()
+        self.assertEqual(self.injector.build_external({"left": 1.0}), {1: 0.8, 2: 0.8})
+
+    def test_rejects_non_string_population_name(self):
+        with self.assertRaises(StimulusConfigError):
+            StimulusInjector((1,), {1: {"body_ids": [1], "side": "L", "max_amplitude": 1.0}})
+
 
 if __name__ == "__main__":
     unittest.main()
