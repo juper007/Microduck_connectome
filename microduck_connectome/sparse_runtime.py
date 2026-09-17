@@ -3,12 +3,17 @@
 import math
 import struct
 
+from .annotations import MAX_BODY_ID
 from .neural_model import validate_model_config
 
 
 def _f32(value):
     """Round one finite numeric value to IEEE-754 binary32."""
     return struct.unpack("!f", struct.pack("!f", float(value)))[0]
+
+
+def _valid_body_id(value):
+    return type(value) is int and 1 <= value <= MAX_BODY_ID
 
 
 class NeuralRuntimeError(ValueError):
@@ -32,11 +37,13 @@ class SparseNeuralRuntime:
             raise NeuralRuntimeError("graph must expose body_ids") from error
         if not body_ids:
             raise NeuralRuntimeError("graph must contain at least one neuron")
+        for body_id in body_ids:
+            if not _valid_body_id(body_id):
+                raise NeuralRuntimeError(
+                    "graph body_ids must be exact integers in 1..2**63-1"
+                )
         if tuple(sorted(body_ids)) != body_ids or len(set(body_ids)) != len(body_ids):
             raise NeuralRuntimeError("graph body_ids must be unique and ascending integers")
-        for body_id in body_ids:
-            if type(body_id) is not int or body_id <= 0:
-                raise NeuralRuntimeError("graph body_ids must be positive integers")
 
         self.body_ids = body_ids
         self._index = {body_id: index for index, body_id in enumerate(body_ids)}
@@ -53,6 +60,10 @@ class SparseNeuralRuntime:
                 weight = edge["normalized_weight"]
             except (KeyError, TypeError) as error:
                 raise NeuralRuntimeError("edge missing source/target/normalized_weight") from error
+            if not _valid_body_id(source) or not _valid_body_id(target):
+                raise NeuralRuntimeError(
+                    "edge endpoints must be exact integers in 1..2**63-1"
+                )
             if source not in self._index or target not in self._index:
                 raise NeuralRuntimeError("edge endpoint is absent from graph body_ids")
             identity = (source, target)
@@ -115,8 +126,8 @@ class SparseNeuralRuntime:
         except Exception:
             self._fail("external input must be a mapping")
         for body_id, value in items:
-            if body_id not in self._index:
-                self._fail("external input references unknown body_id")
+            if not _valid_body_id(body_id) or body_id not in self._index:
+                self._fail("external input references invalid or unknown body_id")
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 self._fail("external input must be finite numeric values")
             try:
