@@ -39,3 +39,5 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_escape_decoder.py'
       - name: P5-04 safety clamp tests
         run: python -m unittest discover -s tests -p 'test_safety_clamp.py'
+      - name: P5-05 watchdog tests
+        run: python -m unittest discover -s tests -p 'test_watchdog.py'
