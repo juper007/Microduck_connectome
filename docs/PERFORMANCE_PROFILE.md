@@ -23,9 +23,9 @@ Its SHA-256 is computed from canonical JSON at runtime; it is not a manually cop
 
 Current v2 workload SHA256:
 
-`d11bbb082fded16bb16816eb0a33618bb2e4ff31533be8178eb94d35243d3011`
+`9c60aacf6c2f024fca2ea3de1961010c9e1dad4990aae8b421c4c3d9da69fd19`
 
-Changing a workload parameter changes the hash and is covered by regression tests.
+Generated graph content SHA256 is `b91d9ddff6c68bf507b98b87abdf3e122b379cbb86c21e27aaa13d5fdae520f7` and is embedded in the workload definition. Changing graph content or another workload parameter changes the workload hash and is covered by regression tests.
 
 The scale matches the selected G1 graph evidence (570 nodes / 21,142 edges) only for runtime-cost characterization. It does not preserve G1 degree distribution or topology and must not be presented as biological or actual MaleCNS-topology performance.
 
@@ -49,6 +49,6 @@ RSS is environment-dependent evidence. There is deliberately no newly invented m
 
 ## Evidence
 
-Historical `performance-v1.json` is retained. G3 remediation adds a v2 supported-environment evidence file with latency, memory, executable workload definition/hash, config hash, code/source SHA, runner and workflow identity.
+Historical `performance-v1.json` and `performance-v2.json` are retained. G3 remediation's current graph-bound result is `performance-v3.json`, with latency, memory, executable workload definition/hash, generated-graph content hash, config hash, code/source SHA, runner and workflow identity.
 
 Only supported Python 3.12 CI measurements are acceptance evidence.
