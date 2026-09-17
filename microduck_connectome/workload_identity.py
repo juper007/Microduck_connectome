@@ -24,12 +24,7 @@ def workload_sha256(definition):
     return hashlib.sha256(_canonical_json(definition).encode("utf-8")).hexdigest()
 
 
-def graph_workload_definition(
-    *,
-    node_count=DEFAULT_NODE_COUNT,
-    edge_count=DEFAULT_EDGE_COUNT,
-    normalized_weight=DEFAULT_NORMALIZED_WEIGHT,
-):
+def _validated_graph_params(node_count, edge_count, normalized_weight):
     if type(node_count) is not int or node_count < 2:
         raise ValueError("node_count must be an integer >= 2")
     max_edges = node_count * (node_count - 1)
@@ -40,11 +35,58 @@ def graph_workload_definition(
     normalized_weight = float(normalized_weight)
     if not math.isfinite(normalized_weight) or normalized_weight < 0:
         raise ValueError("normalized_weight must be finite and non-negative")
+    return node_count, edge_count, normalized_weight
+
+
+def matched_scale_graph_fixture(
+    *,
+    node_count=DEFAULT_NODE_COUNT,
+    edge_count=DEFAULT_EDGE_COUNT,
+    normalized_weight=DEFAULT_NORMALIZED_WEIGHT,
+):
+    """Return the exact deterministic synthetic graph content used by P3 workloads."""
+    node_count, edge_count, normalized_weight = _validated_graph_params(
+        node_count, edge_count, normalized_weight
+    )
+    body_ids = list(range(1, node_count + 1))
+    edges = []
+    source = 1
+    offset = 1
+    while len(edges) < edge_count:
+        target = ((source - 1 + offset) % node_count) + 1
+        if target != source:
+            edges.append({
+                "source_body_id": source,
+                "target_body_id": target,
+                "normalized_weight": normalized_weight,
+            })
+        source += 1
+        if source > node_count:
+            source = 1
+            offset += 1
+    return {"body_ids": body_ids, "edges": edges}
+
+
+def graph_workload_definition(
+    *,
+    node_count=DEFAULT_NODE_COUNT,
+    edge_count=DEFAULT_EDGE_COUNT,
+    normalized_weight=DEFAULT_NORMALIZED_WEIGHT,
+):
+    node_count, edge_count, normalized_weight = _validated_graph_params(
+        node_count, edge_count, normalized_weight
+    )
+    fixture = matched_scale_graph_fixture(
+        node_count=node_count,
+        edge_count=edge_count,
+        normalized_weight=normalized_weight,
+    )
     return {
         "node_count": node_count,
         "edge_count": edge_count,
         "normalized_weight": normalized_weight,
         "generation_rule": GRAPH_GENERATION_RULE,
+        "fixture_sha256": workload_sha256(fixture),
     }
 
 
