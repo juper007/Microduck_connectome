@@ -1,0 +1,7 @@
+{
+  "schema_version": "watchdog-v1",
+  "neural_readout_ttl_ms": 100,
+  "behavior_intent_ttl_ms": 100,
+  "source": "male-cns-controller",
+  "safe_state": "internal stop=true with vx=vy=vyaw=0; transport deferred to integration"
+}
