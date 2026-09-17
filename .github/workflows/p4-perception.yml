@@ -1,0 +1,31 @@
+name: P4 perception tests
+
+on:
+  pull_request:
+    paths:
+      - 'microduck_connectome/perception_frame.py'
+      - 'microduck_connectome/camera_target.py'
+      - 'microduck_connectome/looming.py'
+      - 'microduck_connectome/tof.py'
+      - 'microduck_connectome/sensory_mapping.py'
+      - 'microduck_connectome/stimulus_visualizer.py'
+      - 'tests/test_camera_target.py'
+      - 'tests/test_looming.py'
+      - 'tests/test_tof.py'
+      - 'tests/test_sensory_mapping.py'
+      - 'tests/test_stimulus_visualizer.py'
+      - '.github/workflows/p4-perception.yml'
+
+jobs:
+  perception:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: P4-01 camera target tests
+        run: python -m unittest discover -s tests -p 'test_camera_target.py'
