@@ -2,9 +2,9 @@
   "schema_version": "p3-06-performance-v3",
   "dataset": "male-cns:v1.0",
   "fixture_kind": "synthetic_matched_scale",
-  "source_branch_head": "9864e677aa17465adfea688b4c80f3f1e2a71e6e",
-  "workflow_run_id": 35281840843,
-  "workflow_job_id": 105405315953,
+  "source_branch_head": "a405ec1dcf2ff3f513d5bd04f6fd6eecf5c17d2d",
+  "workflow_run_id": 35282012254,
+  "workflow_job_id": 105405852197,
   "runner": {
     "image": "ubuntu-24.04",
     "image_version": "20260907.300.1",
@@ -24,7 +24,8 @@
       "edge_count": 21142,
       "normalized_weight": 0.01,
       "generation_rule": "round_robin_offset_unique_directed_nonself-v1",
-      "fixture_sha256": "b91d9ddff6c68bf507b98b87abdf3e122b379cbb86c21e27aaa13d5fdae520f7"
+      "content_hash_scheme": "body-id-json-plus-canonical-edge-jsonl-v1",
+      "fixture_sha256": "2ba657e747e1680281572200dcee4fa239aabcccba028f28ac8360c8587847e0"
     },
     "warmup_steps": 100,
     "measured_steps": 500,
@@ -42,23 +43,23 @@
       }
     }
   },
-  "workload_sha256": "9c60aacf6c2f024fca2ea3de1961010c9e1dad4990aae8b421c4c3d9da69fd19",
+  "workload_sha256": "43de9279ae58777f9fe387becb3c0ef95bf6a326b9f8bdebd4f02a1a2947f128",
   "latency": {
-    "p50_ms": 0.503686,
-    "p95_ms": 0.557737,
-    "p99_ms": 0.917403,
-    "min_ms": 0.473015,
-    "max_ms": 0.938803,
+    "p50_ms": 1.00683,
+    "p95_ms": 1.065149,
+    "p99_ms": 1.53392,
+    "min_ms": 0.998024,
+    "max_ms": 1.564767,
     "preferred_p95_target_ms": 18,
     "preferred_p95_target_met": true
   },
   "memory": {
     "measurement_method": "linux-proc-status-vmrss-vmhwm",
-    "baseline_rss_bytes": 25444352,
-    "runtime_constructed_rss_bytes": 32759808,
-    "post_profile_rss_bytes": 32804864,
-    "peak_rss_bytes": 34791424,
-    "runtime_rss_delta_bytes": 7315456
+    "baseline_rss_bytes": 23261184,
+    "runtime_constructed_rss_bytes": 31391744,
+    "post_profile_rss_bytes": 31436800,
+    "peak_rss_bytes": 33775616,
+    "runtime_rss_delta_bytes": 8130560
   },
-  "scope": "Supported-environment synthetic matched-scale latency/memory evidence with generated-graph content identity; not actual MaleCNS topology, biological performance, or hardware performance."
+  "scope": "Supported-environment synthetic matched-scale latency/memory evidence with streaming generated-graph content identity; not actual MaleCNS topology, biological performance, or hardware performance."
 }
