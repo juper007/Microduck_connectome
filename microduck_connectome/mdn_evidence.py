@@ -89,6 +89,9 @@ def build(annotations_path, weights_path, output, download=False):
         raise ValueError("Dataset mismatch")
     if digest(G1) != G1_SHA:
         raise ValueError("G1 digest mismatch")
+    g1_report = json.loads(G1.read_text())
+    if manifest != g1_report["source_manifest"]:
+        raise ValueError("Source manifest differs from pinned G1 manifest")
     for path, key in [(annotations_path, "annotations"), (weights_path, "weights")]:
         acquire(path, manifest[key], download)
     annotation_table(annotations_path, manifest["annotations"]["expected_rows"])
@@ -96,7 +99,7 @@ def build(annotations_path, weights_path, output, download=False):
     import pyarrow.feather as feather
     rows = feather.read_table(annotations_path, columns=FIELDS).to_pylist()
     readouts = identity(rows)
-    expected = json.loads(G1.read_text())["candidate_inventory"]["MDN"]["source_records"]
+    expected = g1_report["candidate_inventory"]["MDN"]["source_records"]
     if [{k: row[k] for k in expected[0]} for row in readouts] != expected:
         raise ValueError("MDN source differs from committed G1 identity")
     selected_ids = id_array(r["bodyId"] for r in readouts)
