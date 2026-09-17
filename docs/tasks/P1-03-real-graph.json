@@ -1,0 +1,73 @@
+{
+  "schema_version": "connectivity-v1",
+  "annotations": {
+    "dataset": "male-cns:v1.0",
+    "extraction_commit": "ea744cc910ec60fea4759de664754fb701a6315f",
+    "records": [
+      {
+        "body_id": 10005,
+        "cell_type": "AOTU019",
+        "instance": "AOTU019_R",
+        "neuron_class": null,
+        "soma_side": "right"
+      },
+      {
+        "body_id": 523769,
+        "cell_type": "DNa02",
+        "instance": "DNa02_L",
+        "neuron_class": null,
+        "soma_side": "left"
+      }
+    ],
+    "schema_version": "annotation-v1",
+    "source_note": "Official flat annotation cache, SHA256 2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2; explicit somaSide L/R to left/right adapter; original source values retained in validation evidence"
+  },
+  "edges": [
+    {
+      "source_body_id": 10005,
+      "target_body_id": 523769,
+      "raw_synapse_weight": 297,
+      "normalized_weight": 0.012679844597190796,
+      "source_type": "AOTU019",
+      "target_type": "DNa02",
+      "provenance_dataset": "male-cns:v1.0"
+    }
+  ],
+  "full_outgoing_sums": [
+    {
+      "body_id": 10005,
+      "raw_weight_sum": 23423
+    },
+    {
+      "body_id": 523769,
+      "raw_weight_sum": 24134
+    }
+  ],
+  "manifest": {
+    "dataset": "male-cns:v1.0",
+    "extraction_tool_version": "ea744cc910ec60fea4759de664754fb701a6315f",
+    "query_or_extraction_config": "Select every row with body_pre in [10005,523769]; no body_post filter before denominator; induced two-node graph",
+    "created_utc": "2026-09-17T19:21:09Z",
+    "source_sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1",
+    "confidence_filter": "official v1.0 minconf-0.5 flat weights; no additional weight threshold",
+    "normalization_scope": "all retained-confidence source outgoing edges before target selection",
+    "source_completeness": "caller assertion; not independently verified",
+    "seed_populations": [
+      "AOTU019 diagnostic single neuron"
+    ],
+    "readout_populations": [
+      "DNa02 diagnostic single neuron"
+    ],
+    "selection_rules": "Explicit diagnostic body IDs from prior path fixture; not full populations or biological validation",
+    "node_count": 2,
+    "edge_count": 1,
+    "raw_weight_sum": 297,
+    "body_id_set_hash": "bf8e4c82da9a2014c2f1aaabdad814b3ab6ddcff801dda6455678a2bd8ffd137",
+    "edge_table_hash": "e13a87fdb1f99f850d3cf0ee9598b2505f1799295630995d21c6932dfe780a54",
+    "annotation_artifact_hash": "17b0bac95e7b84b0fbb7686aaf0eaece60f9c2c7bb67f92611d053cc9bae6f20",
+    "source_edge_count": 23080,
+    "source_raw_weight_sum": 47557,
+    "source_edge_table_hash": "b4d1725cbd6715984c457ad923887feced4105abb9be2fcc9a5a614f757a0451",
+    "full_outgoing_sums_hash": "31101113350311848c93ca2c52be3d8c75558957776cedeafa6b7436c07e4f93"
+  }
+}
