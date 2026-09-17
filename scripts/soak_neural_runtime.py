@@ -33,7 +33,7 @@ def main():
     workload = soak_workload_definition(timestep_ms=config["timestep_ms"])
     runs = [run_soak(config, mode="zero"), run_soak(config, mode="bounded")]
     report = {
-        "schema_version": "p3-07-soak-v2",
+        "schema_version": "p3-07-soak-v3",
         "dataset": "male-cns:v1.0",
         "fixture_kind": "synthetic_matched_scale",
         "workload_definition": workload,
@@ -41,6 +41,7 @@ def main():
         "neural_config_sha256": model_config_sha256(config),
         "source_commit_sha": _git_head(),
         "runtime_backend": "python-cpu-float32-contract",
+        "random_seed": "none",
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "machine": platform.machine(),
