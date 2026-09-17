@@ -1,0 +1,9 @@
+{
+  "schema_version": "two-hop-selection-v1",
+  "seed_type": "LC10a",
+  "readout_type": "DNa02",
+  "candidate_types": ["LC10a", "LC4", "LPLC2", "DNa02", "DNp01", "DNge104", "MDN"],
+  "created_utc": "2026-09-17T00:00:00Z",
+  "selection": "all exact-type seeds and readouts plus annotated distinct intermediate nodes on seed-to-readout directed two-edge paths; retain all induced edges",
+  "normalization": "all source outgoing rows for each selected node including unannotated and unselected targets; no weight threshold"
+}
