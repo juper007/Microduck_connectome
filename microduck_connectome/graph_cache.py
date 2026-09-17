@@ -123,7 +123,9 @@ def _validate(graph):
     weight = manifest["source_raw_weight_sum"]
     # Each positive missing selected-source remainder needs at least one source row.
     missing = sum(outgoing[node] > induced[node] for node in nodes)
-    _require(count >= len(edges) + missing and weight >= total and
+    # Weight from unselected sources requires a separate row from those remainders.
+    outside = int(weight > total)
+    _require(count >= len(edges) + missing + outside and weight >= total and
              weight - sum(induced.values()) >= count - len(edges),
              "inconsistent source counts")
     _require((count == 0) == (weight == 0), "inconsistent empty source")

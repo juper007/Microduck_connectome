@@ -133,6 +133,26 @@ class GraphCacheTests(unittest.TestCase):
             self.assertEqual((self.root / (key + '.json')).read_bytes(), original)
             self.assertEqual(load_graph(self.root, key), graph)
 
+    def test_unselected_source_weight_requires_an_additional_row(self):
+        graph = extract([edge(1, 2, 3), edge(1, 99, 7)])
+        graph['manifest']['source_raw_weight_sum'] = 11
+        with self.assertRaisesRegex(GraphCacheError, 'inconsistent source counts'):
+            store_graph(self.root, graph)
+        # A matching byte digest must not bypass the same semantic validation.
+        data = json.dumps(graph, sort_keys=True, separators=(',', ':'),
+                          ensure_ascii=True, allow_nan=False).encode('utf-8')
+        key = hashlib.sha256(data).hexdigest()
+        (self.root / (key + '.json')).write_bytes(data)
+        with self.assertRaisesRegex(GraphCacheError, 'inconsistent source counts'):
+            load_graph(self.root, key)
+
+    def test_valid_omitted_rows_with_and_without_unselected_sources(self):
+        for rows in ([edge(1, 2, 3), edge(1, 99, 7), edge(99, 100, 1)],
+                     [edge(1, 2, 3), edge(1, 99, 4), edge(1, 100, 3)]):
+            with self.subTest(rows=rows):
+                graph = extract(rows)
+                self.assertEqual(load_graph(self.root, store_graph(self.root, graph)), graph)
+
     def test_partial_write_is_never_published(self):
         factory = tempfile.NamedTemporaryFile
         class FailingWrite:
