@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 import unittest
@@ -112,6 +113,27 @@ class SensoryMappingTests(unittest.TestCase):
     def test_tof_proximity_is_not_silently_neural_mapped(self):
         frame = self.frame(proximity_left=1.0, proximity_center=1.0, proximity_right=1.0)
         self.assertEqual(self.mapper.build_external(frame, now_ns=1_000_000_000), {})
+
+    def test_mapping_rule_versions_are_machine_validated(self):
+        self.assertEqual(
+            self.config["engineering_mapping"]["mapping_rule_version"],
+            "target-linear-lateral-split-v1",
+        )
+        self.assertEqual(
+            self.config["engineering_mapping"]["looming_rule_version"],
+            "bilateral-lplc2-v1",
+        )
+        for key,value in (
+            ("mapping_rule_version","unknown-target-rule"),
+            ("looming_rule_version","unknown-looming-rule"),
+            ("image_negative_x_population","lc10a_right"),
+        ):
+            bad=copy.deepcopy(self.config)
+            bad["engineering_mapping"][key]=value
+            with self.subTest(key=key):
+                from microduck_connectome.sensory_mapping import validate_sensory_mapping_config, SensoryMappingError
+                with self.assertRaises(SensoryMappingError):
+                    validate_sensory_mapping_config(bad)
 
     def test_config_hash_is_deterministic(self):
         original = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
