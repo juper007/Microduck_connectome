@@ -1,0 +1,19 @@
+{
+  "schema_version": "neural-model-config-v1",
+  "model_spec_version": "P-1.1",
+  "model_family": "discrete-time-lif-like",
+  "timestep_ms": 20,
+  "alpha": 0.9,
+  "threshold": 1.0,
+  "reset_value": 0.0,
+  "recurrent_gain": 1.0,
+  "state_dtype": "float32",
+  "spike_dtype": "bool",
+  "deterministic": true,
+  "plasticity": false,
+  "recurrent_weight_mode": "unsigned",
+  "normalization_scope": "full_source_before_subgraph_filtering",
+  "update_semantics": "synchronous",
+  "recurrent_spike_source": "previous_step",
+  "initial_state": "zero"
+}
