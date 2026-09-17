@@ -37,3 +37,5 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_stimulus.py'
           python -m unittest discover -s tests -p 'test_sensory_mapping.py'
+      - name: P4-05 stimulus visualizer tests
+        run: python -m unittest discover -s tests -p 'test_stimulus_visualizer.py'
