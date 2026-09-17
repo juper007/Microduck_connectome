@@ -1,6 +1,6 @@
 {
   "corruption_rejected": "PASS",
-  "implementation_commit": "de11839bcc1a8888e5c94387278f880c89c91c84",
+  "implementation_commit": "b3a33ac3d595f004ae9eed7cd59321b7ad8cb5f4",
   "fixture": "docs/tasks/P1-03-real-graph.json",
   "real_graph_roundtrip": "PASS",
   "no_input_mutation": "PASS",
