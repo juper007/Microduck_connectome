@@ -160,8 +160,11 @@ class PerceptionCompositor:
         output_frame_id = camera["frame_id"]
 
         if reasons:
+            # Fail-closed output is a current diagnostic/safety observation, not a
+            # replay of malformed source time. Using now_ns keeps the neutral frame
+            # consumable by downstream freshness validation even when a source is future-dated.
             return self._neutral(
-                timestamp_ns=output_timestamp,
+                timestamp_ns=now_ns,
                 frame_id=output_frame_id,
                 reasons=reasons,
             )
