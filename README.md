@@ -87,6 +87,9 @@ Agent work uses lazy context loading and compact task packets so large-model con
 
 Preflight definitions frozen; Phase 0 ready.
 
+Phase 0 bootstrap setup and remaining acceptance work:
+[`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
+
 ## Upstream projects
 
 - MaleCNS project: https://male-cns.janelia.org/
