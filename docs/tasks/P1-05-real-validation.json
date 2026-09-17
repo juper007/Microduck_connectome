@@ -1,0 +1,14 @@
+{
+  "implementation_commit": "419245bd38e3cd78e22439d459c270cad3c7e6bb",
+  "fixture": "docs/tasks/P1-03-real-graph.json",
+  "root_key": "d65a511c1f80b40d9d37947910975c654a9492b3e23856a992edd7e87f8f6718",
+  "node_count": 2,
+  "edge_count": 1,
+  "raw_and_normalized_weights": "PASS",
+  "direction_and_type_selection": "PASS",
+  "induced_isolated_node_and_empty_nested_view": "PASS",
+  "root_provenance_preserved": "PASS",
+  "returned_mutation_isolated": "PASS",
+  "cache_backed_roundtrip": "PASS",
+  "source_completeness": "caller assertion, unchanged"
+}

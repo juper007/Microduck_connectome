@@ -25,3 +25,10 @@
 - Review/integration: independent final-head review, current-main freshness,
   PR submission and merge remain with PM. No PR or push from this implementation
   task. Phase 1 gate is not declared complete.
+
+## PM Thor validation
+
+- Implementation `419245bd38e3cd78e22439d459c270cad3c7e6bb` exported via git archive, run in isolated `/home/juper007/projects/microduck-connectome-thor/p1-05-419245b` using existing Python3.12.3 data environment.
+- `python -m unittest discover -s tests`: 81/81 PASS, no dependency changes.
+- Additional committed real-graph probe verifies IDs, exact raw297 and normalized297/23423, full-source totals23423/24134, direction/type queries, isolated and empty nested views, root provenance retention, detached returned data and cache-backed roundtrip. See P1-05-real-validation.json; script retained on Thor as p1_05_real_validation.py.
+- Fixture is the existing two-node diagnostic, not a new source acquisition or biological validation. Final independent review pending; task REVIEW and no Phase1 gate claim.
