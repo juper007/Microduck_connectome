@@ -32,9 +32,11 @@ class PopulationReadoutTests(unittest.TestCase):
         readout = PopulationReadout.from_graph_types(StubGraph(), ["A", "B"])
         self.assertEqual(readout.population_specs(), {"A": [1, 2], "B": [3]})
 
-    def test_unknown_type_is_rejected(self):
+    def test_unknown_or_duplicate_type_is_rejected(self):
         with self.assertRaises(PopulationReadoutError):
             PopulationReadout.from_graph_types(StubGraph(), ["X"])
+        with self.assertRaises(PopulationReadoutError):
+            PopulationReadout.from_graph_types(StubGraph(), ["A", "A"])
 
     def test_misaligned_or_nonbool_spikes_are_rejected(self):
         readout = PopulationReadout((1, 2), {"p": [1]})
@@ -50,6 +52,12 @@ class PopulationReadoutTests(unittest.TestCase):
     def test_unknown_population_member_is_rejected(self):
         with self.assertRaises(PopulationReadoutError):
             PopulationReadout((1,), {"p": [2]})
+
+    def test_invalid_body_ids_are_rejected(self):
+        for body_ids, populations in ((("1",), {"p": ["1"]}), ((True,), {"p": [True]}), ((0,), {"p": [0]})):
+            with self.subTest(body_ids=body_ids):
+                with self.assertRaises(PopulationReadoutError):
+                    PopulationReadout(body_ids, populations)
 
     def test_population_specs_are_detached(self):
         readout = PopulationReadout((1, 2), {"p": [1, 2]})
