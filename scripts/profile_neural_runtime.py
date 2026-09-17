@@ -32,7 +32,7 @@ def main():
     config = load_model_config(config_path)
     report = profile_runtime(config)
     report.update({
-        "schema_version": "p3-06-performance-v2",
+        "schema_version": "p3-06-performance-v3",
         "fixture_kind": "synthetic_matched_scale",
         "dataset": "male-cns:v1.0",
         "neural_config_sha256": model_config_sha256(config),
@@ -42,6 +42,7 @@ def main():
         "machine": platform.machine(),
         "cpu_count": os.cpu_count(),
         "runtime_backend": "python-cpu-float32-contract",
+        "random_seed": "none",
     })
     print(json.dumps(report, sort_keys=True, separators=(",", ":")))
 
