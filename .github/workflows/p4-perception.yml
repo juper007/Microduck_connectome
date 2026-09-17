@@ -9,11 +9,14 @@ on:
       - 'microduck_connectome/tof.py'
       - 'microduck_connectome/sensory_mapping.py'
       - 'microduck_connectome/stimulus_visualizer.py'
+      - 'microduck_connectome/perception_compositor.py'
       - 'tests/test_camera_target.py'
       - 'tests/test_looming.py'
       - 'tests/test_tof.py'
       - 'tests/test_sensory_mapping.py'
       - 'tests/test_stimulus_visualizer.py'
+      - 'tests/test_perception_compositor.py'
+      - 'tests/test_p4_sensor_pipeline.py'
       - '.github/workflows/p4-perception.yml'
 
 jobs:
@@ -39,3 +42,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_sensory_mapping.py'
       - name: P4-05 stimulus visualizer tests
         run: python -m unittest discover -s tests -p 'test_stimulus_visualizer.py'
+      - name: P4-P6 compositor tests
+        run: python -m unittest discover -s tests -p 'test_perception_compositor.py'
+      - name: P4-P6 real sensor pipeline tests
+        run: python -m unittest discover -s tests -p 'test_p4_sensor_pipeline.py'
