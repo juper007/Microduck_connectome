@@ -69,6 +69,11 @@ class SafetyClamp:
             raise SafetyClampError("now_ns must be non-negative int")
         if type(sequence) is not int or sequence<0:
             raise SafetyClampError("fallback_sequence must be non-negative int")
+        if self._previous is not None:
+            if now_ns<=self._previous["timestamp_ns"]:
+                raise SafetyClampError("now_ns must advance beyond previous safety output")
+            if sequence<=self._previous["sequence"]:
+                raise SafetyClampError("fallback_sequence must advance beyond previous safety output")
 
     def _neutralize(self,now_ns,sequence,reason):
         safe=make_behavior_intent(timestamp_ns=now_ns,sequence=sequence,
