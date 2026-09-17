@@ -7,3 +7,5 @@ The Phase-5 safety clamp enforces the frozen internal motion envelope independen
 Malformed, non-finite, wrong-source, future, or nonmonotonic intents are converted to `stop=true` with zero motion and an explicit reason. An input stop also forces zero motion immediately. Reset clears the previous slew state.
 
 The module emits only internal safe-intent data plus intervention reasons; transport/integration is outside P5-04.
+
+After construction or reset, the implicit previous motion is zero. Because there is no elapsed-time reference for the first sample, a first nonzero command is emitted as zero and establishes the timestamp/sequence anchor; later samples ramp from zero under the frozen slew limits.
