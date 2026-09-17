@@ -86,7 +86,13 @@ class SparseRuntimeTests(unittest.TestCase):
         runtime.step({3: 0.5})
         self.assertAlmostEqual(runtime.state()[2], 0.5)
         runtime.step()
-        self.assertAlmostEqual(runtime.state()[2], 0.45)
+        self.assertAlmostEqual(runtime.state()[2], 0.45, places=6)
+
+    def test_candidate_is_quantized_to_float32_before_threshold(self):
+        runtime = SparseNeuralRuntime(StubGraph(), CONFIG)
+        result = runtime.step({1: 0.99999998})
+        self.assertTrue(result["spikes"][0])
+        self.assertEqual(result["state"][0], 0.0)
 
     def test_deterministic_replay(self):
         trace = ({1: 0.4}, {1: 0.7}, {2: 0.6}, {}, {3: 0.2})
