@@ -1,6 +1,8 @@
-.venv/
+.venv*/
 __pycache__/
 *.pyc
 .env
-results/
+.env.*
 data/cache/
+results/
+.uv-cache/
