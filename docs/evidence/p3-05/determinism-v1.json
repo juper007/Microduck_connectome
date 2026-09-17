@@ -1,0 +1,23 @@
+{
+  "schema_version": "p3-05-determinism-v1",
+  "model_spec_version": "P-1.1",
+  "timestep_ms": 20,
+  "graph": {
+    "body_ids": [101, 102, 103],
+    "edges": [
+      {"source_body_id": 101, "target_body_id": 102, "normalized_weight": 0.5},
+      {"source_body_id": 102, "target_body_id": 103, "normalized_weight": 0.25}
+    ]
+  },
+  "trace": [
+    {"101": 0.4},
+    {"101": 0.7},
+    {"102": 0.6},
+    {},
+    {"103": 0.2}
+  ],
+  "steps": 5,
+  "exact_replay_equal": true,
+  "trace_sha256": "e03ac3bbe892f45b2d2797a4618fa1de952ca29b58c7b07b879c7353cafaa702",
+  "scope": "small deterministic contract fixture; not a performance or biological-validity result"
+}
