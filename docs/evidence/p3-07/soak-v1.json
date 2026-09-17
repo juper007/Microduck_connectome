@@ -1,0 +1,58 @@
+{
+  "schema_version": "p3-07-soak-v1",
+  "dataset": "male-cns:v1.0",
+  "fixture_kind": "synthetic_matched_scale",
+  "source_branch_head": "9b702b28b6f7b9c3b355141860f29a9bdb1a924a",
+  "workflow_run_id": 35278917088,
+  "workflow_job_id": 105396075148,
+  "workflow_name": "P3 neural soak",
+  "runner": {
+    "os": "Ubuntu 24.04.5 LTS",
+    "image": "ubuntu-24.04",
+    "image_version": "20260907.300.1",
+    "machine": "x86_64",
+    "cpu_count": 4,
+    "python_version": "3.12.14",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39"
+  },
+  "actions": {
+    "checkout": "11d5960a326750d5838078e36cf38b85af677262",
+    "setup_python": "a26af69be951a213d495a4c3e4e4022e16d87065"
+  },
+  "neural_config_sha256": "6fb682ee73302142d75d54c81ef3c2a7acb647ca8e70a59dc3c93b04df8f7a15",
+  "workload_sha256": "5cc7f9e8801359c995538fc8f65ede403ce647808d9a82a9d54a98fff7591bdb",
+  "runtime_backend": "python-cpu-float32-contract",
+  "all_healthy": true,
+  "nonfinite_detected": false,
+  "runs": [
+    {
+      "mode": "zero",
+      "steps": 30000,
+      "timestep_ms": 20,
+      "simulated_seconds": 600,
+      "node_count": 570,
+      "edge_count": 21142,
+      "healthy": true,
+      "nonfinite_detected": false,
+      "max_abs_state": 0,
+      "total_spikes": 0,
+      "final_step_count": 30000,
+      "wall_seconds": 34.196118422999994
+    },
+    {
+      "mode": "bounded",
+      "steps": 30000,
+      "timestep_ms": 20,
+      "simulated_seconds": 600,
+      "node_count": 570,
+      "edge_count": 21142,
+      "healthy": true,
+      "nonfinite_detected": false,
+      "max_abs_state": 0.75,
+      "total_spikes": 4500,
+      "final_step_count": 30000,
+      "wall_seconds": 33.467981999
+    }
+  ],
+  "scope": "Numerical/runtime stability evidence for the deterministic synthetic matched-scale fixture; not biological, full-MaleCNS, closed-loop robot, or hardware-safety evidence."
+}

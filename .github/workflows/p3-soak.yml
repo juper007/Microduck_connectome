@@ -1,0 +1,29 @@
+name: P3 neural soak
+
+on:
+  pull_request:
+    paths:
+      - 'microduck_connectome/soak.py'
+      - 'microduck_connectome/sparse_runtime.py'
+      - 'microduck_connectome/performance.py'
+      - 'scripts/soak_neural_runtime.py'
+      - 'tests/test_soak.py'
+      - 'docs/evidence/p3-07/**'
+      - '.github/workflows/p3-soak.yml'
+
+jobs:
+  soak:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Focused tests
+        run: |
+          python -m unittest discover -s tests -p 'test_sparse_runtime.py'
+          python -m unittest discover -s tests -p 'test_performance.py'
+          python -m unittest discover -s tests -p 'test_soak.py'
+      - name: Zero and bounded 10-minute neural-time soaks
+        run: python scripts/soak_neural_runtime.py
