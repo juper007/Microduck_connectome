@@ -48,3 +48,31 @@ class MDNEvidenceTests(unittest.TestCase):
     def test_source_output_collision_rejected_before_io(self):
         with self.assertRaisesRegex(ValueError, "overwrite"):
             build("missing-annotations.feather", "missing-weights.feather", "missing-weights.feather")
+
+class PinnedMDNArtifactTests(unittest.TestCase):
+    def test_committed_report_identity_provenance_and_structural_claims(self):
+        import hashlib
+        import json
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        raw = (root / "docs/evidence/p2-04/mdn-v1.json").read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         "df95b7d6cc8348e04c6c0cdb6ea747ceb89e738155d6047f32f5778e362dda36")
+        report = json.loads(raw)
+        self.assertEqual(report["dataset"], "male-cns:v1.0")
+        self.assertEqual({r["bodyId"]: r["somaSide"] for r in identity(report["readouts"])},
+                         {10763: "R", 11288: "L", 11332: "R", 12348: "L"})
+        manifest = json.loads((root / "data/manifests/pathway-source-v1.json").read_text())
+        self.assertEqual(report["source_manifest"], manifest)
+        self.assertEqual(report["outgoing_source_rows"], 18796)
+        self.assertEqual(sum(r["weight"] for r in report["outgoing"]), 39119)
+        lbl, lul = report["downstream"]
+        self.assertEqual({r["bodyId"]: (r["somaSide"], r["somaNeuromere"])
+                          for r in lbl["source_records"]}, {801214: ("R", "T3"), 801246: ("L", "T3")})
+        self.assertEqual(lbl["total_weight"], 463)
+        self.assertEqual(len(lbl["direct_edges"]), 4)
+        self.assertEqual(lul["status"], "absent_exact_type")
+        self.assertEqual(lul["source_records"], [])
+        for source in report["outgoing"]:
+            self.assertEqual(sum(g["weight"] for g in source["target_superclasses"]), source["weight"])
+            self.assertEqual(sum(g["bodies"] for g in source["target_superclasses"]), source["target_bodies"])
