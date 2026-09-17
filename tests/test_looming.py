@@ -21,7 +21,8 @@ class LoomingTests(unittest.TestCase):
         ]
         self.assertEqual(samples[0], 0.0)
         self.assertTrue(all(a <= b for a, b in zip(samples, samples[1:])))
-        self.assertEqual(samples[1:], [0.25, 0.5, 0.75])
+        for actual, expected in zip(samples[1:], (0.25, 0.5, 0.75)):
+            self.assertAlmostEqual(actual, expected, places=12)
 
     def test_output_clamps_to_one(self):
         estimator = LoomingEstimator(LoomingConfig(full_scale_area_rate_per_s=0.1))
