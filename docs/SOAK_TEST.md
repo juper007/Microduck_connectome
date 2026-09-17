@@ -12,11 +12,15 @@ Two independent soaks are required:
 Both runs use the deterministic 570-node / 21,142-edge synthetic matched-scale graph. The exact executable graph/schedule/timestep/step-count definition is produced by
 `microduck_connectome.workload_identity.soak_workload_definition()` and hashed from canonical JSON at runtime.
 
-Current v2 workload SHA256:
+Current graph content SHA256:
 
-`191354438f84809050c7e739964b0a862bac0571451bca8d44db1de17a828c88`
+`2ba657e747e1680281572200dcee4fa239aabcccba028f28ac8360c8587847e0`
 
-Changing a workload parameter changes the hash and regression tests verify this behavior.
+Current workload SHA256:
+
+`867ff65644878af73d01873ed104e80e39827a6bb1ac91c845d891bf16c8b06c`
+
+Changing generated graph content or another workload parameter changes the identity and regression tests verify the binding.
 
 ## Pass conditions
 
@@ -24,7 +28,7 @@ Each run must complete all 30,000 steps, remain healthy, encounter no NaN/Inf, a
 
 The accepted result must come from supported Python 3.12 on the exact reviewed PR head. Wall time is operational context only; the ten-minute requirement is defined by 20 ms x 30,000 updates.
 
-Historical v1 soak evidence is retained. G3 remediation adds v2 evidence tied to the executable workload hash and final supported-environment run.
+Historical v1/v2 evidence is retained. The current G3 remediation result is `soak-v3.json`, bound to the executable workload and generated graph-content identity.
 
 ## Scope
 
