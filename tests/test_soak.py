@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config" / "neural_model_v1.json").read_text(encoding="utf-8"))
 EVIDENCE_V1 = ROOT / "docs" / "evidence" / "p3-07" / "soak-v1.json"
 EVIDENCE_V2 = ROOT / "docs" / "evidence" / "p3-07" / "soak-v2.json"
+EVIDENCE_V3 = ROOT / "docs" / "evidence" / "p3-07" / "soak-v3.json"
 
 
 class FakeClock:
@@ -62,6 +63,40 @@ class SoakTests(unittest.TestCase):
         changed = soak_workload_definition(steps=30_001)
         self.assertEqual(workload_sha256(first), workload_sha256(second))
         self.assertNotEqual(workload_sha256(first), workload_sha256(changed))
+
+    def test_committed_v3_evidence_matches_current_executable_workload(self):
+        evidence = json.loads(EVIDENCE_V3.read_text(encoding="utf-8"))
+        definition = soak_workload_definition()
+        fixture = matched_scale_graph_fixture()
+        expected_hash = workload_sha256(definition)
+        self.assertEqual(evidence["schema_version"], "p3-07-soak-v3")
+        self.assertEqual(evidence["dataset"], "male-cns:v1.0")
+        self.assertEqual(evidence["fixture_kind"], "synthetic_matched_scale")
+        self.assertEqual(evidence["workload_definition"], definition)
+        self.assertEqual(evidence["workload_sha256"], expected_hash)
+        self.assertEqual(
+            evidence["workload_definition"]["graph"]["fixture_sha256"],
+            graph_content_sha256(fixture["body_ids"], fixture["edges"]),
+        )
+        self.assertEqual(evidence["runner"]["python_version"], "3.12.14")
+        self.assertEqual(evidence["random_seed"], "none")
+        self.assertRegex(evidence["source_branch_head"], r"^[0-9a-f]{40}$")
+        self.assertTrue(evidence["all_healthy"])
+        self.assertFalse(evidence["nonfinite_detected"])
+        self.assertEqual([run["mode"] for run in evidence["runs"]], ["zero", "bounded"])
+        for run in evidence["runs"]:
+            self.assertEqual(run["workload_sha256"], expected_hash)
+            self.assertEqual(run["steps"], 30_000)
+            self.assertEqual(run["final_step_count"], 30_000)
+            self.assertEqual(run["timestep_ms"], 20)
+            self.assertEqual(run["simulated_seconds"], 600.0)
+            self.assertEqual(run["node_count"], 570)
+            self.assertEqual(run["edge_count"], 21_142)
+            self.assertTrue(run["healthy"])
+            self.assertFalse(run["nonfinite_detected"])
+            self.assertTrue(math.isfinite(run["max_abs_state"]))
+        self.assertEqual(evidence["runs"][0]["total_spikes"], 0)
+        self.assertGreater(evidence["runs"][1]["total_spikes"], 0)
 
     def test_historical_v2_evidence_remains_self_consistent(self):
         evidence = json.loads(EVIDENCE_V2.read_text(encoding="utf-8"))
