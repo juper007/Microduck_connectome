@@ -1,0 +1,19 @@
+{
+  "dataset": "male-cns:v1.0",
+  "endpoint": "https://neuprint.janelia.org",
+  "query_version": "dna02-body-ids-v1",
+  "query": "MATCH (n:Neuron) WHERE n.type = 'DNa02' RETURN n.bodyId AS bodyId ORDER BY bodyId",
+  "query_sha256": "a7b2681096752247146781487354d1ff9d2f61628e84b96a1e9078d6e8c822ac",
+  "extraction_tool_version": "904a398cd1f7ff9de9a559c4df6a9be60b95cc82",
+  "created_utc": "2026-09-17T18:15:35.462940+00:00",
+  "body_ids": [
+    10360,
+    523769
+  ],
+  "node_count": 2,
+  "body_id_set_hash": "c0ec4ff7033b50188bc106a6cecc63aecf96f82bc63f68769085d16516bd3cc3",
+  "filters": {
+    "type": "DNa02"
+  },
+  "scope": "annotation identity only; no connectivity or biological interpretation"
+}
