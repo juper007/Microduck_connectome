@@ -1,0 +1,63 @@
+{
+  "schema_version": "p3-06-performance-v3",
+  "dataset": "male-cns:v1.0",
+  "fixture_kind": "synthetic_matched_scale",
+  "source_branch_head": "75762940dfdaeda92b5d18c5642580dcefdf0569",
+  "workflow_run_id": 35281685316,
+  "workflow_job_id": 105404834171,
+  "runner": {
+    "image": "ubuntu-24.04",
+    "image_version": "20260907.300.1",
+    "machine": "x86_64",
+    "cpu_count": 4,
+    "python_version": "3.12.14",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39"
+  },
+  "runtime_backend": "python-cpu-float32-contract",
+  "neural_config_sha256": "6fb682ee73302142d75d54c81ef3c2a7acb647ca8e70a59dc3c93b04df8f7a15",
+  "workload_definition": {
+    "schema_version": "p3-06-workload-v2",
+    "fixture_kind": "synthetic_matched_scale",
+    "graph": {
+      "node_count": 570,
+      "edge_count": 21142,
+      "normalized_weight": 0.01,
+      "generation_rule": "round_robin_offset_unique_directed_nonself-v1",
+      "fixture_sha256": "b91d9ddff6c68bf507b98b87abdf3e122b379cbb86c21e27aaa13d5fdae520f7"
+    },
+    "warmup_steps": 100,
+    "measured_steps": 500,
+    "warmup_stimulus": {
+      "period_steps": 10,
+      "external": {
+        "1": 0.5
+      }
+    },
+    "measured_stimulus": {
+      "period_steps": 10,
+      "external": {
+        "1": 0.5,
+        "200": 0.25
+      }
+    }
+  },
+  "workload_sha256": "9c60aacf6c2f024fca2ea3de1961010c9e1dad4990aae8b421c4c3d9da69fd19",
+  "latency": {
+    "p50_ms": 1.011742,
+    "p95_ms": 1.065652,
+    "p99_ms": 1.182359,
+    "min_ms": 1.002465,
+    "max_ms": 1.488739,
+    "preferred_p95_target_ms": 18,
+    "preferred_p95_target_met": true
+  },
+  "memory": {
+    "measurement_method": "linux-proc-status-vmrss-vmhwm",
+    "baseline_rss_bytes": 25313280,
+    "runtime_constructed_rss_bytes": 32624640,
+    "post_profile_rss_bytes": 32669696,
+    "peak_rss_bytes": 34455552,
+    "runtime_rss_delta_bytes": 7311360
+  },
+  "scope": "Supported-environment synthetic matched-scale latency/memory evidence with generated-graph content identity; not actual MaleCNS topology, biological performance, or hardware performance."
+}
