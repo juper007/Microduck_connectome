@@ -152,6 +152,8 @@ def _watchdog_result(value):
             raise CommandLoggerError("safe_stop watchdog output must be stop-zero")
         if stale_reason is None:
             raise CommandLoggerError("safe_stop requires a reason")
+    elif stale_reason is not None:
+        raise CommandLoggerError("healthy watchdog state cannot carry a stale reason")
     return final_intent, state, stale_reason, value["decoder_alive"]
 
 
@@ -193,6 +195,20 @@ class CommandTraceLogger:
         final_intent, watchdog_state, stale_reason, decoder_alive = _watchdog_result(
             watchdog_result
         )
+
+        if neural is not None and pre is not None:
+            if (
+                neural["timestamp_ns"] != pre["timestamp_ns"]
+                or neural["sequence"] != pre["sequence"]
+            ):
+                raise CommandLoggerError("neural and pre-safety metadata must match")
+
+        if watchdog_state == "healthy":
+            if neural is None or pre is None or post is None:
+                raise CommandLoggerError("healthy watchdog records require neural, pre-safety, and post-safety data")
+            for field in ("vx", "vy", "vyaw", "stop", "confidence", "source"):
+                if final_intent[field] != post[field]:
+                    raise CommandLoggerError("healthy watchdog final payload must match post-safety payload")
 
         timestamp_ns = final_intent["timestamp_ns"]
         sequence = final_intent["sequence"]
