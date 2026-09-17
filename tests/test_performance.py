@@ -18,6 +18,7 @@ from microduck_connectome.workload_identity import (
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config" / "neural_model_v1.json").read_text(encoding="utf-8"))
 EVIDENCE_V2 = ROOT / "docs" / "evidence" / "p3-06" / "performance-v2.json"
+EVIDENCE_V3 = ROOT / "docs" / "evidence" / "p3-06" / "performance-v3.json"
 
 
 class FakeClock:
@@ -108,6 +109,32 @@ class PerformanceTests(unittest.TestCase):
         changed = performance_workload_definition(measured_steps=501)
         self.assertEqual(workload_sha256(first), workload_sha256(second))
         self.assertNotEqual(workload_sha256(first), workload_sha256(changed))
+
+    def test_committed_v3_evidence_matches_executable_workload_and_memory(self):
+        evidence = json.loads(EVIDENCE_V3.read_text(encoding="utf-8"))
+        definition = performance_workload_definition()
+        fixture = matched_scale_graph_fixture()
+        self.assertEqual(evidence["schema_version"], "p3-06-performance-v3")
+        self.assertEqual(evidence["workload_definition"], definition)
+        self.assertEqual(evidence["workload_sha256"], workload_sha256(definition))
+        self.assertEqual(
+            evidence["workload_definition"]["graph"]["fixture_sha256"],
+            workload_sha256(fixture),
+        )
+        self.assertRegex(evidence["source_branch_head"], r"^[0-9a-f]{40}$")
+        self.assertEqual(evidence["runner"]["python_version"], "3.12.14")
+        self.assertTrue(evidence["latency"]["preferred_p95_target_met"])
+        self.assertLessEqual(
+            evidence["latency"]["p95_ms"],
+            evidence["latency"]["preferred_p95_target_ms"],
+        )
+        memory = evidence["memory"]
+        self.assertEqual(memory["measurement_method"], "linux-proc-status-vmrss-vmhwm")
+        self.assertEqual(
+            memory["runtime_rss_delta_bytes"],
+            memory["runtime_constructed_rss_bytes"] - memory["baseline_rss_bytes"],
+        )
+        self.assertGreaterEqual(memory["peak_rss_bytes"], memory["runtime_constructed_rss_bytes"])
 
     def test_historical_v2_evidence_remains_self_consistent(self):
         evidence = json.loads(EVIDENCE_V2.read_text(encoding="utf-8"))
