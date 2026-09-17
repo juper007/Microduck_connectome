@@ -1,0 +1,15 @@
+{
+  "corruption_rejected": "PASS",
+  "implementation_commit": "de11839bcc1a8888e5c94387278f880c89c91c84",
+  "fixture": "docs/tasks/P1-03-real-graph.json",
+  "real_graph_roundtrip": "PASS",
+  "no_input_mutation": "PASS",
+  "returned_value_isolation": "PASS",
+  "configuration_invalidation": "PASS",
+  "old_entry_preserved": "PASS",
+  "key": "d65a511c1f80b40d9d37947910975c654a9492b3e23856a992edd7e87f8f6718",
+  "changed_config_key": "e37ddd763fd7ed8a6f79d89ae037c028cfa3798a5663add33735b0db1c0def28",
+  "node_count": 2,
+  "edge_count": 1,
+  "source_assertions": "unchanged; upstream completeness not verified by cache"
+}
