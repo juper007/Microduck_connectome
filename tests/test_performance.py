@@ -16,6 +16,7 @@ from microduck_connectome.workload_identity import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config" / "neural_model_v1.json").read_text(encoding="utf-8"))
+EVIDENCE_V2 = ROOT / "docs" / "evidence" / "p3-06" / "performance-v2.json"
 
 
 class FakeClock:
@@ -92,6 +93,40 @@ class PerformanceTests(unittest.TestCase):
         changed = performance_workload_definition(measured_steps=501)
         self.assertEqual(workload_sha256(first), workload_sha256(second))
         self.assertNotEqual(workload_sha256(first), workload_sha256(changed))
+
+    def test_committed_v2_evidence_matches_executable_workload(self):
+        evidence = json.loads(EVIDENCE_V2.read_text(encoding="utf-8"))
+        definition = performance_workload_definition()
+        self.assertEqual(evidence["schema_version"], "p3-06-performance-v2")
+        self.assertEqual(evidence["dataset"], "male-cns:v1.0")
+        self.assertEqual(evidence["fixture_kind"], "synthetic_matched_scale")
+        self.assertEqual(evidence["workload_definition"], definition)
+        self.assertEqual(evidence["workload_sha256"], workload_sha256(definition))
+        self.assertEqual(evidence["runner"]["python_version"], "3.12.14")
+        self.assertRegex(evidence["source_branch_head"], r"^[0-9a-f]{40}$")
+        self.assertLessEqual(
+            evidence["latency"]["p95_ms"],
+            evidence["latency"]["preferred_p95_target_ms"],
+        )
+        self.assertTrue(evidence["latency"]["preferred_p95_target_met"])
+        memory = evidence["memory"]
+        self.assertEqual(
+            memory["measurement_method"],
+            "linux-proc-status-vmrss-vmhwm",
+        )
+        for key in (
+            "baseline_rss_bytes",
+            "runtime_constructed_rss_bytes",
+            "post_profile_rss_bytes",
+            "peak_rss_bytes",
+        ):
+            self.assertIs(type(memory[key]), int)
+            self.assertGreaterEqual(memory[key], 0)
+        self.assertGreaterEqual(memory["peak_rss_bytes"], memory["runtime_constructed_rss_bytes"])
+        self.assertEqual(
+            memory["runtime_rss_delta_bytes"],
+            memory["runtime_constructed_rss_bytes"] - memory["baseline_rss_bytes"],
+        )
 
     def test_linux_proc_memory_parser(self):
         with tempfile.TemporaryDirectory() as directory:
