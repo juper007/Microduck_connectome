@@ -29,3 +29,5 @@ jobs:
           python-version: '3.12'
       - name: P4-01 camera target tests
         run: python -m unittest discover -s tests -p 'test_camera_target.py'
+      - name: P4-02 looming tests
+        run: python -m unittest discover -s tests -p 'test_looming.py'
