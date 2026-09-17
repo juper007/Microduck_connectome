@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-09-17",
+  "dataset": {
+    "id": "male-cns:v1.0",
+    "server": "https://neuprint.janelia.org",
+    "source": "https://male-cns.janelia.org/download/",
+    "license": "CC-BY (see official source for terms)",
+    "redistributed": false
+  },
+  "upstream": {
+    "microduck": {
+      "url": "https://github.com/pollen-robotics/microduck.git",
+      "commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+      "observed_default_branch": "main"
+    },
+    "microduck_rl": {
+      "url": "https://github.com/pollen-robotics/microduck_rl.git",
+      "commit": "cb70b792312d559a4da09064d92009079671815f",
+      "observed_default_branch": "develop"
+    }
+  },
+  "environment": {
+    "primary": "Linux x86_64",
+    "python": "3.12.3",
+    "uv": "0.11.19",
+    "dependency_lock": "uv.lock"
+  },
+  "validation_status": "bootstrap_only_not_simulator_qualified"
+}
