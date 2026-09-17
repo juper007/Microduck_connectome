@@ -45,7 +45,8 @@ Only literal L/R become canonical left/right. M, empty, null and other raw side
 values remain separately visible in the report; the narrower annotation-v1 view
 represents these as null (not a left/right claim). Empty optional text becomes null
 in that view. `source-metadata.json` preserves the raw source evidence for anatomical
-queries and its digest is recorded in the report.
+queries, identifies its producing code SHA in `extraction_commit`, and its digest
+is recorded in the report.
 
 Generated graphs are content-addressed under the output's `graphs/` directory.
 Use ignored `results/` or `data/cache/` for outputs; do not commit source/cache

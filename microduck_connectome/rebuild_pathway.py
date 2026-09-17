@@ -187,6 +187,7 @@ def rebuild(annotations_path, weights_path, manifest, config, code_commit, outpu
         "uncertainty": "No functional, causal, sensory, steering, or robot mapping claim; absent exact types are not replaced by aliases; anatomical metadata may be missing",
     }
     metadata = {"dataset": DATASET, "source_sha256": manifest["annotations"]["sha256"],
+                "extraction_commit": code_commit,
                 "source_note": "Pinned official flat annotations; complete raw fields for selected graph nodes",
                 "records": raw_records}
     report["source_metadata"] = {"relative_path": "source-metadata.json",

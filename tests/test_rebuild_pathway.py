@@ -62,6 +62,7 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual((self.root / "out/pathway-report.json").read_bytes(),
                          (self.root / "repeat/pathway-report.json").read_bytes())
         metadata = json.loads((self.root / "out/source-metadata.json").read_text())
+        self.assertEqual(metadata["extraction_commit"], "a" * 40)
         self.assertEqual(metadata["records"], report["source_annotation_records"])
         self.assertEqual(digest(self.root / "out/source-metadata.json"), report["source_metadata"]["sha256"])
 
