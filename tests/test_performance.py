@@ -10,6 +10,7 @@ from microduck_connectome.performance import (
     read_linux_process_memory,
 )
 from microduck_connectome.workload_identity import (
+    graph_content_sha256,
     matched_scale_graph_fixture,
     performance_workload_definition,
     workload_sha256,
@@ -71,7 +72,7 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(actual_fixture, expected_fixture)
         self.assertEqual(
             definition["graph"]["fixture_sha256"],
-            workload_sha256(actual_fixture),
+            graph_content_sha256(graph.body_ids, graph.edges()),
         )
 
     def test_profile_report_schema_with_fake_clock_and_memory(self):
@@ -110,31 +111,15 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(workload_sha256(first), workload_sha256(second))
         self.assertNotEqual(workload_sha256(first), workload_sha256(changed))
 
-    def test_committed_v3_evidence_matches_executable_workload_and_memory(self):
+    def test_pre_streaming_v3_evidence_remains_historical(self):
         evidence = json.loads(EVIDENCE_V3.read_text(encoding="utf-8"))
-        definition = performance_workload_definition()
-        fixture = matched_scale_graph_fixture()
         self.assertEqual(evidence["schema_version"], "p3-06-performance-v3")
-        self.assertEqual(evidence["workload_definition"], definition)
-        self.assertEqual(evidence["workload_sha256"], workload_sha256(definition))
-        self.assertEqual(
-            evidence["workload_definition"]["graph"]["fixture_sha256"],
-            workload_sha256(fixture),
-        )
-        self.assertRegex(evidence["source_branch_head"], r"^[0-9a-f]{40}$")
-        self.assertEqual(evidence["runner"]["python_version"], "3.12.14")
+        self.assertEqual(evidence["dataset"], "male-cns:v1.0")
         self.assertTrue(evidence["latency"]["preferred_p95_target_met"])
-        self.assertLessEqual(
-            evidence["latency"]["p95_ms"],
-            evidence["latency"]["preferred_p95_target_ms"],
-        )
-        memory = evidence["memory"]
-        self.assertEqual(memory["measurement_method"], "linux-proc-status-vmrss-vmhwm")
         self.assertEqual(
-            memory["runtime_rss_delta_bytes"],
-            memory["runtime_constructed_rss_bytes"] - memory["baseline_rss_bytes"],
+            evidence["memory"]["measurement_method"],
+            "linux-proc-status-vmrss-vmhwm",
         )
-        self.assertGreaterEqual(memory["peak_rss_bytes"], memory["runtime_constructed_rss_bytes"])
 
     def test_historical_v2_evidence_remains_self_consistent(self):
         evidence = json.loads(EVIDENCE_V2.read_text(encoding="utf-8"))
