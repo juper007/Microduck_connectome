@@ -38,7 +38,7 @@ class SteeringGate:
                  and sample.sequence >= 0 and sample.healthy is True
                  and 0 <= now_ns-sample.timestamp_ns < 100_000_000)
         if valid:
-            valid = all(type(v) in (int,float) and math.isfinite(v) and 0 <= v <= 1
+            valid = all(type(v) in (int,float) and 0 <= v <= 1 and math.isfinite(v)
                         for v in (sample.left,sample.right))
         if valid and sample.sequence == self.sequence and sample != self.last_sample:
             valid = False

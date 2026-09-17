@@ -23,7 +23,7 @@ class SteeringTests(unittest.TestCase):
             out=self.running().tick(Readout(stamp,20,1,0),400_000_000)
             self.assertTrue(out['stop']); self.assertEqual(out['vyaw'],0)
     def test_invalid_and_unhealthy(self):
-        for value in (float('nan'),float('inf'),-1,2,'1',True):
+        for value in (float('nan'),float('inf'),-1,2,'1',True,10**1000,-10**1000):
             self.assertTrue(self.running().tick(Readout(400_000_000,20,value,0),400_000_000)['stop'])
         self.assertTrue(self.running().tick(Readout(400_000_000,20,1,0,False),400_000_000)['stop'])
     def test_emergency_missing_and_out_of_order(self):
