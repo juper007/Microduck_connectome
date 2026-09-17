@@ -27,12 +27,15 @@ class StimulusInjector:
         if not isinstance(populations, Mapping) or not populations:
             raise StimulusConfigError("populations must be a non-empty mapping")
 
+        names = list(populations)
+        for name in names:
+            if not isinstance(name, str) or not name.strip():
+                raise StimulusConfigError("population names must be nonblank strings")
+
         known = set(body_ids)
         seen_ids = set()
         normalized = {}
-        for name in sorted(populations):
-            if not isinstance(name, str) or not name.strip():
-                raise StimulusConfigError("population names must be nonblank strings")
+        for name in sorted(names):
             spec = populations[name]
             if not isinstance(spec, Mapping) or set(spec) != {"body_ids", "side", "max_amplitude"}:
                 raise StimulusConfigError(
@@ -61,10 +64,17 @@ class StimulusInjector:
             limit = float(limit)
             if not math.isfinite(limit) or not 0.0 <= limit <= 1.0:
                 raise StimulusConfigError("max_amplitude must be finite in [0, 1]")
-            normalized[name] = {"body_ids": members, "side": side, "max_amplitude": limit}
+            normalized[name] = (members, side, limit)
 
         self.body_ids = body_ids
-        self.populations = normalized
+        self._populations = normalized
+
+    def population_specs(self):
+        """Return detached population metadata for inspection/logging."""
+        return {
+            name: {"body_ids": list(members), "side": side, "max_amplitude": limit}
+            for name, (members, side, limit) in self._populations.items()
+        }
 
     def build_external(self, stimuli, *, valid=True, stale=False):
         """Return detached body-ID->amplitude mapping; stale/invalid observations inject zero."""
@@ -76,17 +86,17 @@ class StimulusInjector:
             raise StimulusInputError("stimuli must be a mapping")
         external = {}
         for name, amplitude in stimuli.items():
-            if name not in self.populations:
+            if name not in self._populations:
                 raise StimulusInputError(f"unknown stimulus population {name!r}")
             if isinstance(amplitude, bool) or not isinstance(amplitude, (int, float)):
                 raise StimulusInputError("stimulus amplitude must be numeric")
             amplitude = float(amplitude)
             if not math.isfinite(amplitude) or not 0.0 <= amplitude <= 1.0:
                 raise StimulusInputError("stimulus amplitude must be finite in [0, 1]")
-            spec = self.populations[name]
-            effective = min(amplitude, spec["max_amplitude"])
+            members, _side, limit = self._populations[name]
+            effective = min(amplitude, limit)
             if effective == 0.0:
                 continue
-            for body_id in spec["body_ids"]:
+            for body_id in members:
                 external[body_id] = effective
         return external
