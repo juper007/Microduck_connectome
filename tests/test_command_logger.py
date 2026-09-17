@@ -81,6 +81,40 @@ class CommandLoggerTests(unittest.TestCase):
         self.assertIsNone(fault["runtime_healthy"])
         self.assertEqual(fault["stale_reason"],"decoder_crash")
 
+    def test_cross_stage_mismatches_are_rejected(self):
+        logger=self.make()
+        with self.assertRaises(CommandLoggerError):
+            logger.append(
+                neural_readout=neural(10,1),
+                pre_safety_intent=intent(11,2),
+                safety_result=safety(intent(11,2)),
+                watchdog_result=watch(intent(11,2)),
+            )
+
+        with self.assertRaises(CommandLoggerError):
+            self.make().append(
+                neural_readout=neural(10,1),
+                pre_safety_intent=intent(10,1),
+                safety_result=safety(intent(10,1)),
+                watchdog_result=watch(intent(10,1),"healthy","stale_neural",True),
+            )
+
+        with self.assertRaises(CommandLoggerError):
+            self.make().append(
+                neural_readout=neural(10,1),
+                pre_safety_intent=intent(10,1,vx=0.02),
+                safety_result=safety(intent(10,1,vx=0.02)),
+                watchdog_result=watch(intent(10,1,vx=0.03)),
+            )
+
+        with self.assertRaises(CommandLoggerError):
+            self.make().append(
+                neural_readout=None,
+                pre_safety_intent=None,
+                safety_result=None,
+                watchdog_result=watch(intent(10,1)),
+            )
+
     def test_malformed_and_nonmonotonic_records_rejected(self):
         logger=self.make()
         bad=neural(10,1); bad["escape"]=math.nan
