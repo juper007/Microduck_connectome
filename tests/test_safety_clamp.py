@@ -22,7 +22,9 @@ class SafetyClampTests(unittest.TestCase):
     def test_magnitude_clamps_and_vy_zero(self):
         for vx,vyaw,expected in ((1.0,2.0,(0.08,0.5)),(-1.0,-2.0,(-0.08,-0.5))):
             gate=SafetyClamp()
-            result=gate.apply(intent(vx=vx,vy=0.4,vyaw=vyaw),now_ns=0,fallback_sequence=0)
+            gate.apply(intent(ts=0,seq=0),now_ns=0,fallback_sequence=0)
+            result=gate.apply(intent(ts=1_000_000_000,seq=1,vx=vx,vy=0.4,vyaw=vyaw),
+                              now_ns=1_000_000_000,fallback_sequence=1)
             safe=result["intent"]
             self.assertEqual((safe["vx"],safe["vy"],safe["vyaw"]),(expected[0],0.0,expected[1]))
             self.assertTrue(result["clamp_applied"])
@@ -91,14 +93,19 @@ class SafetyClampTests(unittest.TestCase):
         self.assertEqual(result["reasons"],["nonmonotonic_sequence"])
         self.assertTrue(result["intent"]["stop"])
 
-    def test_reset_clears_slew_history(self):
+    def test_reset_reanchors_at_zero_motion(self):
         gate=SafetyClamp()
-        gate.apply(intent(ts=0,seq=0),now_ns=0,fallback_sequence=0)
-        limited=gate.apply(intent(ts=100_000_000,seq=1,vx=0.08),now_ns=100_000_000,fallback_sequence=1)
-        self.assertAlmostEqual(limited["intent"]["vx"],0.02)
+        first=gate.apply(intent(ts=1,seq=0,vx=0.08,vyaw=0.5),now_ns=1,fallback_sequence=0)
+        self.assertEqual((first["intent"]["vx"],first["intent"]["vyaw"]),(0.0,0.0))
+        self.assertIn("vx_slew",first["reasons"])
+        self.assertIn("vyaw_slew",first["reasons"])
+        ramp=gate.apply(intent(ts=100_000_001,seq=1,vx=0.08,vyaw=0.5),
+                        now_ns=100_000_001,fallback_sequence=1)
+        self.assertAlmostEqual(ramp["intent"]["vx"],0.02)
+        self.assertAlmostEqual(ramp["intent"]["vyaw"],0.15)
         gate.reset()
-        fresh=gate.apply(intent(ts=1,seq=0,vx=0.08),now_ns=1,fallback_sequence=0)
-        self.assertEqual(fresh["intent"]["vx"],0.08)
+        fresh=gate.apply(intent(ts=2,seq=0,vx=0.08),now_ns=2,fallback_sequence=0)
+        self.assertEqual(fresh["intent"]["vx"],0.0)
 
     def test_safety_fallback_metadata_must_advance(self):
         gate=SafetyClamp()
