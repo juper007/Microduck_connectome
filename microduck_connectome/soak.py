@@ -5,25 +5,31 @@ import time
 
 from .performance import build_matched_scale_graph
 from .sparse_runtime import SparseNeuralRuntime
+from .workload_identity import periodic_external, soak_workload_definition, workload_sha256
 
 
 def run_soak(config, *, mode, steps=30_000, clock=time.perf_counter):
-    if mode not in ("zero", "bounded"):
+    definition = soak_workload_definition(
+        timestep_ms=config["timestep_ms"],
+        steps=steps,
+    )
+    if mode not in definition["modes"]:
         raise ValueError("mode must be zero or bounded")
-    if type(steps) is not int or steps <= 0:
-        raise ValueError("steps must be a positive integer")
 
-    graph = build_matched_scale_graph()
+    graph_spec = definition["graph"]
+    graph = build_matched_scale_graph(
+        node_count=graph_spec["node_count"],
+        edge_count=graph_spec["edge_count"],
+        normalized_weight=graph_spec["normalized_weight"],
+    )
     runtime = SparseNeuralRuntime(graph, config)
     max_abs_state = 0.0
     total_spikes = 0
     start = clock()
 
-    for step in range(steps):
-        if mode == "bounded" and step % 10 == 0:
-            external = {1: 1.0, 200: 0.75}
-        else:
-            external = {}
+    schedule = definition["modes"][mode]
+    for step in range(definition["steps_per_mode"]):
+        external = periodic_external(schedule, step)
         snapshot = runtime.step(external)
         if not snapshot["healthy"]:
             raise AssertionError("runtime became unhealthy during soak")
@@ -36,9 +42,11 @@ def run_soak(config, *, mode, steps=30_000, clock=time.perf_counter):
     elapsed = clock() - start
     return {
         "mode": mode,
-        "steps": steps,
-        "timestep_ms": config["timestep_ms"],
-        "simulated_seconds": steps * config["timestep_ms"] / 1000.0,
+        "steps": definition["steps_per_mode"],
+        "timestep_ms": definition["timestep_ms"],
+        "simulated_seconds": (
+            definition["steps_per_mode"] * definition["timestep_ms"] / 1000.0
+        ),
         "wall_seconds": elapsed,
         "node_count": len(graph.body_ids),
         "edge_count": len(graph.edges()),
@@ -47,4 +55,5 @@ def run_soak(config, *, mode, steps=30_000, clock=time.perf_counter):
         "max_abs_state": max_abs_state,
         "total_spikes": total_spikes,
         "final_step_count": runtime.step_count,
+        "workload_sha256": workload_sha256(definition),
     }
