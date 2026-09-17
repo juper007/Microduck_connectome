@@ -52,14 +52,16 @@ class ControllerWatchdog:
         self._neural_fault=None
         self._behavior_fault=None
         self._decoder_alive=True
+        self._last_neural_meta=None
+        self._last_behavior_meta=None
         self._last_output_timestamp=None
         self._last_output_sequence=None
 
     @staticmethod
-    def _newer(sample,previous):
-        return previous is None or (
-            sample["timestamp_ns"]>previous["timestamp_ns"]
-            and sample["sequence"]>previous["sequence"]
+    def _newer(sample,previous_meta):
+        return previous_meta is None or (
+            sample["timestamp_ns"]>previous_meta[0]
+            and sample["sequence"]>previous_meta[1]
         )
 
     def observe_neural(self,readout):
@@ -69,11 +71,12 @@ class ControllerWatchdog:
             self._neural=None
             self._neural_fault="invalid_neural"
             return False
-        if not self._newer(value,self._neural):
+        if not self._newer(value,self._last_neural_meta):
             self._neural=None
             self._neural_fault="nonmonotonic_neural"
             return False
         self._neural=value
+        self._last_neural_meta=(value["timestamp_ns"],value["sequence"])
         self._neural_fault=None
         return True
 
@@ -84,11 +87,12 @@ class ControllerWatchdog:
             self._behavior=None
             self._behavior_fault="invalid_behavior"
             return False
-        if not self._newer(value,self._behavior):
+        if not self._newer(value,self._last_behavior_meta):
             self._behavior=None
             self._behavior_fault="nonmonotonic_behavior"
             return False
         self._behavior=value
+        self._last_behavior_meta=(value["timestamp_ns"],value["sequence"])
         self._behavior_fault=None
         return True
 
@@ -105,6 +109,8 @@ class ControllerWatchdog:
         self._behavior=None
         self._neural_fault=None
         self._behavior_fault=None
+        self._last_neural_meta=None
+        self._last_behavior_meta=None
 
     def _tick_metadata(self,now_ns,output_sequence):
         if type(now_ns) is not int or now_ns<0:
