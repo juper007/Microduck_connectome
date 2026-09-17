@@ -7,6 +7,7 @@ import time
 from .sparse_runtime import SparseNeuralRuntime
 from .workload_identity import (
     graph_workload_definition,
+    matched_scale_graph_fixture,
     performance_workload_definition,
     periodic_external,
     workload_sha256,
@@ -62,27 +63,18 @@ def build_matched_scale_graph(node_count=570, edge_count=21142, normalized_weigh
         normalized_weight=normalized_weight,
     )
 
+    fixture = matched_scale_graph_fixture(
+        node_count=definition["node_count"],
+        edge_count=definition["edge_count"],
+        normalized_weight=definition["normalized_weight"],
+    )
+
     class SyntheticGraph:
         pass
 
     graph = SyntheticGraph()
-    graph.body_ids = tuple(range(1, definition["node_count"] + 1))
-    edges = []
-    source = 1
-    offset = 1
-    while len(edges) < definition["edge_count"]:
-        target = ((source - 1 + offset) % definition["node_count"]) + 1
-        if target != source:
-            edges.append({
-                "source_body_id": source,
-                "target_body_id": target,
-                "normalized_weight": definition["normalized_weight"],
-            })
-        source += 1
-        if source > definition["node_count"]:
-            source = 1
-            offset += 1
-    graph._edges = tuple(edges)
+    graph.body_ids = tuple(fixture["body_ids"])
+    graph._edges = tuple(fixture["edges"])
     graph.edges = lambda: graph._edges
     return graph
 
