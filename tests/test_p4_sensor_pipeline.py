@@ -106,6 +106,30 @@ class P4SensorPipelineTests(unittest.TestCase):
         self.assertTrue(fresh["valid"])
         self.assertEqual(fresh["looming"],0.0)
 
+    def test_future_camera_or_tof_fails_closed_through_sensory_mapper(self):
+        future_camera=self.process(
+            [[R,B,B]],200_000_000,1,
+            tof_ts=100_000_000,tof_fid=101,now=100_000_000,
+        )
+        self.assertFalse(future_camera["valid"])
+        self.assertEqual(future_camera["timestamp_ns"],100_000_000)
+        self.assertEqual(
+            self.mapper.build_external(future_camera,now_ns=100_000_000),
+            {},
+        )
+
+        self.pipeline=PerceptionPipeline()
+        future_tof=self.process(
+            [[R,B,B]],100_000_000,1,
+            tof_ts=200_000_000,tof_fid=101,now=100_000_000,
+        )
+        self.assertFalse(future_tof["valid"])
+        self.assertEqual(future_tof["timestamp_ns"],100_000_000)
+        self.assertEqual(
+            self.mapper.build_external(future_tof,now_ns=100_000_000),
+            {},
+        )
+
     def test_stimulus_trace_does_not_resurrect_channels_after_sensor_loss(self):
         trace=StimulusTrace()
         frames=[
