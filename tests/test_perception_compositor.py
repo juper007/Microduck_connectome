@@ -86,6 +86,7 @@ class PerceptionCompositorTests(unittest.TestCase):
         future=PerceptionCompositor()
         result=future.compose(camera(200,1),looming(200,1),tof(200,1),now_ns=100)
         self.assertFalse(result["valid"])
+        self.assertEqual(result["timestamp_ns"],100)
         self.assertIn("future_camera",future.last_reasons)
 
         stale=PerceptionCompositor()
