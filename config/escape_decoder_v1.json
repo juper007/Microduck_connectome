@@ -1,0 +1,7 @@
+{
+  "schema_version": "escape-decoder-v1",
+  "gain": 1,
+  "threshold": 0.5,
+  "source": "male-cns-controller",
+  "scope": "internal stop intent only; robot-facing stop transport remains Phase-6 integration work"
+}

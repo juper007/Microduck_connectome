@@ -35,3 +35,5 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_dn_aggregator.py'
       - name: P5-02 steering decoder tests
         run: python -m unittest discover -s tests -p 'test_steering_decoder.py'
+      - name: P5-03 escape decoder tests
+        run: python -m unittest discover -s tests -p 'test_escape_decoder.py'
