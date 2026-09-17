@@ -1,0 +1,10 @@
+{
+  "dataset": "male-cns:v1.0",
+  "annotation": "DNa02",
+  "body_ids": [10360, 523769],
+  "anatomical_side": null,
+  "evidence": "P1-01 task packet: prior authenticated Thor query; side/function not inferred",
+  "source": "https://neuprint.janelia.org",
+  "recorded_date": "2026-09-17",
+  "scope": "Known-query smoke expectations only; not a validated biological population"
+}
