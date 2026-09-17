@@ -33,3 +33,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_looming.py'
       - name: P4-03 ToF tests
         run: python -m unittest discover -s tests -p 'test_tof.py'
+      - name: P4-04 sensory mapping tests
+        run: |
+          python -m unittest discover -s tests -p 'test_stimulus.py'
+          python -m unittest discover -s tests -p 'test_sensory_mapping.py'
