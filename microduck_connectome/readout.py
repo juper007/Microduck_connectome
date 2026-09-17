@@ -13,11 +13,13 @@ class PopulationReadout:
 
     def __init__(self, body_ids, populations, *, timestep_ms=20, window_ms=100):
         body_ids = tuple(body_ids)
-        if not body_ids or tuple(sorted(body_ids)) != body_ids or len(set(body_ids)) != len(body_ids):
-            raise PopulationReadoutError("body_ids must be non-empty, unique and ascending")
+        if not body_ids:
+            raise PopulationReadoutError("body_ids must be non-empty")
         for body_id in body_ids:
             if type(body_id) is not int or body_id <= 0:
                 raise PopulationReadoutError("body_ids must be positive integers")
+        if tuple(sorted(body_ids)) != body_ids or len(set(body_ids)) != len(body_ids):
+            raise PopulationReadoutError("body_ids must be unique and ascending")
         if type(timestep_ms) is not int or timestep_ms <= 0:
             raise PopulationReadoutError("timestep_ms must be a positive integer")
         if type(window_ms) is not int or window_ms <= 0 or window_ms % timestep_ms:
@@ -35,11 +37,13 @@ class PopulationReadout:
             if not isinstance(members, Sequence) or isinstance(members, (str, bytes)):
                 raise PopulationReadoutError("population members must be a sequence")
             members = tuple(members)
-            if not members or tuple(sorted(members)) != members or len(set(members)) != len(members):
-                raise PopulationReadoutError("population members must be non-empty unique ascending IDs")
+            if not members:
+                raise PopulationReadoutError("population members must be non-empty")
             for body_id in members:
                 if type(body_id) is not int or body_id <= 0:
                     raise PopulationReadoutError("population members must be positive integer body IDs")
+            if tuple(sorted(members)) != members or len(set(members)) != len(members):
+                raise PopulationReadoutError("population members must be unique ascending IDs")
             try:
                 normalized[name] = tuple(index[body_id] for body_id in members)
             except KeyError:
@@ -55,12 +59,13 @@ class PopulationReadout:
     def from_graph_types(cls, graph, cell_types, *, timestep_ms=20, window_ms=100):
         if not isinstance(cell_types, Sequence) or isinstance(cell_types, (str, bytes)) or not cell_types:
             raise PopulationReadoutError("cell_types must be a non-empty sequence")
+        for cell_type in cell_types:
+            if not isinstance(cell_type, str) or not cell_type.strip():
+                raise PopulationReadoutError("cell_types must contain nonblank strings")
         if len(set(cell_types)) != len(cell_types):
             raise PopulationReadoutError("cell_types must not contain duplicates")
         populations = {}
         for cell_type in cell_types:
-            if not isinstance(cell_type, str) or not cell_type.strip():
-                raise PopulationReadoutError("cell_types must contain nonblank strings")
             members = tuple(graph.select_type(cell_type))
             if not members:
                 raise PopulationReadoutError(f"cell type {cell_type!r} selects no neurons")
