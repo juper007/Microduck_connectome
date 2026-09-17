@@ -1,0 +1,27 @@
+name: P3 runtime performance
+
+on:
+  pull_request:
+    paths:
+      - 'microduck_connectome/performance.py'
+      - 'microduck_connectome/sparse_runtime.py'
+      - 'scripts/profile_neural_runtime.py'
+      - 'tests/test_performance.py'
+      - 'docs/evidence/p3-06/**'
+      - '.github/workflows/p3-performance.yml'
+
+jobs:
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Focused tests
+        run: |
+          python -m unittest discover -s tests -p 'test_sparse_runtime.py'
+          python -m unittest discover -s tests -p 'test_performance.py'
+      - name: Performance profile
+        run: python scripts/profile_neural_runtime.py
