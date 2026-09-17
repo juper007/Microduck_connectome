@@ -111,7 +111,16 @@ class SafetyClamp:
         yaw=self._bounded(value["vyaw"],0.50)
         if yaw!=value["vyaw"]: reasons.append("vyaw_magnitude")
 
-        if prev is not None:
+        if prev is None:
+            # Reset/initial state is implicit rest. With no elapsed-time reference,
+            # the first nonzero command must not jump outside the slew envelope.
+            if vx!=0.0:
+                reasons.append("vx_slew")
+                vx=0.0
+            if yaw!=0.0:
+                reasons.append("vyaw_slew")
+                yaw=0.0
+        else:
             dt=(value["timestamp_ns"]-prev["timestamp_ns"])/1e9
             limited=self._slew(vx,prev["vx"],0.20*dt)
             if limited!=vx: reasons.append("vx_slew")
