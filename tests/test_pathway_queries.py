@@ -13,6 +13,7 @@ from test_connectivity import annotations, edge, extract
 def metadata():
     return {
         "dataset": "male-cns:v1.0", "source_sha256": "d" * 64,
+        "extraction_commit": "c" * 40,
         "source_note": "Synthetic source only; not biological evidence",
         "records": [
             {"bodyId": 1, "superclass": "synthetic-descending", "somaNeuromere": "region-A",
@@ -116,6 +117,7 @@ class PathwayQueriesTests(unittest.TestCase):
         bad_envelopes = [None, {}, {**metadata(), "dataset": "another-release"},
                          {**metadata(), "source_sha256": "x" * 64},
                          {**metadata(), "source_note": " "},
+                         {**metadata(), "extraction_commit": "HEAD"},
                          {**metadata(), "records": None}]
         for row in ({"bodyId": True}, {"bodyId": 0}, {"bodyId": 2**63}, {}, [],
                     {"bodyId": 1, "superclass": []}, {"bodyId": 1, "somaNeuromere": ""}):

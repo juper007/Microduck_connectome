@@ -98,8 +98,8 @@ def shortest_path(graph, source_body_id, target_body_id, *, max_hops,
 def _source_metadata(graph, envelope):
     if not isinstance(envelope, dict):
         raise ValueError("source metadata must be an envelope object")
-    if set(envelope) != {"dataset", "source_sha256", "source_note", "records"}:
-        raise ValueError("source metadata requires dataset/source_sha256/source_note/records")
+    if set(envelope) != {"dataset", "source_sha256", "source_note", "extraction_commit", "records"}:
+        raise ValueError("source metadata requires dataset/source_sha256/source_note/extraction_commit/records")
     dataset = _label(envelope["dataset"], "dataset")
     if dataset != graph.root_manifest["dataset"]:
         raise ValueError("source metadata dataset does not match graph")
@@ -107,6 +107,9 @@ def _source_metadata(graph, envelope):
     if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
         raise ValueError("source_sha256 must be a lowercase SHA-256 hex digest")
     _label(envelope["source_note"], "source_note")
+    commit = envelope["extraction_commit"]
+    if not isinstance(commit, str) or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        raise ValueError("extraction_commit must be a full lowercase Git SHA")
     if not isinstance(envelope["records"], (list, tuple)):
         raise ValueError("source metadata records must be a list or tuple")
     records = {}
@@ -123,7 +126,8 @@ def _source_metadata(graph, envelope):
             value = row.get(field)
             record[field] = None if value is None else _label(value, field)
         records[body_id] = record
-    provenance = {key: envelope[key] for key in ("dataset", "source_sha256", "source_note")}
+    provenance = {key: envelope[key] for key in
+                  ("dataset", "source_sha256", "source_note", "extraction_commit")}
     return records, provenance
 
 

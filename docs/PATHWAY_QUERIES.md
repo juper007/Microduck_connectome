@@ -34,6 +34,7 @@ Anatomical queries accept a separate source metadata envelope:
 source_metadata = {
     "dataset": "male-cns:v1.0",
     "source_sha256": annotation_source_sha256,
+    "extraction_commit": extraction_code_commit,
     "source_note": "Hash-verified official annotation source; see source manifest",
     "records": raw_selected_annotation_records,
 }
@@ -52,8 +53,9 @@ not represent all brain-to-VNC connections or prove axonal projection anatomy.
 No label defaults, prefix inference, laterality inference or missing-value
 imputation are implemented. Reverse direction requires a separate call.
 
-The envelope requires exactly `dataset`, `source_sha256`, `source_note`, and
-`records`. Dataset must match the graph. Source SHA-256 must be 64 lowercase hex
+The envelope requires exactly `dataset`, `source_sha256`, `source_note`,
+`extraction_commit`, and `records`. The extraction commit must be a full lowercase
+40-character Git SHA. Dataset must match the graph. Source SHA-256 must be 64 lowercase hex
 characters; callers are responsible for actually verifying source bytes against
 that digest before constructing the envelope. The query validates the envelope,
 not the file digest or the scientific truth of caller-provided metadata.
@@ -80,3 +82,27 @@ In particular, missing `somaNeuromere` must not be interpreted as brain location
 
 These are observational graph queries. They do not establish biological
 pathway validity, functional direction, robot mappings, or a Phase 2 gate pass.
+
+## Reproduce query evidence from a rebuilt pathway
+
+```shell
+python -m microduck_connectome.query_pathway_report --report /cache/pathway-report.json --output /cache/query-report.json --code-commit FULL_QUERY_CODE_SHA
+```
+
+The command verifies the metadata file SHA-256 and the graph's expected cache
+key, then checks report/config/source identity consistency before querying.
+Artifact paths must be portable relative paths within the report directory,
+including after symlink resolution. Output cannot replace any input artifact.
+The raw annotation and connection files are verified by the preceding rebuild;
+this command verifies consistency of the resulting artifacts, not an independent
+signature or the raw files themselves.
+
+Output includes report/metadata hashes, root graph identity, extraction and query
+code commits, shortest paths for every configured seed/readout pair (at most two
+hops), all simple two-edge paths, source-defined descending selections,
+`cb_intrinsic` ↔ `vnc_intrinsic` edges in both directions, and known/unknown soma
+metadata coverage. Two-edge path enumeration includes any distinct intermediate
+in the selected induced graph, even another seed/readout; it does not reapply the
+extraction's intermediate selection rule. Zero matching cross-population edges
+only describes the selected graph. Identical inputs and code identity produce
+byte-identical output without timestamps or machine-specific paths.
