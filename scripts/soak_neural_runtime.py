@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 from microduck_connectome.neural_model import load_model_config, model_config_sha256
 from microduck_connectome.soak import run_soak
 
+SOAK_WORKLOAD_SHA256 = "5cc7f9e8801359c995538fc8f65ede403ce647808d9a82a9d54a98fff7591bdb"
+
 
 def main():
     config = load_model_config(ROOT / "config" / "neural_model_v1.json")
@@ -21,7 +23,7 @@ def main():
         "schema_version": "p3-07-soak-v1",
         "dataset": "male-cns:v1.0",
         "fixture_kind": "synthetic_matched_scale",
-        "workload_sha256": "297f11c6248142fc89c875d7547574a7c97e44eb46335069af82a1935a4540d9",
+        "workload_sha256": SOAK_WORKLOAD_SHA256,
         "neural_config_sha256": model_config_sha256(config),
         "runtime_backend": "python-cpu-float32-contract",
         "python_version": platform.python_version(),
