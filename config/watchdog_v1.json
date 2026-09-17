@@ -1,0 +1,7 @@
+{
+  "schema_version": "watchdog-v1",
+  "neural_readout_ttl_ms": 100,
+  "behavior_intent_ttl_ms": 100,
+  "source": "male-cns-controller",
+  "scope": "Phase-5 internal freshness/crash watchdog; no robot-facing transport"
+}
