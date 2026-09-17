@@ -6,6 +6,7 @@ from microduck_connectome.determinism import replay_trace, trace_sha256, verify_
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config" / "neural_model_v1.json").read_text(encoding="utf-8"))
+EVIDENCE_PATH = ROOT / "docs" / "evidence" / "p3-05" / "determinism-v1.json"
 EXPECTED_HASH = "e03ac3bbe892f45b2d2797a4618fa1de952ca29b58c7b07b879c7353cafaa702"
 
 
@@ -29,6 +30,14 @@ class DeterminismTests(unittest.TestCase):
         self.assertEqual(report["steps"], 5)
         self.assertEqual(report["body_ids"], [101, 102, 103])
         self.assertEqual(report["trace_sha256"], EXPECTED_HASH)
+
+    def test_committed_evidence_matches_executable_fixture(self):
+        evidence = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+        report = verify_fixed_replay(StubGraph(), CONFIG, TRACE)
+        self.assertEqual(evidence["trace_sha256"], report["trace_sha256"])
+        self.assertEqual(evidence["steps"], report["steps"])
+        self.assertEqual(evidence["graph"]["body_ids"], report["body_ids"])
+        self.assertTrue(evidence["exact_replay_equal"])
 
     def test_two_fresh_replays_are_structurally_identical(self):
         first = replay_trace(StubGraph(), CONFIG, TRACE)
