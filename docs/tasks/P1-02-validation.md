@@ -20,6 +20,6 @@
   consumers required. Query/transform lineage belongs in source note/referenced
   manifest. No population or biological conclusions.
 - Independent review: pending PM orchestration against final head. Thor validation:
-  pending PM. PR: not submitted. Pre-merge freshness: PM must refetch and verify.
+  PASS on archived implementation commit `6e3bc15902b8f3a0ab85a2e7afcce63e8d5488bc`, Python 3.12.3, Linux aarch64: 30/30 tests using `python -m unittest discover -s tests`. Dedicated directory `/home/juper007/projects/microduck-connectome-thor/p1-schema-6e3bc159`; existing environment unchanged. PR not yet submitted; final review and freshness check follow.
 - Unresolved risks: live projection adapter must establish actual field/vocabulary
   semantics before ingestion; derived records must retain the provenance envelope.
