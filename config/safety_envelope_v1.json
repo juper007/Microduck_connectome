@@ -1,0 +1,10 @@
+{
+  "schema_version": "safety-envelope-v1",
+  "max_abs_vx_mps": 0.08,
+  "max_abs_vy_mps": 0,
+  "max_abs_vyaw_radps": 0.5,
+  "max_delta_vx_per_s": 0.2,
+  "max_delta_vyaw_per_s2": 1.5,
+  "source": "male-cns-controller",
+  "scope": "internal Phase-5 safety envelope only; robot-facing transport remains Phase 6"
+}
