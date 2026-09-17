@@ -1,0 +1,13 @@
+{
+  "schema_version": "command-logger-v1",
+  "controller_source": "male-cns-controller",
+  "required_config_hashes": [
+    "dn_readout",
+    "steering_decoder",
+    "escape_decoder",
+    "safety_envelope",
+    "watchdog"
+  ],
+  "format": "canonical-jsonl",
+  "scope": "Phase-5 internal trace only; no robot transport, credentials, or filesystem paths"
+}
