@@ -15,6 +15,9 @@ class PopulationReadout:
         body_ids = tuple(body_ids)
         if not body_ids or tuple(sorted(body_ids)) != body_ids or len(set(body_ids)) != len(body_ids):
             raise PopulationReadoutError("body_ids must be non-empty, unique and ascending")
+        for body_id in body_ids:
+            if type(body_id) is not int or body_id <= 0:
+                raise PopulationReadoutError("body_ids must be positive integers")
         if type(timestep_ms) is not int or timestep_ms <= 0:
             raise PopulationReadoutError("timestep_ms must be a positive integer")
         if type(window_ms) is not int or window_ms <= 0 or window_ms % timestep_ms:
@@ -34,9 +37,12 @@ class PopulationReadout:
             members = tuple(members)
             if not members or tuple(sorted(members)) != members or len(set(members)) != len(members):
                 raise PopulationReadoutError("population members must be non-empty unique ascending IDs")
+            for body_id in members:
+                if type(body_id) is not int or body_id <= 0:
+                    raise PopulationReadoutError("population members must be positive integer body IDs")
             try:
                 normalized[name] = tuple(index[body_id] for body_id in members)
-            except (KeyError, TypeError):
+            except KeyError:
                 raise PopulationReadoutError("population references unknown body_id") from None
         self.body_ids = body_ids
         self.timestep_ms = timestep_ms
@@ -49,6 +55,8 @@ class PopulationReadout:
     def from_graph_types(cls, graph, cell_types, *, timestep_ms=20, window_ms=100):
         if not isinstance(cell_types, Sequence) or isinstance(cell_types, (str, bytes)) or not cell_types:
             raise PopulationReadoutError("cell_types must be a non-empty sequence")
+        if len(set(cell_types)) != len(cell_types):
+            raise PopulationReadoutError("cell_types must not contain duplicates")
         populations = {}
         for cell_type in cell_types:
             if not isinstance(cell_type, str) or not cell_type.strip():
