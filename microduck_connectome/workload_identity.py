@@ -8,6 +8,7 @@ DEFAULT_NODE_COUNT = 570
 DEFAULT_EDGE_COUNT = 21_142
 DEFAULT_NORMALIZED_WEIGHT = 0.01
 GRAPH_GENERATION_RULE = "round_robin_offset_unique_directed_nonself-v1"
+GRAPH_CONTENT_HASH_SCHEME = "body-id-json-plus-canonical-edge-jsonl-v1"
 
 
 def _canonical_json(value):
@@ -38,6 +39,38 @@ def _validated_graph_params(node_count, edge_count, normalized_weight):
     return node_count, edge_count, normalized_weight
 
 
+def _iter_matched_scale_edges(node_count, edge_count, normalized_weight):
+    source = 1
+    offset = 1
+    emitted = 0
+    while emitted < edge_count:
+        target = ((source - 1 + offset) % node_count) + 1
+        if target != source:
+            yield {
+                "source_body_id": source,
+                "target_body_id": target,
+                "normalized_weight": normalized_weight,
+            }
+            emitted += 1
+        source += 1
+        if source > node_count:
+            source = 1
+            offset += 1
+
+
+def graph_content_sha256(body_ids, edges):
+    """Hash exact graph content without requiring one giant canonical JSON object."""
+    hasher = hashlib.sha256()
+    hasher.update(GRAPH_CONTENT_HASH_SCHEME.encode("ascii"))
+    hasher.update(b"\nbody_ids:")
+    hasher.update(_canonical_json(list(body_ids)).encode("ascii"))
+    hasher.update(b"\nedges:\n")
+    for edge in edges:
+        hasher.update(_canonical_json(edge).encode("ascii"))
+        hasher.update(b"\n")
+    return hasher.hexdigest()
+
+
 def matched_scale_graph_fixture(
     *,
     node_count=DEFAULT_NODE_COUNT,
@@ -49,22 +82,23 @@ def matched_scale_graph_fixture(
         node_count, edge_count, normalized_weight
     )
     body_ids = list(range(1, node_count + 1))
-    edges = []
-    source = 1
-    offset = 1
-    while len(edges) < edge_count:
-        target = ((source - 1 + offset) % node_count) + 1
-        if target != source:
-            edges.append({
-                "source_body_id": source,
-                "target_body_id": target,
-                "normalized_weight": normalized_weight,
-            })
-        source += 1
-        if source > node_count:
-            source = 1
-            offset += 1
+    edges = list(_iter_matched_scale_edges(node_count, edge_count, normalized_weight))
     return {"body_ids": body_ids, "edges": edges}
+
+
+def matched_scale_graph_content_sha256(
+    *,
+    node_count=DEFAULT_NODE_COUNT,
+    edge_count=DEFAULT_EDGE_COUNT,
+    normalized_weight=DEFAULT_NORMALIZED_WEIGHT,
+):
+    """Stream the exact graph-content identity without materializing the edge table."""
+    node_count, edge_count, normalized_weight = _validated_graph_params(
+        node_count, edge_count, normalized_weight
+    )
+    body_ids = range(1, node_count + 1)
+    edges = _iter_matched_scale_edges(node_count, edge_count, normalized_weight)
+    return graph_content_sha256(body_ids, edges)
 
 
 def graph_workload_definition(
@@ -76,17 +110,17 @@ def graph_workload_definition(
     node_count, edge_count, normalized_weight = _validated_graph_params(
         node_count, edge_count, normalized_weight
     )
-    fixture = matched_scale_graph_fixture(
-        node_count=node_count,
-        edge_count=edge_count,
-        normalized_weight=normalized_weight,
-    )
     return {
         "node_count": node_count,
         "edge_count": edge_count,
         "normalized_weight": normalized_weight,
         "generation_rule": GRAPH_GENERATION_RULE,
-        "fixture_sha256": workload_sha256(fixture),
+        "content_hash_scheme": GRAPH_CONTENT_HASH_SCHEME,
+        "fixture_sha256": matched_scale_graph_content_sha256(
+            node_count=node_count,
+            edge_count=edge_count,
+            normalized_weight=normalized_weight,
+        ),
     }
 
 
