@@ -1,0 +1,35 @@
+{
+  "schema_version": "dn-readout-v1",
+  "dataset": "male-cns:v1.0",
+  "timestep_ms": 20,
+  "window_ms": 100,
+  "populations": {
+    "steering_left": {
+      "body_ids": [
+        523769
+      ],
+      "side": "L",
+      "source_type": "DNa02"
+    },
+    "steering_right": {
+      "body_ids": [
+        10360
+      ],
+      "side": "R",
+      "source_type": "DNa02"
+    },
+    "escape": {
+      "body_ids": [
+        10001,
+        10010
+      ],
+      "side": "B",
+      "source_type": "DNp01"
+    }
+  },
+  "source_evidence": {
+    "steering_path": "docs/evidence/p2-02/dna02-v1.json",
+    "escape_path": "docs/evidence/p2-03/dnp01-report.json"
+  },
+  "scope": "engineering readout aggregation; DNp01-to-robot-stop remains an unvalidated engineering hypothesis until later behavior/safety gates"
+}
