@@ -12,7 +12,18 @@ from .perception_frame import make_perception_frame
 from .stimulus import StimulusInjector
 
 SCHEMA_VERSION = "sensory-mapping-v1"
+TARGET_MAPPING_RULE_VERSION = "target-linear-lateral-split-v1"
+LOOMING_MAPPING_RULE_VERSION = "bilateral-lplc2-v1"
 _POPULATION_KEYS = ("lc10a_left", "lc10a_right", "lplc2_left", "lplc2_right")
+_EXPECTED_ENGINEERING_MAPPING = {
+    "target_lateral_split": "target_strength=target_area*confidence; left=target_strength*(1-target_x)/2; right=target_strength*(1+target_x)/2",
+    "image_negative_x_population": "lc10a_left",
+    "image_positive_x_population": "lc10a_right",
+    "looming_mapping": "equal bilateral LPLC2 amplitude = looming",
+    "tof_mapping": "none; proximity remains perception/safety context until separately evidence-gated",
+    "mapping_rule_version": TARGET_MAPPING_RULE_VERSION,
+    "looming_rule_version": LOOMING_MAPPING_RULE_VERSION,
+}
 _EXPECTED_META = {
     "lc10a_left": ("L", "LC10a"),
     "lc10a_right": ("R", "LC10a"),
@@ -44,6 +55,8 @@ def validate_sensory_mapping_config(config):
         raise SensoryMappingError(f"dataset must be {DATASET}")
     if config["perception_ttl_ms"] != 100 or type(config["perception_ttl_ms"]) is not int:
         raise SensoryMappingError("perception_ttl_ms must remain frozen at 100")
+    if config["engineering_mapping"] != _EXPECTED_ENGINEERING_MAPPING:
+        raise SensoryMappingError("engineering_mapping metadata/version does not match executable sensory rules")
     populations = config["populations"]
     if not isinstance(populations, Mapping) or set(populations) != set(_POPULATION_KEYS):
         raise SensoryMappingError("exact LC10a/LPLC2 L/R population keys are required")
