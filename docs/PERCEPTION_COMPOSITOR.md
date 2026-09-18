@@ -10,7 +10,8 @@ This component closes the Phase-4 residual integration gap before Phase 6 by com
 - Looming is derived from the camera stream and must match the camera `timestamp_ns` and `frame_id` exactly.
 - ToF has its own independent frame identity. Its frame ID is not numerically compared with the camera frame ID.
 - Camera and ToF timestamps may differ by at most the frozen 100 ms perception coherence bound.
-- Output `timestamp_ns` is the newer of camera and ToF timestamps.
+- For a valid fusion, output `timestamp_ns` is the newer of camera and ToF timestamps.
+- For any fail-closed neutral fusion, output `timestamp_ns` is the current compositor `now_ns` so downstream freshness validation can consume the invalid frame safely even when a source timestamp is future-dated.
 - Output `frame_id` is the camera frame ID.
 
 Repeated evaluation of the exact same source sample is allowed. Partial identity changes or metadata regression are fail-closed.
