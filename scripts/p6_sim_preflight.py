@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -31,6 +32,11 @@ def _git_head(path):
     return value if len(value) == 40 else None
 
 
+def _git_clean(path):
+    result = _run(["git", "status", "--porcelain"], cwd=path)
+    return result is not None and result.returncode == 0 and result.stdout.strip() == ""
+
+
 def _module_available(python, module):
     result = _run([
         str(python),
@@ -57,9 +63,12 @@ def probe_environment(*, microduck, microduck_rl, versions):
     checks = {
         "microduck_checkout_present": microduck.is_dir(),
         "microduck_commit_matches": actual_microduck == expected_microduck,
+        "microduck_checkout_clean": microduck.is_dir() and _git_clean(microduck),
         "microduck_rl_checkout_present": microduck_rl.is_dir(),
         "microduck_rl_commit_matches": actual_rl == expected_rl,
+        "microduck_rl_checkout_clean": microduck_rl.is_dir() and _git_clean(microduck_rl),
         "duck_sim_present": duck_sim.is_file(),
+        "duck_sim_executable": duck_sim.is_file() and os.access(duck_sim, os.X_OK),
         "rl_venv_python_present": rl_python.is_file(),
         "cargo_present": shutil.which("cargo") is not None,
         "rustc_present": shutil.which("rustc") is not None,
