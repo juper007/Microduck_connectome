@@ -3,6 +3,8 @@ name: P4 perception tests
 on:
   pull_request:
     paths:
+      - 'config/sensory_mapping_v1.json'
+      - 'docs/PERCEPTION_COMPOSITOR.md'
       - 'microduck_connectome/perception_frame.py'
       - 'microduck_connectome/camera_target.py'
       - 'microduck_connectome/looming.py'
