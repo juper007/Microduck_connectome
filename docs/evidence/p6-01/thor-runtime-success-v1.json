@@ -24,6 +24,16 @@
     "mujoco": "3.10.0",
     "onnxruntime": "1.24.4"
   },
+  "thor_dependency_profile": {
+    "purpose": "aarch64 Thor GPU dependency resolution; simulator source and assets remain from the pinned microduck_rl checkout",
+    "torch": "2.9.1+cu130",
+    "torch_cuda": "13.0",
+    "warp": "1.12.0",
+    "profile_pyproject_sha256": "de9261bc5dc845aab0d40ff4c2050476d94e72a72aed2694eca1928ec457d1a3",
+    "profile_lock_sha256": "93345075da01da4eeb5e98628d439a96829ef516d8ea9a90ded5eca405f618ca",
+    "pinned_source_wheel_sha256": "eedbe2f0259bb27ee7100c92394f7c9e864c0d3b0a2c31dcaafd00fc7e5c427b",
+    "installed_source_matches_pinned_checkout": true
+  },
   "policy_set": {
     "repository": "pollen-robotics/microduck-policies",
     "version": "v5",

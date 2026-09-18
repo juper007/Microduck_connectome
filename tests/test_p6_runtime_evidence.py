@@ -34,6 +34,13 @@ class P6RuntimeEvidenceTests(unittest.TestCase):
         )
         self.assertTrue(evidence["upstream_checkouts_clean_before_and_after"])
         self.assertEqual(evidence["platform"]["architecture"], "aarch64")
+        profile = evidence["thor_dependency_profile"]
+        self.assertEqual(profile["torch"], "2.9.1+cu130")
+        self.assertEqual(profile["torch_cuda"], "13.0")
+        self.assertTrue(profile["installed_source_matches_pinned_checkout"])
+        self.assertTrue(SHA256.fullmatch(profile["profile_pyproject_sha256"]))
+        self.assertTrue(SHA256.fullmatch(profile["profile_lock_sha256"]))
+        self.assertTrue(SHA256.fullmatch(profile["pinned_source_wheel_sha256"]))
 
     def test_two_real_healthy_cycles_and_clean_shutdowns(self):
         evidence = self.evidence
