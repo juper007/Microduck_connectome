@@ -1,0 +1,27 @@
+name: P6 integration unit tests
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/p6_sim_preflight.py'
+      - 'tests/test_p6_sim_preflight.py'
+      - 'tests/test_p6_runtime_evidence.py'
+      - 'docs/tasks/P6-01.md'
+      - 'docs/evidence/p6-01/**'
+      - '.github/workflows/p6-integration.yml'
+
+jobs:
+  p6-unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: P6-01 preflight and runtime evidence tests
+        run: |
+          python -m unittest discover -s tests -p 'test_p6_sim_preflight.py'
+          python -m unittest discover -s tests -p 'test_p6_runtime_evidence.py'
