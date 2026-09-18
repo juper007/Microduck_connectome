@@ -24,7 +24,9 @@ class P6SimPreflightTests(unittest.TestCase):
         micro=root/"microduck"
         rl=root/"microduck_rl"
         (micro/"scripts").mkdir(parents=True)
-        (micro/"scripts"/"duck-sim").write_text("#!/bin/sh\n",encoding="utf-8")
+        duck_sim=micro/"scripts"/"duck-sim"
+        duck_sim.write_text("#!/bin/sh\n",encoding="utf-8")
+        duck_sim.chmod(0o755)
         (rl/".venv"/"bin").mkdir(parents=True)
         (rl/".venv"/"bin"/"python").write_text("",encoding="utf-8")
         versions=root/"versions.json"
@@ -43,6 +45,8 @@ class P6SimPreflightTests(unittest.TestCase):
             def fake_run(args,*,cwd=None):
                 if args[:3]==["git","rev-parse","HEAD"]:
                     return Result(stdout=(MICRO_SHA if Path(cwd)==micro else RL_SHA)+"\n")
+                if args[:3]==["git","status","--porcelain"]:
+                    return Result(stdout="")
                 return Result(returncode=0)
 
             with patch("scripts.p6_sim_preflight._run",side_effect=fake_run), \
@@ -58,6 +62,8 @@ class P6SimPreflightTests(unittest.TestCase):
             def fake_run(args,*,cwd=None):
                 if args[:3]==["git","rev-parse","HEAD"]:
                     return Result(stdout=("0"*40 if Path(cwd)==micro else RL_SHA)+"\n")
+                if args[:3]==["git","status","--porcelain"]:
+                    return Result(stdout="")
                 return Result(returncode=0)
 
             with patch("scripts.p6_sim_preflight._run",side_effect=fake_run), \
@@ -65,6 +71,23 @@ class P6SimPreflightTests(unittest.TestCase):
                 result=probe_environment(microduck=micro,microduck_rl=rl,versions=versions)
             self.assertFalse(result["ready"])
             self.assertFalse(result["checks"]["microduck_commit_matches"])
+
+    def test_dirty_checkout_blocks_readiness(self):
+        with tempfile.TemporaryDirectory() as td:
+            micro,rl,versions=self.make_fixture(td)
+
+            def fake_run(args,*,cwd=None):
+                if args[:3]==["git","rev-parse","HEAD"]:
+                    return Result(stdout=(MICRO_SHA if Path(cwd)==micro else RL_SHA)+"\n")
+                if args[:3]==["git","status","--porcelain"]:
+                    return Result(stdout=" M local.patch\n" if Path(cwd)==micro else "")
+                return Result(returncode=0)
+
+            with patch("scripts.p6_sim_preflight._run",side_effect=fake_run), \
+                 patch("scripts.p6_sim_preflight.shutil.which",return_value="/tool"):
+                result=probe_environment(microduck=micro,microduck_rl=rl,versions=versions)
+            self.assertFalse(result["ready"])
+            self.assertFalse(result["checks"]["microduck_checkout_clean"])
 
     def test_missing_runtime_tools_or_checkouts_block_readiness(self):
         with tempfile.TemporaryDirectory() as td:
