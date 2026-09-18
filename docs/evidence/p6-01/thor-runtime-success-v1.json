@@ -1,0 +1,88 @@
+{
+  "schema_version": "p6-01-thor-runtime-success-v1",
+  "recorded_utc": "2026-09-18T20:32:00Z",
+  "task": "P6-01",
+  "result": "PASS",
+  "execution_target": "Thor",
+  "runtime_evidence_base_commit": "d12d7b02d49615ead3fc0f452503c99c050b7cc6",
+  "pinned_upstream": {
+    "microduck": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl": "cb70b792312d559a4da09064d92009079671815f"
+  },
+  "upstream_checkouts_clean_before_and_after": true,
+  "platform": {
+    "hostname_or_label": "Thor",
+    "os": "Ubuntu 24.04.4 LTS",
+    "architecture": "aarch64",
+    "kernel": "Linux 6.8.12-1021-tegra"
+  },
+  "toolchain": {
+    "python": "3.12.3",
+    "uv": "0.11.19",
+    "cargo": "1.98.1",
+    "rustc": "1.98.1",
+    "mujoco": "3.10.0",
+    "onnxruntime": "1.24.4"
+  },
+  "policy_set": {
+    "repository": "pollen-robotics/microduck-policies",
+    "version": "v5",
+    "manifest_sha256": "622048c2c23ea58942023f66fd16b189a875fd169e88d85beb16ebbe63b20c94"
+  },
+  "preflight": {
+    "command": "python3 scripts/p6_sim_preflight.py --microduck <THOR_TASK_ROOT>/microduck --microduck-rl <THOR_TASK_ROOT>/microduck_rl",
+    "ready": true,
+    "all_checks_true": true
+  },
+  "official_commands": {
+    "environment": "DUCK_SIM_STATE=<THOR_TASK_ROOT>/sim-state DUCK_SIM_RL=<THOR_TASK_ROOT>/microduck_rl DUCK_SIM_PORT=17801 DUCK_SIM_VIEWER=0",
+    "launch": "scripts/duck-sim",
+    "health": "scripts/duck-sim ctl health",
+    "shutdown": "scripts/duck-sim down"
+  },
+  "launch_cycle_count": 2,
+  "launch_1": {
+    "simulator_started": true,
+    "body_backend_reachable": true,
+    "robotd_reachable": true,
+    "robotd_health": "healthy",
+    "control_loop_hz": 50.0,
+    "missed_ticks": 0,
+    "bus": "ok",
+    "clean_shutdown": true,
+    "port_released": true,
+    "orphan_processes": false
+  },
+  "launch_2": {
+    "simulator_started": true,
+    "body_backend_reachable": true,
+    "robotd_reachable": true,
+    "robotd_health": "healthy",
+    "control_loop_hz": 50.0,
+    "missed_ticks": 0,
+    "bus": "ok",
+    "clean_shutdown": true,
+    "port_released": true,
+    "orphan_processes": false
+  },
+  "runtime_artifacts": {
+    "location": "Thor task root/p6-01-runtime-evidence",
+    "cycle1_health_sha256": "3d5fa619b81c3e762158c03968d60162582e01e9fad0d46e3f5919849e1f683b",
+    "cycle1_processes_sha256": "2dd664013ebc39d9fa1eea63e7d25e62860de8baaf8bad0043c270b5a15e09d9",
+    "cycle1_shutdown_sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c",
+    "cycle2_launch_sha256": "b83f11fa99cd21db847ffb8d604a47524338c2420748681bdcbbc7b4efbd8f0f",
+    "cycle2_health_sha256": "3ba3fb99ddfaa79138775bcf4c552afef0a64bdce79d40eda67945f325d181df",
+    "cycle2_processes_sha256": "e9639fa30674d7406439823f2aab48256f024ae4f354573df1ffa23fd8e4f92e",
+    "cycle2_shutdown_sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c",
+    "cycle2_body_log_sha256": "dbba6647c9b81da2242b7be7728620c424140deb3a09b922f18a057f74daf000",
+    "cycle2_robotd_log_sha256": "1c5dbf3bd4e7b29823e781b177088bc73ffc601d1faa4b49cc693bc7437d5b97"
+  },
+  "observed_upstream_warning": {
+    "message": "The pinned duck-sim emitted shell warnings for policy.fetch and Permission while expanding backticks in an unquoted generated-config heredoc comment.",
+    "runtime_impact": "none observed; official policy v5 loaded and both real health queries returned healthy",
+    "source_modified": false
+  },
+  "hidden_patch_required": false,
+  "p6_02_started": false,
+  "acceptance_met": true
+}

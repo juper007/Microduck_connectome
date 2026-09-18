@@ -1,6 +1,7 @@
-# P6-01 runtime evidence — BLOCKED
+# P6-01 runtime evidence — Thor PASS
 
-Pinned upstream source was inspected at the exact commits in `config/versions.json`.
+Pinned upstream source was inspected and executed at the exact commits in
+`config/versions.json`.
 
 The pinned official `microduck/scripts/duck-sim` documents the supported local path:
 
@@ -12,7 +13,7 @@ scripts/duck-sim down
 
 The same pinned script states that the simulator runs the real `robotd` binary with the same policies, 50 Hz loop and IPC, substituting simulated I/O at the body seam.
 
-## Execution result
+## Initial execution result: BLOCKED
 
 This task is **BLOCKED**, not PASS.
 
@@ -30,4 +31,60 @@ Therefore the official simulator was not launched and `scripts/duck-sim ctl heal
 
 `scripts/p6_sim_preflight.py` is provided to make the missing prerequisites explicit on a Linux host that has the pinned repositories available.
 
-P6-01 acceptance requires an actual simulator launch and real robotd health response, so P6-02 and later tasks must not proceed under the requested sequential workflow until this block is resolved.
+That historical result remains in `runtime-probe.json`; it must not be interpreted
+as Thor runtime evidence.
+
+## Thor execution result: PASS
+
+The continuation ran on Thor (`Ubuntu 24.04.4 LTS`, `aarch64`) using clean
+checkouts at the pinned SHAs:
+
+- `microduck`: `344925c9f8fa031f85428a305b1e8ec2eaae29c1`
+- `microduck_rl`: `cb70b792312d559a4da09064d92009079671815f`
+
+The task-local toolchain was Python 3.12.3, uv 0.11.19, cargo/rustc 1.98.1,
+MuJoCo 3.10.0 and ONNX Runtime 1.24.4. The official policy seed was
+`pollen-robotics/microduck-policies` v5; its manifest SHA256 is recorded in
+`thor-runtime-success-v1.json`.
+
+With `<THOR_TASK_ROOT>` denoting the task root, preflight returned `ready=true`:
+
+```sh
+PATH=<THOR_TASK_ROOT>/cargo/bin:<THOR_TASK_ROOT>/uv-aarch64-unknown-linux-gnu:$PATH \
+RUSTUP_HOME=<THOR_TASK_ROOT>/rustup CARGO_HOME=<THOR_TASK_ROOT>/cargo \
+python3 scripts/p6_sim_preflight.py \
+  --microduck <THOR_TASK_ROOT>/microduck \
+  --microduck-rl <THOR_TASK_ROOT>/microduck_rl
+```
+
+Both independent runtime cycles used the pinned official lifecycle:
+
+```sh
+export DUCK_SIM_STATE=<THOR_TASK_ROOT>/sim-state
+export DUCK_SIM_RL=<THOR_TASK_ROOT>/microduck_rl
+export DUCK_SIM_PORT=17801
+export DUCK_SIM_VIEWER=0
+cd <THOR_TASK_ROOT>/microduck
+scripts/duck-sim
+scripts/duck-sim ctl health
+scripts/duck-sim down
+```
+
+Cycle 1 and cycle 2 each launched the MuJoCo body and the real `robotd` binary.
+The official health command returned `robot healthy`, a 50.0 Hz loop with zero
+missed ticks, and `bus ok`. Each official shutdown released port 17801 and left
+no task-state daemon or body process. The upstream checkouts remained clean;
+no source patch was required.
+
+The pinned script prints two non-fatal shell warnings while expanding backticks
+inside a generated-config heredoc comment (`policy.fetch` and `Permission`). The
+generated policy path remained correct, official v5 policies loaded, and both
+health cycles passed. The pinned source was not changed to conceal the warning.
+
+The compact, versioned result is `thor-runtime-success-v1.json`. Raw launch,
+health, process, shutdown and daemon logs remain under the Thor task root at
+`p6-01-runtime-evidence`; their SHA256 values are recorded in the JSON without
+committing machine-specific paths or personal identifiers.
+
+This evidence completes P6-01 only. It does not implement or validate P6-02 IPC,
+motion commands, yaw calibration, scheduler, telemetry, fault injection or soak.
