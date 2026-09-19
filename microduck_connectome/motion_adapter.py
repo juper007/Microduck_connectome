@@ -3,44 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
 
 from .robotd_client import RobotdClient
-from .watchdog import WatchdogOutput
+from .watchdog import WatchdogOutput, _is_authentic_watchdog_output
 
 MAX_ABS_VX_MPS = 0.08
 MAX_ABS_VY_MPS = 0.0
 MAX_ABS_VYAW_RADPS = 0.50
-_ADAPTER_COMMAND_SEAL = object()
 
 
 class MotionAdapterError(ValueError):
     """A motion config or post-watchdog command violates P6-03."""
-
-
-@dataclass(frozen=True, slots=True, init=False)
-class _BoundedRobotdCommand:
-    """A robotd twist minted only after the adapter's final envelope check."""
-
-    vx: float
-    vy: float
-    vyaw: float
-
-    def __init__(self, *, _seal, vx, vy, vyaw):
-        if _seal is not _ADAPTER_COMMAND_SEAL:
-            raise TypeError("bounded robotd commands are adapter-minted")
-        object.__setattr__(self, "vx", vx)
-        object.__setattr__(self, "vy", vy)
-        object.__setattr__(self, "vyaw", vyaw)
-
-
-def _bounded_command(*, vx, vy, vyaw):
-    return _BoundedRobotdCommand(
-        _seal=_ADAPTER_COMMAND_SEAL, vx=float(vx), vy=float(vy), vyaw=float(vyaw)
-    )
 
 
 def _validate_motion_adapter_config(value) -> dict:
@@ -95,7 +71,7 @@ class RobotMotionAdapter:
         self._last_metadata = None
 
     def send(self, output: WatchdogOutput) -> str:
-        if type(output) is not WatchdogOutput:
+        if not _is_authentic_watchdog_output(output):
             raise TypeError("adapter accepts ControllerWatchdog.tick output only")
         intent = output["intent"]
         metadata = (intent["timestamp_ns"], intent["sequence"])
@@ -124,26 +100,16 @@ class RobotMotionAdapter:
             if values != (0.0, 0.0, 0.0):
                 raise MotionAdapterError("stop intent must be zero twist")
             try:
-                if self.stop_transport == "zero_twist":
-                    self.client._send_motion(_bounded_command(vx=0.0, vy=0.0, vyaw=0.0))
-                    self.client.health()
-                    result = "zero_twist_refreshed"
-                else:
-                    # Refresh every watchdog tick. The request/response is also the liveness proof.
-                    self.client.stop()
-                    result = "robot_stop_refreshed"
+                result = self.client._send_watchdog(output, self.stop_transport)
             except Exception:
                 self._requires_fresh_safe_stop = True
                 raise
             self._requires_fresh_safe_stop = False
             self._connection_generation = self.client.status.generation
             return result
-        command = _bounded_command(
-            vx=intent["vx"], vy=0.0, vyaw=intent["vyaw"]
-        )
         try:
-            self.client._send_motion(command)
+            result = self.client._send_watchdog(output, self.stop_transport)
         except Exception:
             self._requires_fresh_safe_stop = True
             raise
-        return "move"
+        return result

@@ -128,7 +128,7 @@ def main():
         raise RuntimeError("robotd did not accept reconnect")
     events.append({"event": "robotd_restart", "generation": third.generation,
                    "pid_before": pid, "pid_after": process.pid})
-    enabled = client._call("robot.enable", {"on": True, "toggle": False})
+    enabled = client.enable(True)
     events.append({"event": "robotd_restart_enable", "result": enabled})
     try:
         adapter.send(output(args.watchdog_config, 80, 80, vx=0.04, vyaw=0.2))

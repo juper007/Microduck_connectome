@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from types import MappingProxyType
 
 import pytest
 
@@ -21,19 +22,21 @@ class FakeClient:
         self.status = SimpleNamespace(connected=True, generation=1)
         self.fail_stop = False
 
-    def _send_motion(self, command):
-        self.calls.append(("move", (command.vx, command.vy, command.vyaw)))
-
-    def stop(self):
-        self.calls.append(("stop", ()))
-        if self.fail_stop:
-            self.status.connected = False
-            raise RobotdConnectionError("silent peer loss")
-        return {"accepted": True}
-
-    def health(self):
-        self.calls.append(("health", ()))
-        return {"healthy": True}
+    def _send_watchdog(self, output, stop_transport):
+        intent = output["intent"]
+        if intent["stop"]:
+            if stop_transport == "robot_stop":
+                self.calls.append(("stop", ()))
+                if self.fail_stop:
+                    self.status.connected = False
+                    raise RobotdConnectionError("silent peer loss")
+                return "robot_stop_refreshed"
+            self.calls.extend([
+                ("move", (0.0, 0.0, 0.0)), ("health", ())
+            ])
+            return "zero_twist_refreshed"
+        self.calls.append(("move", (intent["vx"], intent["vy"], intent["vyaw"])))
+        return "move"
 
 
 def watchdog_output(*, timestamp=1, sequence=1, vx=0.0, vy=0.0, vyaw=0.0, stop=False):
@@ -92,13 +95,14 @@ def test_forged_pre_safety_mapping_and_direct_type_construction_are_rejected():
     with pytest.raises(TypeError, match="ControllerWatchdog.tick"):
         adapter.send(forged)
     with pytest.raises(TypeError, match="ControllerWatchdog"):
-        WatchdogOutput(
-            _seal=None, intent=forged["intent"], watchdog_state="healthy",
-            stale_reason=None, decoder_alive=True,
-        )
+        WatchdogOutput()
+    forged_output = object.__new__(WatchdogOutput)
+    object.__setattr__(forged_output, "_WatchdogOutput__values", MappingProxyType(forged))
+    with pytest.raises(TypeError, match="ControllerWatchdog.tick"):
+        adapter.send(forged_output)
     genuine = safe_output()
     with pytest.raises(AttributeError, match="immutable"):
-        genuine._values = forged
+        genuine._WatchdogOutput__values = forged
     with pytest.raises(TypeError):
         genuine["intent"]["vx"] = 999
 

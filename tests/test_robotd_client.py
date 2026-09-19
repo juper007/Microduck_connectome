@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import copy
 import json
 import socket
+from types import MappingProxyType
 
 import pytest
 
-from microduck_connectome.motion_adapter import _BoundedRobotdCommand, _bounded_command
+from microduck_connectome.control_contracts import make_behavior_intent
 from microduck_connectome.robotd_client import (
     MAX_LINE_BYTES,
     I32_MAX,
@@ -18,6 +20,36 @@ from microduck_connectome.robotd_client import (
     RobotdRemoteError,
     RobotdTimeoutError,
 )
+from microduck_connectome.watchdog import ControllerWatchdog, WatchdogOutput
+
+
+WATCHDOG_CONFIG = {
+    "schema_version": "watchdog-v1",
+    "neural_readout_ttl_ms": 100,
+    "behavior_intent_ttl_ms": 100,
+    "source": "male-cns-controller",
+    "scope": "test",
+}
+
+
+def _watchdog_output(*, timestamp=1, sequence=1, vx=0.0, vy=0.0, vyaw=0.0, stop=False):
+    watchdog = ControllerWatchdog(WATCHDOG_CONFIG)
+    if stop:
+        return watchdog.tick(now_ns=timestamp, output_sequence=sequence)
+    neural = {
+        "timestamp_ns": timestamp,
+        "sequence": sequence,
+        "steering_left": 0.0,
+        "steering_right": 0.0,
+        "escape": 0.0,
+        "runtime_healthy": True,
+    }
+    behavior = make_behavior_intent(
+        timestamp_ns=timestamp, sequence=sequence, vx=vx, vy=vy, vyaw=vyaw
+    )
+    assert watchdog.observe_neural(neural)
+    assert watchdog.observe_behavior(behavior)
+    return watchdog.tick(now_ns=timestamp + 1, output_sequence=sequence + 1)
 
 
 def _response(request: dict, result: object) -> bytes:
@@ -109,7 +141,7 @@ def test_successful_health_and_state_responses():
     assert client.state()["t_ns"] == 1_250_000_000
 
 
-def test_adapter_minted_move_is_notification_and_stop_requires_acceptance():
+def test_watchdog_minted_move_is_notification_and_stop_requires_acceptance():
     seen = []
 
     def handler(request):
@@ -125,7 +157,9 @@ def test_adapter_minted_move_is_notification_and_stop_requires_acceptance():
     client, _ = _client(handler)
     client.connect()
     assert not hasattr(client, "move")
-    client._send_motion(_bounded_command(vx=0.08, vy=0.0, vyaw=-0.5))
+    assert client._send_watchdog(
+        _watchdog_output(vx=0.08, vyaw=-0.5), "robot_stop"
+    ) == "move"
     assert client.stop() == {"accepted": True}
     assert seen[-2]["params"] == {"vx": 0.08, "vy": 0.0, "vyaw": -0.5}
 
@@ -134,15 +168,98 @@ def test_raw_or_unbounded_motion_cannot_reach_transport():
     client, stream = _client(_hello)
     client.connect()
     before = len(stream.responses)
-    with pytest.raises(TypeError, match="adapter-minted"):
-        client._send_motion({"vx": 0.01, "vy": 0.0, "vyaw": 0.0})
-    with pytest.raises(TypeError, match="adapter-minted"):
-        client._notify("robot.move", {"vx": 999, "vy": 123, "vyaw": 456})
+    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
+        client._send_watchdog({"intent": {}}, "robot_stop")
+    with pytest.raises(TypeError, match="not exposed"):
+        client._call("robot.move", {"vx": 999, "vy": 123, "vyaw": 456})
+    assert not hasattr(client, "_notify")
+    assert not hasattr(client, "_write_move_notification")
     with pytest.raises(ValueError, match="P6-03 envelope"):
-        client._send_motion(_bounded_command(vx=999, vy=123, vyaw=456))
-    with pytest.raises(TypeError, match="adapter-minted"):
-        _BoundedRobotdCommand(_seal=None, vx=0.0, vy=0.0, vyaw=0.0)
+        client._send_watchdog(_watchdog_output(vx=999, vy=123, vyaw=456), "robot_stop")
+    with pytest.raises(TypeError, match="ControllerWatchdog"):
+        WatchdogOutput()
+    forged = object.__new__(WatchdogOutput)
+    object.__setattr__(forged, "_WatchdogOutput__values", MappingProxyType({
+        "intent": make_behavior_intent(timestamp_ns=2, sequence=2, vx=0.01),
+        "watchdog_state": "healthy", "stale_reason": None, "decoder_alive": True,
+    }))
+    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
+        client._send_watchdog(forged, "robot_stop")
+    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
+        client._send_watchdog(copy.copy(_watchdog_output()), "robot_stop")
     assert len(stream.responses) == before
+
+
+@pytest.mark.parametrize(
+    "method", ["robot.move", "robot.head", "robot.pose", "motor.write"]
+)
+def test_generic_request_rejects_unexposed_write_methods_without_wire_io(method):
+    client, stream = _client(_hello)
+    client.connect()
+    before = len(stream.responses)
+    with pytest.raises(TypeError, match="not exposed"):
+        client._call(method, {})
+    assert len(stream.responses) == before
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("vx", float("nan")), ("vx", True), ("vy", 0.001), ("vyaw", 0.500001)],
+)
+def test_corrupted_genuine_output_is_rejected_before_wire_io(field, value):
+    client, stream = _client(_hello)
+    client.connect()
+    output = _watchdog_output(vx=0.01)
+    intent = dict(output["intent"])
+    intent[field] = value
+    object.__setattr__(output, "_WatchdogOutput__values", MappingProxyType({
+        "intent": MappingProxyType(intent),
+        "watchdog_state": output["watchdog_state"],
+        "stale_reason": output["stale_reason"],
+        "decoder_alive": output["decoder_alive"],
+    }))
+    before = len(stream.responses)
+    with pytest.raises(ValueError, match="finite numeric|P6-03 envelope"):
+        client._send_watchdog(output, "robot_stop")
+    assert len(stream.responses) == before
+
+
+def test_transport_rejects_replay_and_requires_safe_stop_after_reconnect():
+    seen = []
+    streams = []
+
+    def handler(request):
+        seen.append(request)
+        if request["method"] == "hello":
+            return _hello(request)
+        if request["method"] == "robot.stop":
+            return _response(request, {"accepted": True})
+        assert request["method"] == "robot.move"
+        return None
+
+    def connector(*_):
+        stream = ScriptedSocket(handler)
+        streams.append(stream)
+        return stream
+
+    client = RobotdClient("/test.sock", connector=connector)
+    client.connect()
+    first = _watchdog_output(timestamp=10, sequence=10, vx=0.01)
+    assert client._send_watchdog(first, "robot_stop") == "move"
+    with pytest.raises(ValueError, match="stale replay"):
+        client._send_watchdog(first, "robot_stop")
+    client.reconnect()
+    with pytest.raises(ValueError, match="fresh watchdog safe-stop"):
+        client._send_watchdog(
+            _watchdog_output(timestamp=20, sequence=20, vx=0.01), "robot_stop"
+        )
+    assert client._send_watchdog(
+        _watchdog_output(timestamp=30, sequence=30, stop=True), "robot_stop"
+    ) == "robot_stop_refreshed"
+    assert client._send_watchdog(
+        _watchdog_output(timestamp=40, sequence=40, vx=0.01), "robot_stop"
+    ) == "move"
+    assert len(streams) == 2
 
 
 def test_stop_rejection_is_an_error():
