@@ -7,6 +7,8 @@ import pytest
 
 from microduck_connectome.robotd_client import (
     MAX_LINE_BYTES,
+    U32_MAX,
+    U64_MAX,
     RobotdClient,
     RobotdConnectionError,
     RobotdProtocolError,
@@ -247,3 +249,131 @@ def test_line_at_64_kib_boundary_is_accepted():
 
     client, _ = _client(handler)
     assert client.connect().peer_api_version == 31
+
+
+@pytest.mark.parametrize("api_version", [-1, U32_MAX + 1, True])
+def test_hello_rejects_values_outside_upstream_u32(api_version):
+    def handler(request):
+        return _response(
+            request,
+            {"api_version": api_version, "daemon_version": "0.1.0", "revision": None},
+        )
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdProtocolError, match="hello api_version"):
+        client.connect()
+
+
+def test_hello_accepts_upstream_u32_boundaries():
+    versions = iter((0, U32_MAX))
+
+    def connector(*_):
+        version = next(versions)
+        return ScriptedSocket(
+            lambda request: _response(
+                request,
+                {"api_version": version, "daemon_version": None, "revision": None},
+            )
+        )
+
+    client = RobotdClient("/test.sock", connector=connector)
+    assert client.connect().peer_api_version == 0
+    assert client.reconnect().peer_api_version == U32_MAX
+
+
+def test_health_rejects_null_nonoptional_bus():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        return _response(request, {"healthy": True, "bus": None})
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="bus must be an object"):
+        client.health()
+
+
+def test_health_enforces_upstream_unsigned_ranges():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        return _response(
+            request,
+            {
+                "healthy": True,
+                "bus": {"consecutive_errors": U32_MAX, "startup_failures": U32_MAX + 1},
+            },
+        )
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="startup_failures"):
+        client.health()
+
+
+@pytest.mark.parametrize("imu", ["not-an-object", [], 1])
+def test_state_rejects_non_object_imu(imu):
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        bad_state = _state()
+        bad_state["imu"] = imu
+        ack = _response(request, {"accepted": True})
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": bad_state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="imu must be an object or null"):
+        client.state()
+
+
+def test_state_accepts_null_imu_and_u64_timestamp_boundary():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        state = _state()
+        state["imu"] = None
+        state["t_ns"] = U64_MAX
+        ack = _response(request, {"accepted": True})
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    assert client.state()["t_ns"] == U64_MAX
+
+
+def test_nonfinite_number_is_rejected_even_in_unknown_field():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        return _response(request, {"healthy": True, "future_field": float("nan")})
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="malformed JSON"):
+        client.health()
+
+
+@pytest.mark.parametrize("response_id", [-1, U64_MAX + 1, True, 1.5])
+def test_invalid_upstream_response_id_is_rejected_immediately(response_id):
+    def handler(request):
+        return (
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": response_id,
+                    "result": {
+                        "api_version": 31,
+                        "daemon_version": None,
+                        "revision": None,
+                    },
+                }
+            )
+            + "\n"
+        ).encode()
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdProtocolError, match="response id"):
+        client.connect()

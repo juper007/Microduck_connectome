@@ -19,6 +19,9 @@ from typing import Any, Callable, Protocol
 DEFAULT_ROBOTD_SOCKET = "/run/robotd.sock"
 ROBOTD_API_VERSION = 31
 MAX_LINE_BYTES = 64 * 1024
+U16_MAX = (1 << 16) - 1
+U32_MAX = (1 << 32) - 1
+U64_MAX = (1 << 64) - 1
 
 
 class RobotdError(RuntimeError):
@@ -54,6 +57,10 @@ class _Socket(Protocol):
 
 
 Connector = Callable[[str, float], _Socket]
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON constant {value}")
 
 
 @dataclass(frozen=True)
@@ -164,6 +171,7 @@ class RobotdClient:
             if message.get("jsonrpc") != "2.0":
                 raise RobotdProtocolError("robotd message has an invalid jsonrpc version")
             if "id" in message:
+                self._validate_wire_id(message["id"])
                 # A response to an older request is stale and cannot become state.
                 continue
             if message.get("method") != "robot.state":
@@ -214,8 +222,7 @@ class RobotdClient:
                 # State/progress notifications may be interleaved with call responses.
                 continue
             response_id = message["id"]
-            if isinstance(response_id, bool) or not isinstance(response_id, (int, str)):
-                raise RobotdProtocolError("robotd response has an invalid id")
+            self._validate_wire_id(response_id)
             if response_id != request_id:
                 # A delayed answer is stale. IDs never reset, including across reconnects.
                 continue
@@ -250,8 +257,10 @@ class RobotdClient:
                 if not raw.strip():
                     continue
                 try:
-                    return json.loads(raw)
-                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    message = json.loads(raw, parse_constant=_reject_json_constant)
+                    self._reject_nonfinite(message)
+                    return message
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
                     raise RobotdProtocolError("robotd returned malformed JSON") from exc
             if len(self._buffer) > MAX_LINE_BYTES:
                 self.disconnect()
@@ -288,10 +297,9 @@ class RobotdClient:
             raise RobotdProtocolError("hello result must be an object")
         if "daemon_version" not in result or "revision" not in result:
             raise RobotdProtocolError("hello result lacks version identity fields")
-        if isinstance(result.get("api_version"), bool) or not isinstance(
-            result.get("api_version"), int
-        ):
-            raise RobotdProtocolError("hello result has no integer api_version")
+        RobotdClient._require_uint(
+            result.get("api_version"), "hello api_version", maximum=U32_MAX
+        )
         if result.get("daemon_version") is not None and not isinstance(
             result.get("daemon_version"), str
         ):
@@ -324,22 +332,24 @@ class RobotdClient:
         control_loop = RobotdClient._validate_optional_object(result, "control_loop", {
             "target_hz": "number",
             "achieved_hz": "optional_number",
-            "ticks": "uint",
-            "missed": "uint",
-            "last_tick_age_ms": "uint",
+            "ticks": "u64",
+            "missed": "u64",
+            "last_tick_age_ms": "u64",
         })
         if control_loop is not None:
             for field in ("target_hz", "ticks", "missed", "last_tick_age_ms"):
                 if field not in control_loop:
                     raise RobotdProtocolError(f"robot.health control_loop lacks {field}")
-        RobotdClient._validate_optional_object(result, "bus", {
-            "consecutive_errors": "uint",
-            "startup_failures": "uint",
-        })
+        RobotdClient._validate_optional_object(
+            result,
+            "bus",
+            {"consecutive_errors": "u32", "startup_failures": "u32"},
+            allow_null=False,
+        )
         RobotdClient._validate_optional_object(result, "imu", {
             "ready": bool,
-            "stale_blocks": "uint",
-            "consecutive_stale_blocks": "uint",
+            "stale_blocks": "u64",
+            "consecutive_stale_blocks": "u64",
         })
 
     @staticmethod
@@ -368,10 +378,14 @@ class RobotdClient:
                 safety["gravity"], 3, "robot.state safety.gravity"
             )
         if "gain" in safety and safety["gain"] is not None:
-            RobotdClient._require_uint(safety["gain"], "robot.state safety.gain")
+            RobotdClient._require_uint(
+                safety["gain"], "robot.state safety.gain", maximum=U16_MAX
+            )
         loop = RobotdClient._require_object(result, "loop", "robot.state")
         RobotdClient._require_finite_number(loop.get("hz"), "robot.state loop.hz")
-        RobotdClient._require_uint(loop.get("missed"), "robot.state loop.missed")
+        RobotdClient._require_uint(
+            loop.get("missed"), "robot.state loop.missed", maximum=U64_MAX
+        )
         RobotdClient._require_number_array(result.get("joints"), None, "robot.state joints")
         RobotdClient._require_number_array(result.get("targets"), None, "robot.state targets")
         if "odom" in result:
@@ -380,12 +394,31 @@ class RobotdClient:
                 odom.get("position"), 3, "robot.state odom.position"
             )
             RobotdClient._require_finite_number(odom.get("yaw"), "robot.state odom.yaw")
-        if "t_ns" in result and (
-            isinstance(result["t_ns"], bool)
-            or not isinstance(result["t_ns"], int)
-            or result["t_ns"] < 0
-        ):
-            raise RobotdProtocolError("robot.state t_ns must be a non-negative integer")
+        if "t_ns" in result:
+            RobotdClient._require_uint(
+                result["t_ns"], "robot.state t_ns", maximum=U64_MAX
+            )
+        RobotdClient._validate_state_imu(result.get("imu"))
+        for field in ("theremin", "chorale"):
+            if field in result and result[field] is not None and not isinstance(result[field], dict):
+                raise RobotdProtocolError(f"robot.state {field} must be an object or null")
+        if result.get("frames") is not None:
+            frames = RobotdClient._require_object(result, "frames", "robot.state")
+            for frame_name in ("camera", "tof"):
+                if frame_name in frames:
+                    RobotdClient._validate_pose(
+                        frames[frame_name], f"robot.state frames.{frame_name}"
+                    )
+            if frames.get("head_imu") is not None:
+                RobotdClient._validate_pose(
+                    frames["head_imu"], "robot.state frames.head_imu"
+                )
+        if "skeleton" in result:
+            skeleton = result["skeleton"]
+            if not isinstance(skeleton, list) or not all(isinstance(item, dict) for item in skeleton):
+                raise RobotdProtocolError("robot.state skeleton must be an object array")
+            for index, pose in enumerate(skeleton):
+                RobotdClient._validate_pose(pose, f"robot.state skeleton[{index}]")
 
     @staticmethod
     def _require_object(container: dict[str, Any], field: str, context: str) -> dict[str, Any]:
@@ -401,12 +434,16 @@ class RobotdClient:
         fields: dict[str, object],
         *,
         required: set[str] | None = None,
+        allow_null: bool = True,
     ) -> dict[str, Any] | None:
-        value = container.get(field)
-        if value is None:
+        if field not in container:
+            return None
+        value = container[field]
+        if value is None and allow_null:
             return None
         if not isinstance(value, dict):
-            raise RobotdProtocolError(f"robot.health {field} must be an object or null")
+            suffix = " or null" if allow_null else ""
+            raise RobotdProtocolError(f"robot.health {field} must be an object{suffix}")
         for child in required or set():
             if child not in value:
                 raise RobotdProtocolError(f"robot.health {field} lacks {child}")
@@ -420,8 +457,10 @@ class RobotdClient:
             elif expected == "optional_number":
                 if item is not None:
                     RobotdClient._require_finite_number(item, label)
-            elif expected == "uint":
-                RobotdClient._require_uint(item, label)
+            elif expected == "u32":
+                RobotdClient._require_uint(item, label, maximum=U32_MAX)
+            elif expected == "u64":
+                RobotdClient._require_uint(item, label, maximum=U64_MAX)
             elif not isinstance(item, expected):
                 raise RobotdProtocolError(f"{label} has an unexpected type")
         return value
@@ -434,9 +473,14 @@ class RobotdClient:
             raise RobotdProtocolError(f"{label} must be finite")
 
     @staticmethod
-    def _require_uint(value: Any, label: str) -> None:
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise RobotdProtocolError(f"{label} must be a non-negative integer")
+    def _require_uint(value: Any, label: str, *, maximum: int) -> None:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < 0
+            or value > maximum
+        ):
+            raise RobotdProtocolError(f"{label} must be an integer from 0 through {maximum}")
 
     @staticmethod
     def _require_number_array(value: Any, length: int | None, label: str) -> None:
@@ -445,3 +489,40 @@ class RobotdClient:
             raise RobotdProtocolError(f"{label} must be a numeric array{suffix}")
         for item in value:
             RobotdClient._require_finite_number(item, label)
+
+    @staticmethod
+    def _validate_wire_id(value: Any) -> None:
+        if isinstance(value, str):
+            return
+        RobotdClient._require_uint(value, "robotd response id", maximum=U64_MAX)
+
+    @staticmethod
+    def _validate_state_imu(value: Any) -> None:
+        if value is None:
+            return
+        if not isinstance(value, dict):
+            raise RobotdProtocolError("robot.state imu must be an object or null")
+        if "gyro" in value:
+            RobotdClient._require_number_array(value["gyro"], 3, "robot.state imu.gyro")
+        if "quat" in value:
+            RobotdClient._require_number_array(value["quat"], 4, "robot.state imu.quat")
+
+    @staticmethod
+    def _validate_pose(value: Any, label: str) -> None:
+        if not isinstance(value, dict):
+            raise RobotdProtocolError(f"{label} must be an object")
+        if "pos" in value:
+            RobotdClient._require_number_array(value["pos"], 3, f"{label}.pos")
+        if "quat" in value:
+            RobotdClient._require_number_array(value["quat"], 4, f"{label}.quat")
+
+    @staticmethod
+    def _reject_nonfinite(value: Any, path: str = "$") -> None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"non-finite number at {path}")
+        if isinstance(value, list):
+            for index, item in enumerate(value):
+                RobotdClient._reject_nonfinite(item, f"{path}[{index}]")
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                RobotdClient._reject_nonfinite(item, f"{path}.{key}")
