@@ -322,7 +322,12 @@ def main():
         # Full official simulator lifecycle. Old adapter/session survives to prove generation gating.
         old = session.motion(); injected = time.monotonic_ns()
         env = dict(os.environ)
-        env.update({"DUCK_SIM_STATE": str(args.runtime_dir), "DUCK_SIM_RL": str(args.microduck_rl), "DUCK_SIM_PORT": str(args.body_port)})
+        env.update({
+            "DUCK_SIM_STATE": str(args.runtime_dir),
+            "DUCK_SIM_RL": str(args.microduck_rl),
+            "DUCK_SIM_PORT": str(args.body_port),
+            "DUCK_SIM_VIEWER": "0",
+        })
         down = subprocess.run([str(args.duck_sim), "down"], env=env, timeout=30, check=False, capture_output=True, text=True)
         if down.returncode != 0: raise RuntimeError(f"duck-sim down failed: {down.stderr}")
         try: session.client.health(); raise AssertionError("simulator restart loss not detected")
