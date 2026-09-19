@@ -7,6 +7,7 @@ import pytest
 from microduck_connectome.fault_evidence import (
     FaultEvidenceError, REQUIRED_FAULTS, build_fault_matrix, make_fault_record,
 )
+from microduck_connectome.perception_compositor import PerceptionPipeline
 
 
 def record(name):
@@ -69,3 +70,37 @@ def test_unsafe_or_inconsistent_record_is_rejected(mutation):
     from microduck_connectome.fault_evidence import validate_fault_record
     with pytest.raises(FaultEvidenceError):
         validate_fault_record(value)
+
+
+def _pipeline_frame(*, camera_valid=True, tof_valid=True, tof_age_ns=0):
+    pipeline = PerceptionPipeline()
+    now = 200_000_000
+    frame = pipeline.process(
+        (((255, 0, 0), (255, 0, 0), (0, 0, 0)),),
+        camera_timestamp_ns=now, camera_frame_id=1,
+        tof_left_mm=500, tof_center_mm=500, tof_right_mm=500,
+        tof_timestamp_ns=now - tof_age_ns, tof_frame_id=1, now_ns=now,
+        camera_source_valid=camera_valid, tof_source_valid=tof_valid,
+    )
+    return frame, pipeline.compositor.last_reasons
+
+
+def test_camera_tof_and_compositor_faults_have_distinct_observed_reasons():
+    camera, camera_reasons = _pipeline_frame(camera_valid=False)
+    tof, tof_reasons = _pipeline_frame(tof_valid=False)
+    compositor, compositor_reasons = _pipeline_frame(tof_age_ns=100_000_001)
+    assert not camera["valid"] and "invalid_camera" in camera_reasons
+    assert not tof["valid"] and tof_reasons == ("invalid_tof",)
+    assert not compositor["valid"] and "stale_tof" in compositor_reasons and "source_skew" in compositor_reasons
+    assert camera_reasons != tof_reasons != compositor_reasons
+
+
+def test_invalid_perception_injection_is_not_a_camera_dropout():
+    frame, reasons = _pipeline_frame()
+    assert frame["valid"] and reasons == ()
+    malformed = dict(frame)
+    malformed["target_x"] = 2.0
+    # The injected compositor output is invalid while its source remained healthy.
+    from microduck_connectome.perception_frame import make_perception_frame
+    with pytest.raises(ValueError):
+        make_perception_frame(**malformed)

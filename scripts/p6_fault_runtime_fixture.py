@@ -106,6 +106,9 @@ class WorkerFaultChain:
         self.frozen_behavior = None
         self.frozen_safe = None
         self.completed_updates = 0
+        self.fault_armed = False
+        self.fault_active = False
+        self.pre_fault_snapshot = None
 
     def inject(self, point, now_ns, **details):
         with self.lock:
@@ -116,29 +119,40 @@ class WorkerFaultChain:
     def perception(self, now_ns):
         self.frame_id += 1
         fault = self.fault
-        stale = fault == "stale_perception"
-        camera_valid = fault not in ("camera_dropout", "invalid_perception")
-        tof_valid = fault != "tof_dropout"
+        sensor_fault = fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid")
+        if sensor_fault and self.fault_armed:
+            self.fault_active = True
+        stale = self.fault_active and fault == "stale_perception"
+        camera_valid = not (self.fault_active and fault == "camera_dropout")
+        tof_valid = not (self.fault_active and fault == "tof_dropout")
         camera_ns = now_ns - 100_000_001 if stale else now_ns
         tof_ns = now_ns - 100_000_001 if stale else now_ns
-        if fault == "compositor_invalid":
+        if self.fault_active and fault == "compositor_invalid":
             tof_ns = now_ns - 100_000_001
+        # A sustained, strong left observation establishes non-neutral motion
+        # through the pinned MaleCNS graph before sensor loss is injected.
+        red, black = (255, 0, 0), (0, 0, 0)
         frame = self.pipeline.process(
-            (((255, 0, 0),),), camera_timestamp_ns=camera_ns,
+            ((red, red, black),), camera_timestamp_ns=camera_ns,
             camera_frame_id=self.frame_id, tof_left_mm=500, tof_center_mm=500,
             tof_right_mm=500, tof_timestamp_ns=tof_ns, tof_frame_id=self.frame_id,
             now_ns=now_ns, camera_source_valid=camera_valid,
             tof_source_valid=tof_valid,
         )
-        if fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
+        if self.fault_active and fault == "invalid_perception":
+            frame = dict(frame); frame["target_x"] = 2.0
+            self.inject("PerceptionFrame output", now_ns, observed_reason="out_of_range_target_x", frame_valid=frame["valid"])
+        elif self.fault_active and sensor_fault:
             self.inject("PerceptionCompositor", now_ns, compositor_reasons=list(self.pipeline.compositor.last_reasons), frame_valid=frame["valid"])
         return frame
 
     def neural(self, frame, now_ns):
         self.sequence += 1
         channels = self.mapper.map_channels(frame, now_ns=now_ns) if frame is not None else {}
-        if self.fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
+        sensor_fault = self.fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid")
+        if self.fault_active and sensor_fault:
             self.events.append({"timestamp_ns": now_ns, "observed_point": "SensoryMapper", "channels": channels})
+            return None
         mapped = {} if frame is None else self.mapper.build_external(frame, now_ns=now_ns)
         external = {key: value for key, value in mapped.items() if key in self.index}
         if self.fault == "neural_unavailable":
@@ -169,6 +183,13 @@ class WorkerFaultChain:
         safe = self.safety.apply(decoded, now_ns=now_ns, fallback_sequence=self.sequence)
         self.frozen_safe = safe
         self.completed_updates += 1
+        if sensor_fault and self.pre_fault_snapshot is None and any(abs(safe["intent"][key]) > 0.0 for key in ("vx", "vy", "vyaw")):
+            self.pre_fault_snapshot = {
+                "timestamp_ns": now_ns, "frame": dict(frame), "stimulus_channels": channels,
+                "dn_readout": dict(readout), "robot_facing_intent": dict(safe["intent"]),
+            }
+            self.events.append({"timestamp_ns": now_ns, "observed_point": "healthy_non_neutral_full_chain", "snapshot": self.pre_fault_snapshot})
+            self.fault_armed = True
         return NeuralUpdate(readout, safe["intent"], {"channels": channels, "safety_reasons": safe["reasons"]})
 
 
@@ -312,9 +333,9 @@ def observe_perception(root, fault):
 
 
 def scheduler_fault(session, graph, name, raw):
-    old = session.motion()
     chain = WorkerFaultChain(session.args.root, graph, name)
     observations = []
+    pre_fault_transport = {}
 
     def publish(output):
         result = session.adapter.send(output)
@@ -325,8 +346,13 @@ def scheduler_fault(session, graph, name, raw):
             "stop": output["intent"]["stop"],
             "vx": output["intent"]["vx"], "vy": output["intent"]["vy"],
             "vyaw": output["intent"]["vyaw"],
+            "intent_timestamp_ns": output["intent"]["timestamp_ns"],
+            "intent_sequence": output["intent"]["sequence"],
             "transport_result": result,
         })
+        if chain.injected_at_ns is None and any(abs(output["intent"][key]) > 0.0 for key in ("vx", "vy", "vyaw")):
+            pre_fault_transport["output"] = output
+            pre_fault_transport["snapshot"] = dict(observations[-1])
         return result
 
     scheduler = ClosedLoopScheduler(
@@ -336,9 +362,10 @@ def scheduler_fault(session, graph, name, raw):
         publisher=publish,
     )
     scheduler._output_sequence = session.sequence + 100
-    expected_worker_error = name in ("malformed_neural", "neural_unavailable", "decoder_crash")
+    expected_worker_error = name in ("invalid_perception", "malformed_neural", "neural_unavailable", "decoder_crash")
+    sensor_fault = name in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid")
     try:
-        scheduler.run(0.45)
+        scheduler.run(1.50 if sensor_fault else 0.45)
         if expected_worker_error:
             raise AssertionError(f"{name} worker fault did not propagate")
     except SchedulerWorkerError as error:
@@ -349,17 +376,34 @@ def scheduler_fault(session, graph, name, raw):
     injected = chain.injected_at_ns
     if injected is None:
         raise AssertionError(f"{name} injection point was not reached")
-    sensor_fault = name in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid")
-    causal = next((item for item in observations if item["timestamp_ns"] >= injected and (
-        item["stop"] or (sensor_fault and (item["vx"], item["vy"], item["vyaw"]) == (0.0, 0.0, 0.0))
-    )), None)
+    if sensor_fault and chain.pre_fault_snapshot is None:
+        raise AssertionError(f"{name} lacked a healthy non-neutral full-chain pre-fault command")
+    if sensor_fault and "output" not in pre_fault_transport:
+        raise AssertionError(f"{name} lacked an actual non-neutral robot-facing transport")
+    causal = next((item for item in observations if item["timestamp_ns"] >= injected and item["stop"]), None)
     if causal is None:
         raise AssertionError(f"{name} did not propagate to a robot-facing stop")
     detected = causal["timestamp_ns"]
     safe_at = detected
     state = session.safe_state()
     stopped = time.monotonic_ns()
+    old = pre_fault_transport.get("output")
+    if old is None:
+        # Non-sensor faults need only an authentic previously published output
+        # for replay rejection; use the latest live scheduler output.
+        old = next((item for item in reversed(getattr(session, "_published_outputs", []))), None)
+    if old is None:
+        old = session.output(mode="missing")
+        session.adapter.send(old)
     recovered = session.recover(old)
+    pre_transport = pre_fault_transport.get("snapshot")
+    replayed = [] if pre_transport is None else [
+        item for item in observations if item["timestamp_ns"] >= injected
+        and item["intent_timestamp_ns"] == pre_transport["intent_timestamp_ns"]
+        and item["intent_sequence"] == pre_transport["intent_sequence"]
+    ]
+    if replayed:
+        raise AssertionError(f"{name} replayed the pre-fault autonomous command")
     raw.append({
         "fault": name,
         "injected_at_ns": injected,
@@ -367,6 +411,9 @@ def scheduler_fault(session, graph, name, raw):
         "robot_facing_observations": observations,
         "causal_stale_reason": causal["stale_reason"],
         "causal_transport_result": causal["transport_result"],
+        "pre_fault_snapshot": chain.pre_fault_snapshot,
+        "pre_fault_robot_transport": pre_fault_transport.get("snapshot"),
+        "old_command_replay_matches": replayed,
     })
     return make_fault_record(
         fault=name, injected_at_ns=injected, detected_at_ns=detected,
