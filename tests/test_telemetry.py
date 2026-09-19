@@ -189,3 +189,24 @@ def test_write_returns_artifact_summary(tmp_path):
     assert summary["record_count"] == 1
     assert len(summary["sha256"]) == 64
     assert summary["start_timestamp_ns"] == summary["end_timestamp_ns"] == 20
+
+
+def test_committed_thor_evidence_is_complete_and_correlated():
+    evidence = json.loads(
+        (ROOT / "docs" / "evidence" / "p6-05" / "telemetry-summary-v1.json").read_text(encoding="utf-8")
+    )
+    assert evidence["execution_target"] == "Thor"
+    assert evidence["result"] == "PASS"
+    assert evidence["record_count"] == 322
+    assert evidence["post_command_state_count"] == evidence["record_count"]
+    assert evidence["command_state_mismatch_count"] == 0
+    assert evidence["strict_monotonic_timestamps"] is True
+    assert evidence["strict_sequences"] is True
+    assert evidence["telemetry_gap_count"] == 0
+    assert evidence["nonfinite_count"] == 0
+    assert set(evidence["scenario_record_counts"]) == {"neutral", "left", "right", "center", "stop"}
+    assert all(count > 0 for count in evidence["scenario_record_counts"].values())
+    assert evidence["command_counts"]["robot.stop"] >= 1
+    assert evidence["identities"]["steering_yaw_sign"] == -1
+    assert evidence["identities"]["stop_transport"] == "robot_stop"
+    assert evidence["scheduler"]["scheduler_exceptions"] == 0
