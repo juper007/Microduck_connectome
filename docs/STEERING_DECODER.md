@@ -11,14 +11,19 @@ vyaw = steering_yaw_sign * gain_vyaw_radps * abstract_demand
 
 The output is clamped to the frozen `abs(vyaw) <= 0.50 rad/s` envelope and always uses `vy=0`.
 
-## Yaw calibration is intentionally unresolved
+## Frozen yaw calibration
 
 The committed `config/steering_decoder_v1.json` stores:
 
 ```json
-"steering_yaw_sign": null
+"steering_yaw_sign": -1
 ```
 
-A healthy readout cannot be converted to `vyaw` until Phase 6 uses the official simulator heading fixture to freeze +1 or -1 through normal reviewed configuration change. Tests use explicit +1/-1 temporary configs only to prove exact direction inversion.
+P6-03 measured positive `vyaw` as positive wrapped MuJoCo trunk-heading change
+and negative `vyaw` as negative change from matched reset poses. Since a left
+image target raises `steering_left`, `right - left` is negative; multiplying by
+`-1` therefore requests the simulator-proven positive, left-turn direction.
+The calibration and its observed asymmetry are recorded in
+`docs/evidence/p6-03/README.md`.
 
 The decoder produces an internal behavior intent only. It never calls robotd, `robot.move`, servo APIs, or hardware.

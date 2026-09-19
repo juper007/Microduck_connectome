@@ -26,12 +26,12 @@ def readout(left=0.0, right=0.0, *, healthy=True):
 
 
 class SteeringDecoderTests(unittest.TestCase):
-    def test_committed_config_is_explicitly_uncalibrated(self):
+    def test_committed_config_maps_left_image_demand_to_positive_left_yaw(self):
         raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-        self.assertIsNone(raw["steering_yaw_sign"])
+        self.assertEqual(raw["steering_yaw_sign"], -1)
         config = load_steering_decoder_config(CONFIG_PATH)
-        with self.assertRaises(SteeringDecoderError):
-            SteeringDecoder(config).decode(readout(right=1.0))
+        result = SteeringDecoder(config).decode(readout(left=1.0))
+        self.assertGreater(result["vyaw"], 0.0)
 
     def test_abstract_demand_uses_right_minus_left(self):
         decoder = SteeringDecoder(SteeringDecoderConfig(1, 0.5))

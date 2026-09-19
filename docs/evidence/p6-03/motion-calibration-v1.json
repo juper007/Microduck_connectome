@@ -1,0 +1,108 @@
+{
+  "schema_version": "p6-03-motion-calibration-v1",
+  "recorded_utc": "2026-09-19T12:08:33Z",
+  "environment": "Thor official robotd plus MuJoCo, simulation only",
+  "upstream": {
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "robotd_api_version": 31,
+    "robotd_daemon_version": "0.14.1"
+  },
+  "fixture": {
+    "sha256": "c2ecd762b0f43ef804763358ca4676b2550b8c66f34491f1704ac41e8a9a25a7",
+    "alpha_walking_policy_sha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+    "reset": "fresh duck-sim process at keyframe SIT, then official enable/stand sequence",
+    "measurement": "MuJoCo trunk quaternion wxyz converted to world yaw; wrapped atan2 delta"
+  },
+  "yaw_trials": {
+    "command_duration_s": 6.0,
+    "vx_mps": 0.0,
+    "positive": {
+      "vyaw_radps": 0.2,
+      "initial_heading_rad": 0.1170610088909084,
+      "final_heading_rad": 0.12275307480087569,
+      "wrapped_delta_rad": 0.005692065909967292
+    },
+    "negative": {
+      "vyaw_radps": -0.2,
+      "initial_heading_rad": 0.11706101114593681,
+      "final_heading_rad": 0.04421632932418452,
+      "wrapped_delta_rad": -0.07284468182175229
+    },
+    "opposite_sign_proven": true,
+    "magnitude_asymmetry_warning": true
+  },
+  "steering": {
+    "abstract_demand": "steering_right - steering_left",
+    "positive_robot_yaw": "left",
+    "steering_yaw_sign": -1,
+    "left_image_target_result": "positive vyaw; simulated left turn"
+  },
+  "stop_semantics": {
+    "fresh_simulator_restart_initial_zero_observed": true,
+    "robot_stop": {
+      "accepted": true,
+      "one_shot_persisted_for_s": 1.0,
+      "requested_after_s": [0.0, 0.0, 0.0],
+      "applied_after_s": [5.708925585672598e-7, 0.0, 2.854462792836299e-6],
+      "resume_observed": true,
+      "new_client_after_restart_accepted": true,
+      "runtime_policy": "refresh acknowledged robot.stop on every watchdog stop tick"
+    },
+    "zero_twist": {
+      "one_shot_persisted_for_s": 1.0,
+      "requested_after_s": [0.0, 0.0, 0.0],
+      "applied_after_s": [5.70192348343271e-7, 0.0, -2.850961640848373e-6],
+      "resume_observed": true
+    },
+    "selected_transport": "robot_stop",
+    "selection_reason": "verified acknowledged discrete request; one request zeroed and persisted, resumed on later move, and repeated requests provide transport liveness"
+  },
+  "safety_review_remediation": {
+    "watchdog_boundary": "adapter and client accept only live WatchdogOutput identities minted by ControllerWatchdog.tick whose immutable content object is unchanged",
+    "robotd_boundary": "no public raw move method; final transport accepts only sealed, twice-bounds-checked motion commands",
+    "stop_liveness": "robot.stop request-response refreshed on every safe-stop tick",
+    "controller_reconnect": {
+      "generation_before": 1,
+      "generation_after": 2,
+      "movement_blocked_until_fresh_safe_stop": true,
+      "pre_safe_stop_output_replay_rejected": true,
+      "resume_after_fresh_safe_stop": true
+    },
+    "actual_robotd_restart": {
+      "pid_before": 2351958,
+      "pid_after": 2352950,
+      "stop_refresh_detected_loss": "Broken pipe",
+      "generation_after": 3,
+      "movement_blocked_until_fresh_safe_stop": true,
+      "pre_safe_stop_output_replay_rejected": true,
+      "resume_requested": [0.04, 0.0, 0.2],
+      "resume_applied": [0.03976388167585652, 0.0, 0.19881940837928258],
+      "final_safe_stop_acknowledged": true
+    },
+    "simulator_restart": "separate full fresh-process resets used for matched yaw trials",
+    "fixture_sha256": "09b0160406e2d780512247b2afb5960b2460594e77acf895090c5a8cb18efc3c",
+    "source_head": "b6d9a811f31dd6d881aa549bba1757fc7059bd42",
+    "focused_thor_regression": "149 passed in 0.12s on Python 3.12"
+  },
+  "raw_artifacts": {
+    "immutable_thor_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T1206Z",
+    "run_interval_utc": ["2026-09-19T12:06:56Z", "2026-09-19T12:08:33Z"],
+    "remediation_thor_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T125838Z-final-boundary",
+    "sha256": {
+      "yaw-positive.json": "8cc1c91b1c635c5a22d2f521682309d48ddf0302382999611e13275ea4b6d1c3",
+      "yaw-negative.json": "b30784cd5630d698d0c0df6d514e9b4f6477e2a32ac71b700bd2461693113b9e",
+      "stop-semantics.json": "97538f032442a1035fbfe2891153c4cfd4252484fc1624e74e71b1c674278bbb",
+      "launch-positive.log": "f8274866713ecd8ca2c46688386c7b4abf4bc4a34fc55f90c14c568862dd7d97",
+      "launch-negative.log": "3b50c8a8f7f89044eaecadd8bca3b41f0d5e5c56a18382672aac15b3fd4d9021",
+      "launch-stop.log": "4e314276295c2638235facd1276b76ce7fdcb914ac92c1bb07f297dd91171e22",
+      "adapter-restart.json": "0f472f80c69a16a8cdb1338a473815c8e1c38b82ceaff582ee7dc477c2aabbfc",
+      "executed-sources.sha256": "75cfdbdb057653b94723b881f12e6c595e77344ffa0adba92090532662ab9c9b",
+      "launch-command.log": "ad5b6efa00beae092ba248abd207b15ea8f76b7fba17ea9dd0677446ecdba942",
+      "initial-robotd.log": "eae861e1a36b5c23a20a32ffa5464c6b7e6c054a870b50c7955ce011af0b73fe",
+      "robotd-restart.log": "88b69b4a5f8a5c5782cf4c88bdc1be458218a6063f0143bb8ffdf47a6c0a575a",
+      "focused-tests.log": "9c065fe71cbcace8aa23ccdd9ebecf80606f3f78783c681c21c23d3826ecfdbb"
+    }
+  },
+  "scope": "P6-03 direction and stop transport; no yaw-rate accuracy claim and no hardware evidence"
+}

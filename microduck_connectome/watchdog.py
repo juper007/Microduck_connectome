@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 import json
 from pathlib import Path
+from types import MappingProxyType
+import weakref
 
 from .control_contracts import (
     ControlContractError,
@@ -14,6 +16,28 @@ from .control_contracts import (
 
 class WatchdogError(ValueError):
     """Trusted watchdog configuration/tick metadata is invalid."""
+
+
+class WatchdogOutput(Mapping):
+    """Immutable output minted only by ``ControllerWatchdog.tick``."""
+
+    __slots__ = ("__values", "__weakref__")
+    _fields = ("intent", "watchdog_state", "stale_reason", "decoder_alive")
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("WatchdogOutput can only be created by ControllerWatchdog.tick")
+
+    def __setattr__(self, name, value):
+        raise AttributeError("WatchdogOutput is immutable")
+
+    def __getitem__(self, key):
+        return self.__values[key]
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __len__(self):
+        return len(self._fields)
 
 
 def load_watchdog_config(path):
@@ -123,51 +147,85 @@ class ControllerWatchdog:
             if output_sequence<=self._last_output_sequence:
                 raise WatchdogError("watchdog output sequence must increase strictly")
 
-    def _output(self,now_ns,sequence,reason):
-        if reason is None:
-            source=self._behavior
-            intent=make_behavior_intent(
-                timestamp_ns=now_ns,sequence=sequence,
-                vx=source["vx"],vy=source["vy"],vyaw=source["vyaw"],
-                stop=source["stop"],confidence=source["confidence"],
-            )
-            state="healthy"
-        else:
-            intent=make_behavior_intent(
-                timestamp_ns=now_ns,sequence=sequence,
-                vx=0.0,vy=0.0,vyaw=0.0,stop=True,confidence=0.0,
-            )
-            state="safe_stop"
-        self._last_output_timestamp=now_ns
-        self._last_output_sequence=sequence
-        return {
-            "intent":intent,
-            "watchdog_state":state,
-            "stale_reason":reason,
-            "decoder_alive":self._decoder_alive,
-        }
 
-    def tick(self,*,now_ns,output_sequence):
-        self._tick_metadata(now_ns,output_sequence)
-        reason=None
+
+def _install_tick_boundary():
+    """Keep the mint registry inside ``tick``'s closure, not in module state."""
+    minted = {}
+
+    def forget(output_id):
+        minted.pop(output_id, None)
+
+    def tick(self, *, now_ns, output_sequence):
+        self._tick_metadata(now_ns, output_sequence)
+        reason = None
         if not self._decoder_alive:
-            reason="decoder_crash"
+            reason = "decoder_crash"
         elif self._neural_fault is not None:
-            reason=self._neural_fault
+            reason = self._neural_fault
         elif self._behavior_fault is not None:
-            reason=self._behavior_fault
+            reason = self._behavior_fault
         elif self._neural is None:
-            reason="missing_neural"
+            reason = "missing_neural"
         elif self._behavior is None:
-            reason="missing_behavior"
+            reason = "missing_behavior"
         elif not self._neural["runtime_healthy"]:
-            reason="runtime_unhealthy"
-        elif self._neural["timestamp_ns"]>now_ns:
-            reason="future_neural"
-        elif self._behavior["timestamp_ns"]>now_ns:
-            reason="future_behavior"
-        elif now_ns-self._neural["timestamp_ns"]>self.neural_ttl_ns:
-            reason="stale_neural"
-        elif now_ns-self._behavior["timestamp_ns"]>self.behavior_ttl_ns:
-            reason="stale_behavior"
-        return self._output(now_ns,output_sequence,reason)
+            reason = "runtime_unhealthy"
+        elif self._neural["timestamp_ns"] > now_ns:
+            reason = "future_neural"
+        elif self._behavior["timestamp_ns"] > now_ns:
+            reason = "future_behavior"
+        elif now_ns - self._neural["timestamp_ns"] > self.neural_ttl_ns:
+            reason = "stale_neural"
+        elif now_ns - self._behavior["timestamp_ns"] > self.behavior_ttl_ns:
+            reason = "stale_behavior"
+
+        if reason is None:
+            source = self._behavior
+            intent = make_behavior_intent(
+                timestamp_ns=now_ns, sequence=output_sequence,
+                vx=source["vx"], vy=source["vy"], vyaw=source["vyaw"],
+                stop=source["stop"], confidence=source["confidence"],
+            )
+            state = "healthy"
+        else:
+            intent = make_behavior_intent(
+                timestamp_ns=now_ns, sequence=output_sequence,
+                vx=0.0, vy=0.0, vyaw=0.0, stop=True, confidence=0.0,
+            )
+            state = "safe_stop"
+        self._last_output_timestamp = now_ns
+        self._last_output_sequence = output_sequence
+        result = object.__new__(WatchdogOutput)
+        values = MappingProxyType({
+            "intent": MappingProxyType(dict(intent)),
+            "watchdog_state": state,
+            "stale_reason": reason,
+            "decoder_alive": self._decoder_alive,
+        })
+        object.__setattr__(result, "_WatchdogOutput__values", values)
+        output_id = id(result)
+        minted[output_id] = (
+            weakref.ref(
+                result, lambda _reference, output_id=output_id: forget(output_id)
+            ),
+            values,
+        )
+        return result
+
+    def is_authentic(output):
+        registration = minted.get(id(output))
+        if type(output) is not WatchdogOutput or registration is None:
+            return False
+        reference, values = registration
+        return (
+            reference() is output
+            and getattr(output, "_WatchdogOutput__values", None) is values
+        )
+
+    ControllerWatchdog.tick = tick
+    return is_authentic
+
+
+_is_authentic_watchdog_output = _install_tick_boundary()
+del _install_tick_boundary

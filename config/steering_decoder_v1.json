@@ -1,8 +1,8 @@
 {
   "schema_version": "steering-decoder-v1",
-  "steering_yaw_sign": null,
+  "steering_yaw_sign": -1,
   "gain_vyaw_radps": 0.5,
   "max_abs_vyaw_radps": 0.5,
   "source": "male-cns-controller",
-  "scope": "steering_yaw_sign intentionally uncalibrated until official simulator heading fixture; no robot command transport"
+  "scope": "yaw sign calibrated by P6-03 official robotd plus MuJoCo heading fixture; internal behavior intent only"
 }

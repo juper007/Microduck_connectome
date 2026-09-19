@@ -1,9 +1,9 @@
-"""Bounded read-only client for MicroDuck's official robotd JSON-RPC socket.
+"""Bounded client for MicroDuck's official robotd JSON-RPC socket.
 
 The wire contract in this module is derived from MicroDuck commit
 344925c9f8fa031f85428a305b1e8ec2eaae29c1.  P6-02 deliberately exposes only
-``hello``, ``robot.health`` and the ``robot.subscribe``/``robot.state`` stream.
-Motion transport belongs to P6-03.
+``hello``, health/state reads, and the supported high-level motion intents.
+Joint, servo, and motor APIs are deliberately absent.
 """
 
 from __future__ import annotations
@@ -25,6 +25,9 @@ U32_MAX = (1 << 32) - 1
 U64_MAX = (1 << 64) - 1
 I32_MIN = -(1 << 31)
 I32_MAX = (1 << 31) - 1
+_REQUEST_METHODS = frozenset({
+    "hello", "robot.health", "robot.subscribe", "robot.stop", "robot.enable"
+})
 _SEMVER = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
     r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\."
@@ -111,6 +114,9 @@ class RobotdClient:
         self._next_id = 1
         self._generation = 0
         self._peer_api_version: int | None = None
+        self._last_motion_metadata: tuple[int, int] | None = None
+        self._motion_generation = 0
+        self._motion_requires_fresh_safe_stop = False
 
     @property
     def status(self) -> ConnectionStatus:
@@ -164,6 +170,122 @@ class RobotdClient:
         self._validate_health(result)
         return result
 
+    def _send_watchdog(self, output: object, stop_transport: str) -> str:
+        """Transport one authentic, fresh watchdog output through the safe envelope."""
+        from .motion_adapter import (
+            MAX_ABS_VX_MPS,
+            MAX_ABS_VYAW_RADPS,
+        )
+        from .watchdog import _is_authentic_watchdog_output
+
+        if not _is_authentic_watchdog_output(output):
+            raise TypeError("robotd transport requires a genuine ControllerWatchdog.tick output")
+        intent = output["intent"]
+        metadata = (intent["timestamp_ns"], intent["sequence"])
+        if self._last_motion_metadata is not None and (
+            metadata[0] <= self._last_motion_metadata[0]
+            or metadata[1] <= self._last_motion_metadata[1]
+        ):
+            raise ValueError("watchdog output must advance; stale replay rejected")
+        # Consume before I/O so an ambiguous failure cannot be replayed after reconnect.
+        self._last_motion_metadata = metadata
+        status = self.status
+        if not status.connected or (
+            self._motion_generation != 0
+            and status.generation != self._motion_generation
+        ):
+            self._motion_requires_fresh_safe_stop = True
+        if self._motion_generation == 0:
+            self._motion_generation = status.generation
+
+        values = (intent["vx"], intent["vy"], intent["vyaw"])
+        if not all(
+            not isinstance(value, bool)
+            and isinstance(value, (int, float))
+            and math.isfinite(float(value))
+            for value in values
+        ):
+            raise ValueError("adapter motion command must be finite numeric")
+        if (
+            abs(intent["vx"]) > MAX_ABS_VX_MPS
+            or intent["vy"] != 0.0
+            or abs(intent["vyaw"]) > MAX_ABS_VYAW_RADPS
+        ):
+            raise ValueError("motion command exceeds the P6-03 envelope")
+
+        def write_move(vx: float, vy: float, vyaw: float) -> None:
+            stream = self._require_socket()
+            request = {
+                "jsonrpc": "2.0",
+                "method": "robot.move",
+                "params": {"vx": vx, "vy": vy, "vyaw": vyaw},
+            }
+            wire = json.dumps(
+                request, separators=(",", ":"), allow_nan=False
+            ).encode() + b"\n"
+            deadline = time.monotonic() + self.timeout_s
+            try:
+                stream.settimeout(self._remaining(deadline))
+                stream.sendall(wire)
+            except socket.timeout as exc:
+                self.disconnect()
+                self._motion_requires_fresh_safe_stop = True
+                raise RobotdTimeoutError("timed out sending robot.move") from exc
+            except OSError as exc:
+                self.disconnect()
+                self._motion_requires_fresh_safe_stop = True
+                raise RobotdConnectionError(
+                    f"connection lost sending robot.move: {exc}"
+                ) from exc
+
+        if intent["stop"]:
+            if values != (0.0, 0.0, 0.0):
+                raise ValueError("stop intent must be zero twist")
+            if stop_transport == "robot_stop":
+                self.stop()
+                result = "robot_stop_refreshed"
+            elif stop_transport == "zero_twist":
+                write_move(0.0, 0.0, 0.0)
+                self.health()
+                result = "zero_twist_refreshed"
+            else:
+                raise ValueError("unknown stop transport")
+            self._motion_requires_fresh_safe_stop = False
+            self._motion_generation = self.status.generation
+            return result
+        if self._motion_requires_fresh_safe_stop:
+            raise ValueError("reconnect requires a fresh watchdog safe-stop output")
+        write_move(*values)
+        return "move"
+
+    def stop(self) -> dict[str, Any]:
+        """Request the upstream discrete stop and require an accepted result."""
+        result = self._call("robot.stop", {})
+        if not isinstance(result, dict) or set(result) - {"accepted", "reason"}:
+            raise RobotdProtocolError("robot.stop result has unexpected fields")
+        if not isinstance(result.get("accepted"), bool):
+            raise RobotdProtocolError("robot.stop result must contain boolean accepted")
+        if result.get("reason") is not None and not isinstance(result["reason"], str):
+            raise RobotdProtocolError("robot.stop reason must be a string or null")
+        if not result["accepted"]:
+            raise RobotdRemoteError(-1, result.get("reason") or "robot.stop refused")
+        return result
+
+    def enable(self, on: bool) -> dict[str, Any]:
+        """Enable or disable official policy execution for controlled fixtures."""
+        if type(on) is not bool:
+            raise ValueError("on must be boolean")
+        result = self._call("robot.enable", {"on": on, "toggle": False})
+        if not isinstance(result, dict) or set(result) - {"accepted", "reason"}:
+            raise RobotdProtocolError("robot.enable result has unexpected fields")
+        if not isinstance(result.get("accepted"), bool):
+            raise RobotdProtocolError("robot.enable result must contain boolean accepted")
+        if result.get("reason") is not None and not isinstance(result["reason"], str):
+            raise RobotdProtocolError("robot.enable reason must be a string or null")
+        if not result["accepted"]:
+            raise RobotdRemoteError(-1, result.get("reason") or "robot.enable refused")
+        return result
+
     def state(self, *, hz: int = 1) -> dict[str, Any]:
         """Subscribe and return one newly received ``robot.state`` notification."""
         if isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0:
@@ -201,6 +323,8 @@ class RobotdClient:
         self.close()
 
     def _call(self, method: str, params: dict[str, Any]) -> Any:
+        if method not in _REQUEST_METHODS:
+            raise TypeError(f"robotd request method is not exposed: {method}")
         stream = self._require_socket()
         request_id = self._next_id
         self._next_id += 1
