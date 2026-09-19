@@ -6,6 +6,7 @@ import socket
 import pytest
 
 from microduck_connectome.robotd_client import (
+    MAX_LINE_BYTES,
     RobotdClient,
     RobotdConnectionError,
     RobotdProtocolError,
@@ -32,11 +33,15 @@ def _hello(request: dict) -> bytes:
 def _state() -> dict:
     return {
         "t": 1.25,
-        "move": {"requested": [0.0, 0.0, 0.0]},
+        "move": {
+            "requested": [0.0, 0.0, 0.0],
+            "applied": [0.0, 0.0, 0.0],
+            "limited_by": [],
+        },
         "head": [0.0, 0.0, 0.0, 0.0],
         "policy": "held",
-        "safety": {},
-        "loop": {},
+        "safety": {"fallen": False, "limp": False, "gravity": [0.0, 0.0, -1.0]},
+        "loop": {"hz": 50.0, "missed": 0},
         "joints": [0.0] * 15,
         "targets": [0.0] * 15,
         "t_ns": 1_250_000_000,
@@ -198,3 +203,47 @@ def test_state_rejects_unexpected_schema():
     client.connect()
     with pytest.raises(RobotdProtocolError, match="robot.state move"):
         client.state()
+
+
+def test_health_rejects_invalid_nested_control_loop_schema():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        return _response(request, {"healthy": True, "control_loop": "not-an-object"})
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="control_loop must be an object"):
+        client.health()
+
+
+def test_state_rejects_empty_move_schema():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        bad_state = _state()
+        bad_state["move"] = {}
+        ack = _response(request, {"accepted": True})
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": bad_state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match="move.requested"):
+        client.state()
+
+
+def test_oversized_single_line_is_rejected():
+    oversized = b'"' + (b"x" * MAX_LINE_BYTES) + b'"\n'
+    client, _ = _client(lambda _request: oversized)
+    with pytest.raises(RobotdProtocolError, match="64 KiB"):
+        client.connect()
+
+
+def test_line_at_64_kib_boundary_is_accepted():
+    def handler(request):
+        response = _hello(request).rstrip(b"\n")
+        return response + (b" " * (MAX_LINE_BYTES - len(response))) + b"\n"
+
+    client, _ = _client(handler)
+    assert client.connect().peer_api_version == 31

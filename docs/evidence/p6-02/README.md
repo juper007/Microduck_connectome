@@ -17,9 +17,9 @@ Machine-readable evidence: `thor-runtime-v1.json`.
 - MicroDuck: `344925c9f8fa031f85428a305b1e8ec2eaae29c1`
 - microduck_rl: `cb70b792312d559a4da09064d92009079671815f`
 - MuJoCo body: `127.0.0.1:17802`
-- robotd socket: `/tmp/p602-runtime/robotd.sock`
-- Evidence window: `2026-09-19T00:52:44.848429Z` through
-  `2026-09-19T00:52:44.871624Z`
+- robotd socket: `/tmp/p602-runtime-final/robotd.sock`
+- Evidence window: `2026-09-19T01:00:24.279105Z` through
+  `2026-09-19T01:00:24.306682Z`
 
 ## Authoritative upstream protocol facts
 
@@ -47,30 +47,22 @@ Focused unit test on Thor:
 
 ```text
 cd /tmp/p602-code && python3 -m pytest tests/test_robotd_client.py -q
-.........                                                                [100%]
-9 passed in 0.02s
+.............                                                            [100%]
+13 passed in 0.02s
 ```
 
-The pushed implementation was then checked out in `/tmp/p602-full`. The P6
-client/evidence tests plus P4/P5 safety regressions passed:
-
-```text
-54 passed in 0.08s
-```
-
-An attempted all-tests collection on that clean checkout stopped before running because
-Thor's system Python does not have the unrelated `pyarrow` dependency used by four Phase-1
-evidence test modules. This is an environment limitation, not a P6-02 test failure; the
-targeted P4/P5/P6 set above collected and passed.
+The final pushed implementation was also checked out in `/tmp/p602-full` for the P6
+client/evidence tests plus P4/P5 safety regressions. The exact-head result is recorded in
+the PR validation summary.
 
 Real runtime probe:
 
 ```text
 PYTHONPATH=/tmp/p602-code python3 /tmp/p602-code/probe_robotd_readonly.py \
-  --socket /tmp/p602-runtime/robotd.sock \
+  --socket /tmp/p602-runtime-final/robotd.sock \
   --microduck /home/juper007/projects/microduck-connectome-thor/microduck \
   --microduck-rl /home/juper007/projects/microduck-connectome-thor/microduck_rl \
-  --output /tmp/p602-runtime/robotd-readonly-evidence.json
+  --output /tmp/p602-runtime-final/robotd-readonly-evidence.json
 ```
 
 Observed: both health reads reported `healthy=true`; state before and after reconnect
@@ -84,12 +76,13 @@ Large/runtime-local logs remain on Thor.
 
 | Artifact | Bytes | SHA256 |
 |---|---:|---|
-| `/tmp/p602-runtime/robotd-readonly-evidence.json` | 3309 | `9f4724de9ffe9820136b27f0af7b5269543aec341dca10f83a01585843e95199` |
-| `/tmp/p602-runtime/robotd.log` | 1824 | `e4d6a28c8210477653068840f46befb78d1faad7a4be7c641491c16434207a55` |
-| `/tmp/p602-runtime/body.log` | 137 | `81be996147b661126a6fd6c252de380cfef56ea7fdcede9d0ad5340e3444fa87` |
+| `/tmp/p602-runtime-final/robotd-readonly-evidence.json` | 3306 | `d345a133c5c5878522e2d30deec7dca51b5e7618e186fdd236747435a56e9c8d` |
+| `/tmp/p602-runtime-final/robotd-validation-final.log` | 2703 | `4d662d907e0a16b1f2f683bca882d133f703963a134ecc46b8e63d75d994c477` |
+| `/tmp/p602-runtime-final/body-validation-final.log` | 137 | `de1e61fc6a48d016650055692c10d8ec943836a43df9c5a9b56f26e786c8c882` |
 
-The runtime logs cover startup at `2026-09-19T00:50:53Z` and the probe window above.
-They contain no credentials or tokens.
+The runtime log snapshots were copied only after both processes stopped and then made
+read-only, so the recorded hashes identify immutable files. They cover startup through
+shutdown and contain no credentials or tokens.
 
 ## Scope
 
