@@ -13,13 +13,22 @@ import re
 import signal
 import socket
 import subprocess
+import threading
 import time
 
 from microduck_connectome.control_contracts import make_behavior_intent
+from microduck_connectome.dn_aggregator import DNActivityAggregator, load_dn_readout_config
+from microduck_connectome.escape_decoder import EscapeDecoder, load_escape_decoder_config
 from microduck_connectome.fault_evidence import REQUIRED_FAULTS, build_fault_matrix, make_fault_record, write_fault_matrix
+from microduck_connectome.graph import ConnectomeGraph
 from microduck_connectome.motion_adapter import MotionAdapterError, RobotMotionAdapter
 from microduck_connectome.perception_compositor import PerceptionPipeline
 from microduck_connectome.robotd_client import RobotdClient, RobotdConnectionError, RobotdTimeoutError
+from microduck_connectome.safety_clamp import SafetyClamp, load_safety_envelope
+from microduck_connectome.scheduler import ClosedLoopScheduler, NeuralUpdate, SchedulerWorkerError
+from microduck_connectome.sensory_mapping import SensoryMapper, load_sensory_mapping_config
+from microduck_connectome.sparse_runtime import SparseNeuralRuntime
+from microduck_connectome.steering_decoder import SteeringDecoder, load_steering_decoder_config
 from microduck_connectome.watchdog import ControllerWatchdog
 
 
@@ -69,6 +78,96 @@ class BodyReader:
     def close(self):
         self.file.close()
         self.socket.close()
+
+
+class WorkerFaultChain:
+    """Real P4→MaleCNS→DN→decoder→safety worker with one injected fault."""
+
+    def __init__(self, root: Path, graph: ConnectomeGraph, fault: str):
+        self.fault = fault
+        self.started_ns = time.monotonic_ns()
+        self.injected_at_ns = None
+        self.events = []
+        self.lock = threading.Lock()
+        self.pipeline = PerceptionPipeline()
+        sensory_config = load_sensory_mapping_config(root / "config/sensory_mapping_v1.json")
+        sensory_ids = tuple(sorted(x for spec in sensory_config["populations"].values() for x in spec["body_ids"]))
+        self.mapper = SensoryMapper(sensory_ids, sensory_config)
+        self.runtime = SparseNeuralRuntime(graph, json.loads((root / "config/neural_model_v1.json").read_text()))
+        dn_config = load_dn_readout_config(root / "config/dn_readout_v1.json")
+        self.dn_ids = tuple(sorted(x for spec in dn_config["populations"].values() for x in spec["body_ids"]))
+        self.aggregator = DNActivityAggregator(self.dn_ids, dn_config)
+        self.index = {body_id: index for index, body_id in enumerate(graph.body_ids)}
+        self.steering = SteeringDecoder(load_steering_decoder_config(root / "config/steering_decoder_v1.json"))
+        self.escape = EscapeDecoder(load_escape_decoder_config(root / "config/escape_decoder_v1.json"))
+        self.safety = SafetyClamp(load_safety_envelope(root / "config/safety_envelope_v1.json"))
+        self.frame_id = 0
+        self.sequence = 0
+        self.frozen_behavior = None
+
+    def inject(self, point, now_ns, **details):
+        with self.lock:
+            if self.injected_at_ns is None:
+                self.injected_at_ns = now_ns
+            self.events.append({"timestamp_ns": now_ns, "injected_point": point, **details})
+
+    def perception(self, now_ns):
+        self.frame_id += 1
+        fault = self.fault
+        stale = fault == "stale_perception"
+        camera_valid = fault not in ("camera_dropout", "invalid_perception")
+        tof_valid = fault != "tof_dropout"
+        camera_ns = now_ns - 100_000_001 if stale else now_ns
+        tof_ns = now_ns - 100_000_001 if stale else now_ns
+        if fault == "compositor_invalid":
+            tof_ns = now_ns - 100_000_001
+        frame = self.pipeline.process(
+            (((255, 0, 0),),), camera_timestamp_ns=camera_ns,
+            camera_frame_id=self.frame_id, tof_left_mm=500, tof_center_mm=500,
+            tof_right_mm=500, tof_timestamp_ns=tof_ns, tof_frame_id=self.frame_id,
+            now_ns=now_ns, camera_source_valid=camera_valid,
+            tof_source_valid=tof_valid,
+        )
+        if fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
+            self.inject("PerceptionCompositor", now_ns, compositor_reasons=list(self.pipeline.compositor.last_reasons), frame_valid=frame["valid"])
+        return frame
+
+    def neural(self, frame, now_ns):
+        self.sequence += 1
+        channels = self.mapper.map_channels(frame, now_ns=now_ns) if frame is not None else {}
+        if self.fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
+            self.events.append({"timestamp_ns": now_ns, "observed_point": "SensoryMapper", "channels": channels})
+            return None
+        mapped = {} if frame is None else self.mapper.build_external(frame, now_ns=now_ns)
+        external = {key: value for key, value in mapped.items() if key in self.index}
+        if self.fault == "neural_unavailable":
+            self.inject("MaleCNS Runtime", now_ns, action="raise unavailable")
+            raise RuntimeError("injected neural runtime unavailable")
+        snapshot = self.runtime.step(external)
+        if self.fault == "neural_freeze" and now_ns - self.started_ns >= 60_000_000:
+            self.inject("MaleCNS Runtime", now_ns, action="freeze updates")
+            return None
+        projected = tuple(snapshot["spikes"][self.index[x]] if x in self.index else False for x in self.dn_ids)
+        healthy = snapshot["healthy"]
+        if self.fault == "runtime_unhealthy":
+            self.inject("MaleCNS Runtime", now_ns, action="runtime_healthy=false")
+            healthy = False
+        readout = self.aggregator.update(projected, timestamp_ns=now_ns, sequence=self.sequence, runtime_healthy=healthy)
+        if self.fault == "malformed_neural":
+            self.inject("DNActivityAggregator output", now_ns, action="NaN activity")
+            readout = dict(readout); readout["steering_left"] = float("nan")
+        if self.fault == "decoder_crash":
+            self.inject("SteeringDecoder", now_ns, action="raise crash")
+            raise RuntimeError("injected decoder crash")
+        decoded = self.escape.apply(readout, self.steering.decode(readout))
+        if self.fault == "decoder_stale":
+            if self.frozen_behavior is None:
+                self.frozen_behavior = decoded
+            elif now_ns - self.started_ns >= 60_000_000:
+                self.inject("decoder output", now_ns, action="freeze behavior")
+                decoded = self.frozen_behavior
+        safe = self.safety.apply(decoded, now_ns=now_ns, fallback_sequence=self.sequence)
+        return NeuralUpdate(readout, safe["intent"], {"channels": channels})
 
 
 class Session:
@@ -136,25 +235,43 @@ class Session:
                 break
         else:
             raise RuntimeError(f"official robot.state did not reach rest: {state['move']!r}")
-        # A zero command alone is not motion-stop evidence. Restart recovery can
-        # carry body momentum, so require consecutive MuJoCo headings to settle.
-        heading_deadline = time.monotonic() + 3.0
-        before = self.body.heading()
-        while True:
+        # Require five consecutive actual robot/body windows at rest. A single
+        # zero command or one coincidentally small heading delta is insufficient.
+        heading_deadline = time.monotonic() + 5.0
+        headings = [self.body.heading()]
+        heading_times = [time.monotonic_ns()]
+        rates = []
+        command_samples = []
+        while len(rates) < 5:
             time.sleep(0.10)
-            after = self.body.heading()
-            delta = abs(after - before)
-            if delta <= 0.02:
-                break
+            sample = observer.state(hz=50)
+            sample_ns = time.monotonic_ns()
+            heading = self.body.heading()
+            requested = list(sample["move"]["requested"])
+            applied = list(sample["move"]["applied"])
+            rate = (heading - headings[-1]) / ((sample_ns - heading_times[-1]) / 1e9)
+            if (
+                all(abs(float(v)) <= 1e-6 for v in requested + applied)
+                and abs(rate) <= 0.01
+            ):
+                headings.append(heading); heading_times.append(sample_ns); rates.append(rate)
+                command_samples.append({"timestamp_ns": sample_ns, "requested": requested, "applied": applied})
+            else:
+                headings = [heading]; heading_times = [sample_ns]; rates = []; command_samples = []
             if time.monotonic() >= heading_deadline:
-                raise RuntimeError(f"MuJoCo heading still changing after stop: {delta}")
-            before = after
+                raise RuntimeError(f"MuJoCo/robot.state did not settle for five windows: rate={rate}, move={sample['move']!r}")
         observer.close()
+        before, after = headings[0], headings[-1]
+        delta = abs(after - before)
         return {
             "requested": list(state["move"]["requested"]),
             "applied": list(state["move"]["applied"]),
             "heading_before_rad": before, "heading_after_rad": after,
             "heading_delta_rad": delta,
+            "settled_windows": 5, "heading_samples": headings,
+            "angular_rate_samples_radps": rates,
+            "max_abs_angular_rate_radps": max(abs(value) for value in rates),
+            "command_samples": command_samples,
         }
 
     def recover(self, old_output):
@@ -190,6 +307,65 @@ def observe_perception(root, fault):
     if frame["valid"]:
         raise AssertionError(f"{fault} did not neutralize perception")
     return {"valid": frame["valid"], "reasons": list(pipeline.compositor.last_reasons)}
+
+
+def scheduler_fault(session, graph, name, raw):
+    old = session.motion()
+    chain = WorkerFaultChain(session.args.root, graph, name)
+    observations = []
+
+    def publish(output):
+        result = session.adapter.send(output)
+        observations.append({
+            "timestamp_ns": time.monotonic_ns(),
+            "watchdog_state": output["watchdog_state"],
+            "stale_reason": output["stale_reason"],
+            "stop": output["intent"]["stop"],
+            "transport_result": result,
+        })
+        return result
+
+    scheduler = ClosedLoopScheduler(
+        config=session.args.root / "config/scheduler_v1.json",
+        watchdog=ControllerWatchdog(session.args.root / "config/watchdog_v1.json"),
+        perception_step=chain.perception, neural_step=chain.neural,
+        publisher=publish,
+    )
+    scheduler._output_sequence = session.sequence + 100
+    expected_worker_error = name in ("malformed_neural", "neural_unavailable", "decoder_crash")
+    try:
+        scheduler.run(0.30)
+        if expected_worker_error:
+            raise AssertionError(f"{name} worker fault did not propagate")
+    except SchedulerWorkerError as error:
+        if not expected_worker_error:
+            raise
+        chain.events.append({"timestamp_ns": time.monotonic_ns(), "observed_point": "scheduler_exception", "error": str(error)})
+    session.sequence = max(session.sequence, scheduler._output_sequence + 2)
+    injected = chain.injected_at_ns
+    if injected is None:
+        raise AssertionError(f"{name} injection point was not reached")
+    causal = next((item for item in observations if item["timestamp_ns"] >= injected and item["stop"]), None)
+    if causal is None:
+        raise AssertionError(f"{name} did not propagate to a robot-facing stop")
+    detected = causal["timestamp_ns"]
+    safe_at = detected
+    state = session.safe_state()
+    stopped = time.monotonic_ns()
+    recovered = session.recover(old)
+    raw.append({
+        "fault": name,
+        "injected_at_ns": injected,
+        "injection_and_propagation": chain.events,
+        "robot_facing_observations": observations,
+        "causal_stale_reason": causal["stale_reason"],
+        "causal_transport_result": causal["transport_result"],
+    })
+    return make_fault_record(
+        fault=name, injected_at_ns=injected, detected_at_ns=detected,
+        safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped,
+        recovery_at_ns=recovered, state_evidence=state,
+    )
 
 
 def standard_fault(session, name, mode, raw, perception=False):
@@ -277,6 +453,8 @@ def lifecycle_fault(session, name, args, raw, action):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--graph-cache", type=Path, required=True)
+    parser.add_argument("--graph-key", required=True)
     parser.add_argument("--socket", type=Path, required=True)
     parser.add_argument("--body-port", type=int, required=True)
     parser.add_argument("--runtime-dir", type=Path, required=True)
@@ -299,32 +477,35 @@ def main():
 
     raw = []
     records = []
+    graph = ConnectomeGraph.from_cache(args.graph_cache, args.graph_key)
     session = Session(args, raw)
     try:
-        for name in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
-            records.append(standard_fault(session, name, "missing", raw, perception=True))
-        for name, mode in (
-            ("runtime_unhealthy", "runtime_unhealthy"), ("neural_freeze", "stale_neural"),
-            ("malformed_neural", "malformed_neural"), ("neural_unavailable", "missing"),
-            ("decoder_crash", "decoder_crash"), ("decoder_stale", "stale_behavior"),
-        ):
-            records.append(standard_fault(session, name, mode, raw))
+        for name in REQUIRED_FAULTS[:11]:
+            records.append(scheduler_fault(session, graph, name, raw))
 
-        # Explicit controller-side disconnect: motion cannot cross the generation boundary.
-        old = session.motion(); injected = time.monotonic_ns(); session.client.disconnect()
-        try: session.adapter.send(session.output(vyaw=0.2)); raise AssertionError("disconnect not detected")
-        except (MotionAdapterError, RobotdConnectionError): detected = time.monotonic_ns()
-        safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
-        raw.append({"fault": "ipc_disconnect", "actual_disconnect": True})
+        def kill_current():
+            pid = verified_pid(args.pid_file, args.robotd, args.socket)
+            os.kill(pid, signal.SIGTERM)
+            wait_for(lambda: process_exited(pid))
+            return pid
+
+        # Peer-side disconnect is detected by an actual read on the active client.
+        old = session.motion(); injected = time.monotonic_ns(); pid = kill_current()
+        try: session.client.health(); raise AssertionError("peer disconnect not detected")
+        except RobotdConnectionError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        restart_robotd(args); safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "ipc_disconnect", "injected_point": "active robotd peer", "pid": pid, "observed_read_exception": observed_error})
         records.append(make_fault_record(fault="ipc_disconnect", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
-        # A real absent Unix endpoint must refuse; the active endpoint is then stopped safely.
-        old = session.motion(); injected = time.monotonic_ns()
-        try: RobotdClient(str(args.runtime_dir / "absent-p6-06.sock"), timeout_s=args.timeout_s).connect(); raise AssertionError("connection unexpectedly accepted")
-        except RobotdConnectionError: detected = time.monotonic_ns()
-        session.adapter.send(session.output(mode="missing")); safe_at = time.monotonic_ns(); state = session.safe_state(); stopped = time.monotonic_ns(); recovered = session.recover(old)
-        raw.append({"fault": "connection_refused", "actual_absent_socket": True})
+        # The active publisher is redirected to an absent endpoint, not a side probe.
+        old = session.motion(); injected = time.monotonic_ns(); real_socket = session.client.socket_path
+        session.client.disconnect(); session.client.socket_path = str(args.runtime_dir / "absent-p6-06.sock")
+        try: session.client.connect(); raise AssertionError("connection unexpectedly accepted")
+        except RobotdConnectionError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        session.client.socket_path = real_socket
+        safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "connection_refused", "injected_point": "active publisher endpoint", "observed_connect_exception": observed_error})
         records.append(make_fault_record(fault="connection_refused", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
@@ -332,19 +513,40 @@ def main():
         old = session.motion(); injected = time.monotonic_ns(); pid = verified_pid(args.pid_file, args.robotd, args.socket); os.kill(pid, signal.SIGSTOP)
         try:
             try: session.client.health(); raise AssertionError("read timeout not detected")
-            except RobotdTimeoutError: detected = time.monotonic_ns()
+            except RobotdTimeoutError as error: detected = time.monotonic_ns(); observed_error = repr(error)
         finally: os.kill(pid, signal.SIGCONT)
         safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
-        raw.append({"fault": "read_timeout", "actual_robotd_sigstop": True})
+        raw.append({"fault": "read_timeout", "injected_point": "active robotd SIGSTOP", "observed_read_exception": observed_error})
         records.append(make_fault_record(fault="read_timeout", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
-        def kill_current():
-            pid = verified_pid(args.pid_file, args.robotd, args.socket)
-            os.kill(pid, signal.SIGTERM)
-            wait_for(lambda: process_exited(pid))
-        for name in ("write_failure", "socket_close", "robotd_restart"):
-            records.append(lifecycle_fault(session, name, args, raw, kill_current))
+        # Write failure: terminate the peer, then observe the active publisher's write.
+        old = session.motion(); injected = time.monotonic_ns(); pid = kill_current()
+        try: session.adapter.send(session.output(mode="missing")); raise AssertionError("write failure not detected")
+        except RobotdConnectionError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        restart_robotd(args); safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "write_failure", "injected_point": "active publisher send after peer exit", "pid": pid, "observed_write_exception": observed_error})
+        records.append(make_fault_record(fault="write_failure", injected_at_ns=injected, detected_at_ns=detected,
+            safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
+
+        # Local active socket close is distinct from peer loss and connect refusal.
+        old = session.motion(); injected = time.monotonic_ns(); session.client.disconnect()
+        try: session.adapter.send(session.output(mode="missing")); raise AssertionError("closed socket publish not detected")
+        except RobotdConnectionError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "socket_close", "injected_point": "active client socket close", "observed_publish_exception": observed_error})
+        records.append(make_fault_record(fault="socket_close", injected_at_ns=injected, detected_at_ns=detected,
+            safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
+
+        # Restart lifecycle is tested without conflating it with the failed write.
+        old = session.motion(); injected = time.monotonic_ns(); before_pid = kill_current(); after_pid = restart_robotd(args)
+        session.client.reconnect(); session.client.enable(True)
+        try: session.adapter.send(old); raise AssertionError("old command crossed robotd restart")
+        except MotionAdapterError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        stop = session.output(mode="missing"); session.adapter.send(stop); safe_at = time.monotonic_ns(); state = session.safe_state(); stopped = time.monotonic_ns(); recovered = session.recover(old)
+        raw.append({"fault": "robotd_restart", "injected_point": "verified robotd lifecycle", "pid_before": before_pid, "pid_after": after_pid, "observed_replay_rejection": observed_error})
+        records.append(make_fault_record(fault="robotd_restart", injected_at_ns=injected, detected_at_ns=detected,
+            safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
         # Full official simulator lifecycle. Old adapter/session survives to prove generation gating.
         old = session.motion(); injected = time.monotonic_ns()

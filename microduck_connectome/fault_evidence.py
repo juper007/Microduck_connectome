@@ -62,7 +62,9 @@ def validate_fault_record(value: Mapping) -> dict:
         raise FaultEvidenceError("record violates frozen transport or PASS contract")
     state = value["state_evidence"]
     if not isinstance(state, Mapping) or set(state) != {
-        "requested", "applied", "heading_before_rad", "heading_after_rad", "heading_delta_rad"
+        "requested", "applied", "heading_before_rad", "heading_after_rad", "heading_delta_rad",
+        "settled_windows", "heading_samples", "angular_rate_samples_radps", "max_abs_angular_rate_radps",
+        "command_samples",
     }:
         raise FaultEvidenceError("state evidence fields mismatch")
     for name in ("requested", "applied"):
@@ -79,6 +81,18 @@ def validate_fault_record(value: Mapping) -> dict:
             raise FaultEvidenceError(f"state {name} must be finite")
     if abs(abs(float(state["heading_after_rad"] - state["heading_before_rad"])) - float(state["heading_delta_rad"])) > 1e-9:
         raise FaultEvidenceError("heading delta mismatch")
+    if state["settled_windows"] < 5 or len(state["heading_samples"]) < 6 or len(state["angular_rate_samples_radps"]) < 5:
+        raise FaultEvidenceError("rest evidence requires at least five consecutive windows")
+    if max(abs(float(item)) for item in state["angular_rate_samples_radps"]) > 0.01:
+        raise FaultEvidenceError("body angular rate does not prove rest")
+    if abs(float(state["max_abs_angular_rate_radps"]) - max(abs(float(item)) for item in state["angular_rate_samples_radps"])) > 1e-9:
+        raise FaultEvidenceError("maximum angular rate mismatch")
+    if len(state["command_samples"]) < 5:
+        raise FaultEvidenceError("rest evidence requires repeated robot.state samples")
+    for sample in state["command_samples"]:
+        for name in ("requested", "applied"):
+            if any(abs(float(item)) > 1e-6 for item in sample[name]):
+                raise FaultEvidenceError("repeated robot.state sample is not at rest")
     return json.loads(json.dumps(value, allow_nan=False))
 
 

@@ -17,6 +17,14 @@ def record(name):
             "requested": [0.0, 0.0, 0.0], "applied": [0.0, 0.0, 0.0],
             "heading_before_rad": 0.1, "heading_after_rad": 0.1001,
             "heading_delta_rad": 0.0001,
+            "settled_windows": 5,
+            "heading_samples": [0.1, 0.10002, 0.10004, 0.10006, 0.10008, 0.1001],
+            "angular_rate_samples_radps": [0.0002] * 5,
+            "max_abs_angular_rate_radps": 0.0002,
+            "command_samples": [
+                {"timestamp_ns": 100 + i, "requested": [0.0, 0.0, 0.0], "applied": [0.0, 0.0, 0.0]}
+                for i in range(5)
+            ],
         },
     )
 
@@ -43,7 +51,7 @@ def test_missing_or_reordered_fault_is_rejected():
         )
 
 
-@pytest.mark.parametrize("mutation", ["replay", "moving", "time", "transport"])
+@pytest.mark.parametrize("mutation", ["replay", "moving", "time", "transport", "rate", "short_window"])
 def test_unsafe_or_inconsistent_record_is_rejected(mutation):
     value = record(REQUIRED_FAULTS[0])
     if mutation == "replay":
@@ -52,8 +60,12 @@ def test_unsafe_or_inconsistent_record_is_rejected(mutation):
         value["state_evidence"]["applied"][2] = 0.1
     elif mutation == "time":
         value["motion_stopped_at_ns"] = 15
-    else:
+    elif mutation == "transport":
         value["stop_transport"] = "zero_twist"
+    elif mutation == "rate":
+        value["state_evidence"]["angular_rate_samples_radps"][2] = 0.02
+    else:
+        value["state_evidence"]["command_samples"] = value["state_evidence"]["command_samples"][:2]
     from microduck_connectome.fault_evidence import validate_fault_record
     with pytest.raises(FaultEvidenceError):
         validate_fault_record(value)
