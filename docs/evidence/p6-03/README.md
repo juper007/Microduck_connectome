@@ -32,8 +32,8 @@ stop tick so a silent peer loss cannot hide behind a local latch.
 The safety-review rerun distinguished three restart cases. A controller socket
 reconnect advanced the client generation from 1 to 2; movement was rejected
 until a newly minted watchdog safe-stop crossed successfully. The fixture then
-terminated the verified robotd PID 2297534 while MuJoCo remained running. The
-next stop refresh detected `Broken pipe`. After robotd PID 2297726 started and
+terminated the verified robotd PID 2351958 while MuJoCo remained running. The
+next stop refresh detected `Broken pipe`. After robotd PID 2352950 started and
 the client reached generation 3, movement was again rejected until a fresh
 safe-stop. Subsequent bounded motion reached requested `[0.04, 0, 0.2]` and
 applied `[0.0397639, 0, 0.1988194]`, followed by an acknowledged final stop.
