@@ -59,34 +59,36 @@
     "selection_reason": "verified acknowledged discrete request; one request zeroed and persisted, resumed on later move, and repeated requests provide transport liveness"
   },
   "safety_review_remediation": {
-    "watchdog_boundary": "adapter accepts only immutable WatchdogOutput values minted by ControllerWatchdog.tick",
+    "watchdog_boundary": "adapter and client accept only live WatchdogOutput identities minted by ControllerWatchdog.tick whose immutable content object is unchanged",
     "robotd_boundary": "no public raw move method; final transport accepts only sealed, twice-bounds-checked motion commands",
     "stop_liveness": "robot.stop request-response refreshed on every safe-stop tick",
     "controller_reconnect": {
       "generation_before": 1,
       "generation_after": 2,
       "movement_blocked_until_fresh_safe_stop": true,
+      "pre_safe_stop_output_replay_rejected": true,
       "resume_after_fresh_safe_stop": true
     },
     "actual_robotd_restart": {
-      "pid_before": 2317543,
-      "pid_after": 2318123,
+      "pid_before": 2351958,
+      "pid_after": 2352950,
       "stop_refresh_detected_loss": "Broken pipe",
       "generation_after": 3,
       "movement_blocked_until_fresh_safe_stop": true,
+      "pre_safe_stop_output_replay_rejected": true,
       "resume_requested": [0.04, 0.0, 0.2],
       "resume_applied": [0.03976388167585652, 0.0, 0.19881940837928258],
       "final_safe_stop_acknowledged": true
     },
     "simulator_restart": "separate full fresh-process resets used for matched yaw trials",
-    "fixture_sha256": "6eb4dd3fc161e8f969e562323a45ab614e8e898c591d4b6b924c963db2a16ddf",
-    "source_head": "1644acbe940117485ad524c12a643716c9f978c6",
-    "focused_thor_regression": "138 passed in 0.11s on Python 3.12"
+    "fixture_sha256": "09b0160406e2d780512247b2afb5960b2460594e77acf895090c5a8cb18efc3c",
+    "source_head": "b6d9a811f31dd6d881aa549bba1757fc7059bd42",
+    "focused_thor_regression": "149 passed in 0.12s on Python 3.12"
   },
   "raw_artifacts": {
     "immutable_thor_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T1206Z",
     "run_interval_utc": ["2026-09-19T12:06:56Z", "2026-09-19T12:08:33Z"],
-    "remediation_thor_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T123950Z-review-remediation",
+    "remediation_thor_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T125838Z-final-boundary",
     "sha256": {
       "yaw-positive.json": "8cc1c91b1c635c5a22d2f521682309d48ddf0302382999611e13275ea4b6d1c3",
       "yaw-negative.json": "b30784cd5630d698d0c0df6d514e9b4f6477e2a32ac71b700bd2461693113b9e",
@@ -94,10 +96,12 @@
       "launch-positive.log": "f8274866713ecd8ca2c46688386c7b4abf4bc4a34fc55f90c14c568862dd7d97",
       "launch-negative.log": "3b50c8a8f7f89044eaecadd8bca3b41f0d5e5c56a18382672aac15b3fd4d9021",
       "launch-stop.log": "4e314276295c2638235facd1276b76ce7fdcb914ac92c1bb07f297dd91171e22",
-      "adapter-restart.json": "b75bb9709d5eda50dd5e18c87eacd91300e6de6b9947a0b31d49bff273c9a011",
-      "launch.log": "abad55a33a37a876bdc6d3e80fae10e9a6b8cd4c54e51423adaddfecc81b0de1",
-      "robotd-restart.log": "8abceb1a89b4976d12a285da5613d3b19121dfd07c133955e12ed7c2f67e49fa",
-      "focused-tests.log": "2f77bf6b589c53fc129fd23994ce0ff0d1283d82efa78251a5ba51397602cb7e"
+      "adapter-restart.json": "0f472f80c69a16a8cdb1338a473815c8e1c38b82ceaff582ee7dc477c2aabbfc",
+      "executed-sources.sha256": "75cfdbdb057653b94723b881f12e6c595e77344ffa0adba92090532662ab9c9b",
+      "launch-command.log": "ad5b6efa00beae092ba248abd207b15ea8f76b7fba17ea9dd0677446ecdba942",
+      "initial-robotd.log": "eae861e1a36b5c23a20a32ffa5464c6b7e6c054a870b50c7955ce011af0b73fe",
+      "robotd-restart.log": "88b69b4a5f8a5c5782cf4c88bdc1be458218a6063f0143bb8ffdf47a6c0a575a",
+      "focused-tests.log": "9c065fe71cbcace8aa23ccdd9ebecf80606f3f78783c681c21c23d3826ecfdbb"
     }
   },
   "scope": "P6-03 direction and stop transport; no yaw-rate accuracy claim and no hardware evidence"
