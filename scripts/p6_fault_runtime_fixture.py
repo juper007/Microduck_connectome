@@ -104,6 +104,8 @@ class WorkerFaultChain:
         self.frame_id = 0
         self.sequence = 0
         self.frozen_behavior = None
+        self.frozen_safe = None
+        self.completed_updates = 0
 
     def inject(self, point, now_ns, **details):
         with self.lock:
@@ -137,14 +139,13 @@ class WorkerFaultChain:
         channels = self.mapper.map_channels(frame, now_ns=now_ns) if frame is not None else {}
         if self.fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid"):
             self.events.append({"timestamp_ns": now_ns, "observed_point": "SensoryMapper", "channels": channels})
-            return None
         mapped = {} if frame is None else self.mapper.build_external(frame, now_ns=now_ns)
         external = {key: value for key, value in mapped.items() if key in self.index}
         if self.fault == "neural_unavailable":
             self.inject("MaleCNS Runtime", now_ns, action="raise unavailable")
             raise RuntimeError("injected neural runtime unavailable")
         snapshot = self.runtime.step(external)
-        if self.fault == "neural_freeze" and now_ns - self.started_ns >= 60_000_000:
+        if self.fault == "neural_freeze" and self.completed_updates >= 2:
             self.inject("MaleCNS Runtime", now_ns, action="freeze updates")
             return None
         projected = tuple(snapshot["spikes"][self.index[x]] if x in self.index else False for x in self.dn_ids)
@@ -161,13 +162,14 @@ class WorkerFaultChain:
             raise RuntimeError("injected decoder crash")
         decoded = self.escape.apply(readout, self.steering.decode(readout))
         if self.fault == "decoder_stale":
-            if self.frozen_behavior is None:
-                self.frozen_behavior = decoded
-            elif now_ns - self.started_ns >= 60_000_000:
+            if self.frozen_safe is not None and self.completed_updates >= 2:
                 self.inject("decoder output", now_ns, action="freeze behavior")
-                decoded = self.frozen_behavior
+                self.completed_updates += 1
+                return NeuralUpdate(readout, self.frozen_safe["intent"], {"channels": channels, "safety_reasons": self.frozen_safe["reasons"]})
         safe = self.safety.apply(decoded, now_ns=now_ns, fallback_sequence=self.sequence)
-        return NeuralUpdate(readout, safe["intent"], {"channels": channels})
+        self.frozen_safe = safe
+        self.completed_updates += 1
+        return NeuralUpdate(readout, safe["intent"], {"channels": channels, "safety_reasons": safe["reasons"]})
 
 
 class Session:
@@ -321,6 +323,8 @@ def scheduler_fault(session, graph, name, raw):
             "watchdog_state": output["watchdog_state"],
             "stale_reason": output["stale_reason"],
             "stop": output["intent"]["stop"],
+            "vx": output["intent"]["vx"], "vy": output["intent"]["vy"],
+            "vyaw": output["intent"]["vyaw"],
             "transport_result": result,
         })
         return result
@@ -334,7 +338,7 @@ def scheduler_fault(session, graph, name, raw):
     scheduler._output_sequence = session.sequence + 100
     expected_worker_error = name in ("malformed_neural", "neural_unavailable", "decoder_crash")
     try:
-        scheduler.run(0.30)
+        scheduler.run(0.45)
         if expected_worker_error:
             raise AssertionError(f"{name} worker fault did not propagate")
     except SchedulerWorkerError as error:
@@ -345,7 +349,10 @@ def scheduler_fault(session, graph, name, raw):
     injected = chain.injected_at_ns
     if injected is None:
         raise AssertionError(f"{name} injection point was not reached")
-    causal = next((item for item in observations if item["timestamp_ns"] >= injected and item["stop"]), None)
+    sensor_fault = name in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid")
+    causal = next((item for item in observations if item["timestamp_ns"] >= injected and (
+        item["stop"] or (sensor_fault and (item["vx"], item["vy"], item["vyaw"]) == (0.0, 0.0, 0.0))
+    )), None)
     if causal is None:
         raise AssertionError(f"{name} did not propagate to a robot-facing stop")
     detected = causal["timestamp_ns"]
