@@ -195,6 +195,10 @@ def observe_perception(root, fault):
 def standard_fault(session, name, mode, raw, perception=False):
     old = session.motion()
     injected = time.monotonic_ns()
+    if mode in ("stale_neural", "stale_behavior") or name == "stale_perception":
+        # A freeze/stale fault begins when updates cease. Let the frozen 100 ms
+        # TTL elapse in monotonic wall time instead of fabricating zero latency.
+        time.sleep(0.101)
     condition = observe_perception(session.args.root, name) if perception else {"mode": mode}
     output = session.output(mode=mode)
     if output["watchdog_state"] != "safe_stop" or not output["intent"]["stop"]:
