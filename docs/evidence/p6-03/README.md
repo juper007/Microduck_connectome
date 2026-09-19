@@ -47,10 +47,13 @@ on Thor. The run interval was 2026-09-19T12:06:56Z through
 `motion-calibration-v1.json`; launch log hashes are available beside the raw
 artifacts. No credentials are present.
 
-Safety-remediation restart evidence is read-only at
-`/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T1227Z-remediation-final`.
+Safety-remediation restart evidence was rerun from clean checkout
+`1644acbe940117485ad524c12a643716c9f978c6` and is read-only at
+`/home/juper007/projects/microduck-connectome-thor/evidence/p6-03/20260919T123950Z-review-remediation`.
 Its decision-bearing JSON SHA-256 is
-`accdc268949886aae77a64d2d8d639cc9569cc06ff30f1a90473f3258db5af42`.
+`b75bb9709d5eda50dd5e18c87eacd91300e6de6b9947a0b31d49bff273c9a011`.
+The JSON embeds the executed fixture SHA-256
+`6eb4dd3fc161e8f969e562323a45ab614e8e898c591d4b6b924c963db2a16ddf`.
 
 This is simulator-only evidence. It does not authorize physical motion, claim a
 calibrated yaw-rate response, or bypass robotd's policy and safety ownership.
@@ -64,6 +67,7 @@ tests/test_p5_pipeline.py tests/test_p4_sensor_pipeline.py
 tests/test_p6_runtime_evidence.py
 ```
 
-Initial result: 138 passed in 0.12 seconds on Python 3.12. The expanded
-safety-review remediation suite, including command logging, passed 143 tests in
-0.15 seconds on Python 3.12.
+Initial result: 138 passed in 0.12 seconds on Python 3.12. The exact final
+focused command was reproduced from the clean Thor checkout and passed 138 tests
+in 0.11 seconds on Python 3.12. Its log SHA-256 is
+`2f77bf6b589c53fc129fd23994ce0ff0d1283d82efa78251a5ba51397602cb7e`.
