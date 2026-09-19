@@ -25,6 +25,7 @@ U32_MAX = (1 << 32) - 1
 U64_MAX = (1 << 64) - 1
 I32_MIN = -(1 << 31)
 I32_MAX = (1 << 31) - 1
+_MOTION_COMMAND_SEAL = object()
 _SEMVER = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
     r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\."
@@ -164,12 +165,35 @@ class RobotdClient:
         self._validate_health(result)
         return result
 
-    def move(self, *, vx: float, vy: float, vyaw: float) -> None:
-        """Publish the upstream continuous trunk-frame twist notification."""
-        params = {"vx": vx, "vy": vy, "vyaw": vyaw}
-        for field, value in params.items():
-            self._require_finite_number(value, f"robot.move {field}")
-        self._notify("robot.move", params)
+    def _send_motion(self, command: object) -> None:
+        """Publish an adapter-minted bounded trunk-frame twist notification."""
+        # Local import avoids making the low-level client a constructor for commands.
+        from .motion_adapter import (
+            MAX_ABS_VX_MPS,
+            MAX_ABS_VYAW_RADPS,
+            _BoundedRobotdCommand,
+        )
+
+        if type(command) is not _BoundedRobotdCommand:
+            raise TypeError("robotd transport requires an adapter-minted motion command")
+        values = (command.vx, command.vy, command.vyaw)
+        if not all(
+            not isinstance(value, bool)
+            and isinstance(value, (int, float))
+            and math.isfinite(float(value))
+            for value in values
+        ):
+            raise ValueError("adapter motion command must be finite numeric")
+        if (
+            abs(command.vx) > MAX_ABS_VX_MPS
+            or command.vy != 0.0
+            or abs(command.vyaw) > MAX_ABS_VYAW_RADPS
+        ):
+            raise ValueError("motion command exceeds the P6-03 envelope")
+        self._notify(
+            "robot.move", {"vx": command.vx, "vy": command.vy, "vyaw": command.vyaw},
+            _motion_seal=_MOTION_COMMAND_SEAL,
+        )
 
     def stop(self) -> dict[str, Any]:
         """Request the upstream discrete stop and require an accepted result."""
@@ -275,7 +299,11 @@ class RobotdClient:
                 raise RobotdRemoteError(error["code"], error["message"])
             return message["result"]
 
-    def _notify(self, method: str, params: dict[str, Any]) -> None:
+    def _notify(
+        self, method: str, params: dict[str, Any], *, _motion_seal=None
+    ) -> None:
+        if method == "robot.move" and _motion_seal is not _MOTION_COMMAND_SEAL:
+            raise TypeError("robot.move requires an adapter-minted bounded command")
         stream = self._require_socket()
         request = {"jsonrpc": "2.0", "method": method, "params": params}
         wire = json.dumps(request, separators=(",", ":"), allow_nan=False).encode() + b"\n"

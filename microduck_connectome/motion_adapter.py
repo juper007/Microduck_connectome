@@ -8,13 +8,13 @@ import json
 import math
 from pathlib import Path
 
-from .control_contracts import ControlContractError, validate_behavior_intent
 from .robotd_client import RobotdClient
+from .watchdog import WatchdogOutput
 
 MAX_ABS_VX_MPS = 0.08
 MAX_ABS_VY_MPS = 0.0
 MAX_ABS_VYAW_RADPS = 0.50
-_POST_WATCHDOG_SEAL = object()
+_ADAPTER_COMMAND_SEAL = object()
 
 
 class MotionAdapterError(ValueError):
@@ -22,53 +22,25 @@ class MotionAdapterError(ValueError):
 
 
 @dataclass(frozen=True, slots=True, init=False)
-class PostWatchdogIntent:
-    """Intent proven to be the final output of ControllerWatchdog.tick()."""
+class _BoundedRobotdCommand:
+    """A robotd twist minted only after the adapter's final envelope check."""
 
-    timestamp_ns: int
-    sequence: int
     vx: float
     vy: float
     vyaw: float
-    stop: bool
-    watchdog_state: str
 
-    def __init__(self, *, _seal, intent, watchdog_state):
-        if _seal is not _POST_WATCHDOG_SEAL:
-            raise TypeError("PostWatchdogIntent must come from from_watchdog_result")
-        object.__setattr__(self, "timestamp_ns", intent["timestamp_ns"])
-        object.__setattr__(self, "sequence", intent["sequence"])
-        object.__setattr__(self, "vx", intent["vx"])
-        object.__setattr__(self, "vy", intent["vy"])
-        object.__setattr__(self, "vyaw", intent["vyaw"])
-        object.__setattr__(self, "stop", intent["stop"])
-        object.__setattr__(self, "watchdog_state", watchdog_state)
+    def __init__(self, *, _seal, vx, vy, vyaw):
+        if _seal is not _ADAPTER_COMMAND_SEAL:
+            raise TypeError("bounded robotd commands are adapter-minted")
+        object.__setattr__(self, "vx", vx)
+        object.__setattr__(self, "vy", vy)
+        object.__setattr__(self, "vyaw", vyaw)
 
-    @classmethod
-    def from_watchdog_result(cls, result: Mapping) -> "PostWatchdogIntent":
-        required = {"intent", "watchdog_state", "stale_reason", "decoder_alive"}
-        if not isinstance(result, Mapping) or set(result) != required:
-            raise MotionAdapterError("watchdog result fields mismatch")
-        state = result["watchdog_state"]
-        if state not in ("healthy", "safe_stop"):
-            raise MotionAdapterError("watchdog_state must be healthy or safe_stop")
-        if type(result["decoder_alive"]) is not bool:
-            raise MotionAdapterError("decoder_alive must be bool")
-        reason = result["stale_reason"]
-        if reason is not None and not isinstance(reason, str):
-            raise MotionAdapterError("stale_reason must be a string or null")
-        try:
-            intent = validate_behavior_intent(result["intent"])
-        except ControlContractError as error:
-            raise MotionAdapterError("invalid watchdog intent") from error
-        if state == "safe_stop":
-            if reason is None or not intent["stop"] or any(
-                intent[field] != 0.0 for field in ("vx", "vy", "vyaw")
-            ):
-                raise MotionAdapterError("safe_stop must carry a reason and stop-zero intent")
-        elif reason is not None or result["decoder_alive"] is not True:
-            raise MotionAdapterError("healthy watchdog output requires a live decoder and no reason")
-        return cls(_seal=_POST_WATCHDOG_SEAL, intent=intent, watchdog_state=state)
+
+def _bounded_command(*, vx, vy, vyaw):
+    return _BoundedRobotdCommand(
+        _seal=_ADAPTER_COMMAND_SEAL, vx=float(vx), vy=float(vy), vyaw=float(vyaw)
+    )
 
 
 def _validate_motion_adapter_config(value) -> dict:
@@ -117,41 +89,61 @@ class RobotMotionAdapter:
             else _validate_motion_adapter_config(config)
         )
         self.stop_transport = self.config["stop_transport"]
-        self._stop_latched = False
-        self._stop_generation = None
+        status = self.client.status
+        self._connection_generation = status.generation
+        self._requires_fresh_safe_stop = not status.connected
+        self._last_metadata = None
 
-    def send(self, command: PostWatchdogIntent) -> str:
-        if not isinstance(command, PostWatchdogIntent):
-            raise TypeError("adapter accepts PostWatchdogIntent only")
-        values = (command.vx, command.vy, command.vyaw)
+    def send(self, output: WatchdogOutput) -> str:
+        if type(output) is not WatchdogOutput:
+            raise TypeError("adapter accepts ControllerWatchdog.tick output only")
+        intent = output["intent"]
+        metadata = (intent["timestamp_ns"], intent["sequence"])
+        if self._last_metadata is not None and (
+            metadata[0] <= self._last_metadata[0] or metadata[1] <= self._last_metadata[1]
+        ):
+            raise MotionAdapterError("watchdog output must advance; stale replay rejected")
+        # Consume before I/O: an ambiguously failed send can never be replayed after reconnect.
+        self._last_metadata = metadata
+        status = self.client.status
+        if status.generation != self._connection_generation or not status.connected:
+            self._connection_generation = status.generation
+            self._requires_fresh_safe_stop = True
+        values = (intent["vx"], intent["vy"], intent["vyaw"])
         if not all(math.isfinite(value) for value in values):
             raise MotionAdapterError("motion values must be finite")
-        if abs(command.vx) > MAX_ABS_VX_MPS:
+        if abs(intent["vx"]) > MAX_ABS_VX_MPS:
             raise MotionAdapterError("vx exceeds the P6-03 envelope")
-        if command.vy != 0.0:
+        if intent["vy"] != 0.0:
             raise MotionAdapterError("vy must remain zero")
-        if abs(command.vyaw) > MAX_ABS_VYAW_RADPS:
+        if abs(intent["vyaw"]) > MAX_ABS_VYAW_RADPS:
             raise MotionAdapterError("vyaw exceeds the P6-03 envelope")
-        if command.stop:
+        if not intent["stop"] and self._requires_fresh_safe_stop:
+            raise MotionAdapterError("reconnect requires a fresh watchdog safe-stop output")
+        if intent["stop"]:
             if values != (0.0, 0.0, 0.0):
                 raise MotionAdapterError("stop intent must be zero twist")
-            if self.stop_transport == "zero_twist":
-                self.client.move(vx=0.0, vy=0.0, vyaw=0.0)
-                return "zero_twist"
-            status = getattr(self.client, "status", None)
-            generation = getattr(status, "generation", None)
-            connected = getattr(status, "connected", True)
-            if (
-                not self._stop_latched
-                or not connected
-                or generation != self._stop_generation
-            ):
-                self.client.stop()
-                self._stop_latched = True
-                self._stop_generation = generation
-                return "robot_stop"
-            return "robot_stop_latched"
-        self.client.move(vx=command.vx, vy=0.0, vyaw=command.vyaw)
-        self._stop_latched = False
-        self._stop_generation = None
+            try:
+                if self.stop_transport == "zero_twist":
+                    self.client._send_motion(_bounded_command(vx=0.0, vy=0.0, vyaw=0.0))
+                    self.client.health()
+                    result = "zero_twist_refreshed"
+                else:
+                    # Refresh every watchdog tick. The request/response is also the liveness proof.
+                    self.client.stop()
+                    result = "robot_stop_refreshed"
+            except Exception:
+                self._requires_fresh_safe_stop = True
+                raise
+            self._requires_fresh_safe_stop = False
+            self._connection_generation = self.client.status.generation
+            return result
+        command = _bounded_command(
+            vx=intent["vx"], vy=0.0, vyaw=intent["vyaw"]
+        )
+        try:
+            self.client._send_motion(command)
+        except Exception:
+            self._requires_fresh_safe_stop = True
+            raise
         return "move"

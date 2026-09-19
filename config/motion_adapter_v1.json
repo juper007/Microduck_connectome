@@ -5,5 +5,5 @@
   "max_abs_vyaw_radps": 0.5,
   "stop_transport": "robot_stop",
   "source": "male-cns-controller",
-  "scope": "post-watchdog robotd high-level intent boundary; simulation-calibrated"
+  "scope": "sealed post-watchdog robotd high-level intent boundary; acknowledged stop refreshed each watchdog tick; simulation-calibrated"
 }

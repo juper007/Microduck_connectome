@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 import json
 from pathlib import Path
+from types import MappingProxyType
 
 from .control_contracts import (
     ControlContractError,
@@ -14,6 +15,38 @@ from .control_contracts import (
 
 class WatchdogError(ValueError):
     """Trusted watchdog configuration/tick metadata is invalid."""
+
+
+_WATCHDOG_OUTPUT_SEAL = object()
+
+
+class WatchdogOutput(Mapping):
+    """Immutable output minted only by ``ControllerWatchdog.tick``."""
+
+    __slots__ = ("_values",)
+    _fields = ("intent", "watchdog_state", "stale_reason", "decoder_alive")
+
+    def __init__(self, *, _seal, intent, watchdog_state, stale_reason, decoder_alive):
+        if _seal is not _WATCHDOG_OUTPUT_SEAL:
+            raise TypeError("WatchdogOutput can only be created by ControllerWatchdog")
+        object.__setattr__(self, "_values", MappingProxyType({
+            "intent": MappingProxyType(dict(intent)),
+            "watchdog_state": watchdog_state,
+            "stale_reason": stale_reason,
+            "decoder_alive": decoder_alive,
+        }))
+
+    def __setattr__(self, name, value):
+        raise AttributeError("WatchdogOutput is immutable")
+
+    def __getitem__(self, key):
+        return self._values[key]
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __len__(self):
+        return len(self._fields)
 
 
 def load_watchdog_config(path):
@@ -140,12 +173,13 @@ class ControllerWatchdog:
             state="safe_stop"
         self._last_output_timestamp=now_ns
         self._last_output_sequence=sequence
-        return {
-            "intent":intent,
-            "watchdog_state":state,
-            "stale_reason":reason,
-            "decoder_alive":self._decoder_alive,
-        }
+        return WatchdogOutput(
+            _seal=_WATCHDOG_OUTPUT_SEAL,
+            intent=intent,
+            watchdog_state=state,
+            stale_reason=reason,
+            decoder_alive=self._decoder_alive,
+        )
 
     def tick(self,*,now_ns,output_sequence):
         self._tick_metadata(now_ns,output_sequence)

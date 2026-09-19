@@ -5,6 +5,7 @@ import socket
 
 import pytest
 
+from microduck_connectome.motion_adapter import _BoundedRobotdCommand, _bounded_command
 from microduck_connectome.robotd_client import (
     MAX_LINE_BYTES,
     I32_MAX,
@@ -108,7 +109,7 @@ def test_successful_health_and_state_responses():
     assert client.state()["t_ns"] == 1_250_000_000
 
 
-def test_move_is_notification_and_stop_requires_acceptance():
+def test_adapter_minted_move_is_notification_and_stop_requires_acceptance():
     seen = []
 
     def handler(request):
@@ -123,9 +124,25 @@ def test_move_is_notification_and_stop_requires_acceptance():
 
     client, _ = _client(handler)
     client.connect()
-    client.move(vx=0.08, vy=0.0, vyaw=-0.5)
+    assert not hasattr(client, "move")
+    client._send_motion(_bounded_command(vx=0.08, vy=0.0, vyaw=-0.5))
     assert client.stop() == {"accepted": True}
     assert seen[-2]["params"] == {"vx": 0.08, "vy": 0.0, "vyaw": -0.5}
+
+
+def test_raw_or_unbounded_motion_cannot_reach_transport():
+    client, stream = _client(_hello)
+    client.connect()
+    before = len(stream.responses)
+    with pytest.raises(TypeError, match="adapter-minted"):
+        client._send_motion({"vx": 0.01, "vy": 0.0, "vyaw": 0.0})
+    with pytest.raises(TypeError, match="adapter-minted"):
+        client._notify("robot.move", {"vx": 999, "vy": 123, "vyaw": 456})
+    with pytest.raises(ValueError, match="P6-03 envelope"):
+        client._send_motion(_bounded_command(vx=999, vy=123, vyaw=456))
+    with pytest.raises(TypeError, match="adapter-minted"):
+        _BoundedRobotdCommand(_seal=None, vx=0.0, vy=0.0, vyaw=0.0)
+    assert len(stream.responses) == before
 
 
 def test_stop_rejection_is_an_error():
