@@ -36,6 +36,17 @@ def wait_for(predicate, timeout_s=12.0):
     raise RuntimeError("timed out waiting for scoped runtime lifecycle")
 
 
+def process_exited(pid: int) -> bool:
+    """Treat an unreaped child zombie as exited; it cannot own IPC or motion."""
+    stat = Path(f"/proc/{pid}/stat")
+    if not stat.exists():
+        return True
+    try:
+        return stat.read_text(encoding="ascii").split()[2] == "Z"
+    except (OSError, IndexError):
+        return not stat.exists()
+
+
 def quaternion_yaw(wxyz):
     w, x, y, z = wxyz
     return math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
@@ -324,7 +335,7 @@ def main():
         def kill_current():
             pid = verified_pid(args.pid_file, args.robotd, args.socket)
             os.kill(pid, signal.SIGTERM)
-            wait_for(lambda: not Path(f"/proc/{pid}").exists())
+            wait_for(lambda: process_exited(pid))
         for name in ("write_failure", "socket_close", "robotd_restart"):
             records.append(lifecycle_fault(session, name, args, raw, kill_current))
 
