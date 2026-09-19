@@ -1,0 +1,9 @@
+{
+  "schema_version": "motion-adapter-v1",
+  "max_abs_vx_mps": 0.08,
+  "max_abs_vy_mps": 0.0,
+  "max_abs_vyaw_radps": 0.5,
+  "stop_transport": "robot_stop",
+  "source": "male-cns-controller",
+  "scope": "post-watchdog robotd high-level intent boundary; simulation-calibrated"
+}

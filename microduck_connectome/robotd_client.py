@@ -1,9 +1,9 @@
-"""Bounded read-only client for MicroDuck's official robotd JSON-RPC socket.
+"""Bounded client for MicroDuck's official robotd JSON-RPC socket.
 
 The wire contract in this module is derived from MicroDuck commit
 344925c9f8fa031f85428a305b1e8ec2eaae29c1.  P6-02 deliberately exposes only
-``hello``, ``robot.health`` and the ``robot.subscribe``/``robot.state`` stream.
-Motion transport belongs to P6-03.
+``hello``, health/state reads, and the supported high-level motion intents.
+Joint, servo, and motor APIs are deliberately absent.
 """
 
 from __future__ import annotations
@@ -164,6 +164,26 @@ class RobotdClient:
         self._validate_health(result)
         return result
 
+    def move(self, *, vx: float, vy: float, vyaw: float) -> None:
+        """Publish the upstream continuous trunk-frame twist notification."""
+        params = {"vx": vx, "vy": vy, "vyaw": vyaw}
+        for field, value in params.items():
+            self._require_finite_number(value, f"robot.move {field}")
+        self._notify("robot.move", params)
+
+    def stop(self) -> dict[str, Any]:
+        """Request the upstream discrete stop and require an accepted result."""
+        result = self._call("robot.stop", {})
+        if not isinstance(result, dict) or set(result) - {"accepted", "reason"}:
+            raise RobotdProtocolError("robot.stop result has unexpected fields")
+        if not isinstance(result.get("accepted"), bool):
+            raise RobotdProtocolError("robot.stop result must contain boolean accepted")
+        if result.get("reason") is not None and not isinstance(result["reason"], str):
+            raise RobotdProtocolError("robot.stop reason must be a string or null")
+        if not result["accepted"]:
+            raise RobotdRemoteError(-1, result.get("reason") or "robot.stop refused")
+        return result
+
     def state(self, *, hz: int = 1) -> dict[str, Any]:
         """Subscribe and return one newly received ``robot.state`` notification."""
         if isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0:
@@ -254,6 +274,21 @@ class RobotdClient:
                     raise RobotdProtocolError("robotd returned an invalid error object")
                 raise RobotdRemoteError(error["code"], error["message"])
             return message["result"]
+
+    def _notify(self, method: str, params: dict[str, Any]) -> None:
+        stream = self._require_socket()
+        request = {"jsonrpc": "2.0", "method": method, "params": params}
+        wire = json.dumps(request, separators=(",", ":"), allow_nan=False).encode() + b"\n"
+        deadline = time.monotonic() + self.timeout_s
+        try:
+            stream.settimeout(self._remaining(deadline))
+            stream.sendall(wire)
+        except socket.timeout as exc:
+            self.disconnect()
+            raise RobotdTimeoutError(f"timed out sending {method}") from exc
+        except OSError as exc:
+            self.disconnect()
+            raise RobotdConnectionError(f"connection lost sending {method}: {exc}") from exc
 
     def _read_message(self, deadline: float) -> Any:
         stream = self._require_socket()

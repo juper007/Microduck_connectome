@@ -108,6 +108,38 @@ def test_successful_health_and_state_responses():
     assert client.state()["t_ns"] == 1_250_000_000
 
 
+def test_move_is_notification_and_stop_requires_acceptance():
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if request["method"] == "hello":
+            return _hello(request)
+        if request["method"] == "robot.stop":
+            return _response(request, {"accepted": True})
+        assert request["method"] == "robot.move"
+        assert "id" not in request
+        return None
+
+    client, _ = _client(handler)
+    client.connect()
+    client.move(vx=0.08, vy=0.0, vyaw=-0.5)
+    assert client.stop() == {"accepted": True}
+    assert seen[-2]["params"] == {"vx": 0.08, "vy": 0.0, "vyaw": -0.5}
+
+
+def test_stop_rejection_is_an_error():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        return _response(request, {"accepted": False, "reason": "no"})
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdRemoteError, match="robotd error -1: no"):
+        client.stop()
+
+
 def test_connection_refused_is_reported():
     def refused(*_):
         raise ConnectionRefusedError("refused")

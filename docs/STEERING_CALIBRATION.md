@@ -1,4 +1,4 @@
-# P5 steering decoder and P6 yaw calibration preparation
+# Steering decoder and P6 yaw calibration
 
 Base: 6056aa892abc4bcc8879d2f1e76bcdee077ef495.
 Branch: feature/p5-safe-steering. No main integration or phase approval implied.
@@ -39,14 +39,15 @@ Trials are bounded to 3 or 8 seconds. State age, fallen and limp checks abort
 motion; a finally block sends a zero twist. This finally block cannot protect
 against SIGKILL/process death; no crash-stop guarantee is claimed.
 
-## Findings and promotion block
+## Initial diagnostic findings
 
 Initial 3-second trials observed heading deltas +0.00448 and -0.07004 rad.
 The positive response is very small and the negative response largely reverses
 after stop. An 8-second positive diagnostic observed only +0.00685 rad even
 though the walk policy was selected for 394/400 frames and applied yaw reached
 +0.2 rad/s. These observations are insufficient to freeze a useful steering
-mapping. **steering_yaw_sign remains unset; closed-loop promotion is blocked.**
+mapping. **At that checkpoint, steering_yaw_sign remained unset and promotion
+was blocked.**
 The matched 8-second negative diagnostic changed heading -0.07329 rad and then
 reversed +0.07403 rad after zero twist; it also fails to show a sustained turn.
 
@@ -58,11 +59,27 @@ been relaxed or relabeled as a pass. Applied yaw crossed 0.01 in about 0.3 s,
 from requested/applied command neutrality. `zero_twist` is the transport tested
 here, not an approved looming benchmark transport or emergency stop.
 
-Required next investigations: low-speed walk-policy yaw response, persisted
-heading after settling, repeated trials and stop residual motion. Do not raise
-motion limits, change policies, or invert the decoder to conceal this issue.
+P6-03 subsequently repeated the fixture from matched fresh simulator starts and
+established the requested sign convention. The asymmetric gait response remains
+a documented limitation and must not be treated as a calibrated yaw-rate
+response.
 
 Upstream identities: microduck 344925c9f8fa031f85428a305b1e8ec2eaae29c1,
 microduck_rl cb70b792312d559a4da09064d92009079671815f; official seeded policies
 from the dedicated simulator state. The raw JSON traces and policy hashes are
 retained in the Thor evidence directory, outside Git.
+
+## P6-03 result
+
+Fresh official simulator launches began at trunk yaw 0.117061009 and
+0.117061011 rad. Six-second, zero-forward-speed commands produced wrapped
+heading deltas +0.005692066 rad for `vyaw=+0.2` and -0.072844682 rad for
+`vyaw=-0.2`. The signs are opposite and match the pinned protocol convention:
+positive yaw turns left. The response magnitude is strongly asymmetric and much
+of the negative displacement unwound after stop, so this evidence establishes
+direction only.
+
+The frozen abstract-demand mapping is `steering_yaw_sign=-1`: a left-image
+target raises `steering_left`, making `steering_right-steering_left` negative,
+which then becomes positive (left-turn) `vyaw`. Full evidence is under
+`docs/evidence/p6-03`.
