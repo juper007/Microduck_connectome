@@ -31,6 +31,7 @@ class NeuralUpdate:
 
     readout: Mapping
     behavior_intent: Mapping
+    trace: Mapping | None = None
 
 
 def load_scheduler_config(path: str | Path) -> dict:
@@ -137,6 +138,7 @@ class ClosedLoopScheduler:
         perception_step: Callable[[int], object | None],
         neural_step: Callable[[object | None, int], NeuralUpdate | None],
         publisher: Callable[[object], object],
+        control_observer: Callable[[NeuralUpdate | None, object, object], None] | None = None,
         clock_ns: Callable[[], int] = time.monotonic_ns,
     ):
         self.config = (
@@ -148,6 +150,7 @@ class ClosedLoopScheduler:
         self.perception_step = perception_step
         self.neural_step = neural_step
         self.publisher = publisher
+        self.control_observer = control_observer
         self.clock_ns = clock_ns
         self._stop = threading.Event()
         self._failure = threading.Event()
@@ -228,7 +231,9 @@ class ClosedLoopScheduler:
         if output["watchdog_state"] != "healthy":
             self._metrics.increment("stale_events")
         publish_started = self.clock_ns()
-        self.publisher(output)
+        publish_result = self.publisher(output)
+        if self.control_observer is not None:
+            self.control_observer(update, output, publish_result)
         self._metrics.record("publish", publish_started, self.clock_ns())
 
     def run(self, duration_s: float) -> dict:
@@ -266,7 +271,11 @@ class ClosedLoopScheduler:
             self.watchdog.mark_decoder_crashed(1)
             now_ns = self.clock_ns()
             self._output_sequence += 1
-            self.publisher(self.watchdog.tick(now_ns=now_ns, output_sequence=self._output_sequence))
+            output = self.watchdog.tick(now_ns=now_ns, output_sequence=self._output_sequence)
+            publish_result = self.publisher(output)
+            if self.control_observer is not None:
+                update, _, _ = self._neural.get()
+                self.control_observer(update, output, publish_result)
         except BaseException as error:
             if self._failure_value is None:
                 self._failure_value = ("shutdown_stop", error)

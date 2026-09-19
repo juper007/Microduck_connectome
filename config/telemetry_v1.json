@@ -1,0 +1,9 @@
+{
+  "schema_version": "p6-telemetry-config-v1",
+  "format": "canonical-jsonl",
+  "required_scenarios": ["neutral", "left", "right", "center", "stop"],
+  "forbid_nonfinite": true,
+  "forbid_sensitive_paths": true,
+  "source": "male-cns-controller",
+  "scope": "Phase-6 sensor-to-official-robotd-to-MuJoCo trace; simulation only"
+}
