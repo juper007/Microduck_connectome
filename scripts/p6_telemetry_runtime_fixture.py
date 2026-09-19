@@ -306,7 +306,34 @@ def main():
     command_counts = Counter(record["robot_facing_command_type"] for record in records)
     all_scenarios = all(scenario_counts[name] > 0 for name in ("neutral", "left", "right", "center", "stop"))
     stop_present = command_counts["robot.stop"] > 0
-    result = "PASS" if records and all_scenarios and stop_present else "FAIL"
+    strict_timestamps = all(a["timestamp_ns"] < b["timestamp_ns"] for a, b in zip(records, records[1:]))
+    strict_sequences = all(a["sequence"] < b["sequence"] for a, b in zip(records, records[1:]))
+    telemetry_gaps = sum(max(0, b["sequence"] - a["sequence"] - 1) for a, b in zip(records, records[1:]))
+    post_command_state_count = sum(
+        record["robot_state"]["sample_timestamp_ns"] >= record["timestamp_ns"]
+        for record in records
+    )
+    command_state_mismatch_count = 0
+    for record in records:
+        commanded = [
+            record["robot_facing_vx"], record["robot_facing_vy"], record["robot_facing_vyaw"]
+        ]
+        requested = record["robot_state"]["requested_velocity"]
+        if any(abs(float(actual) - float(expected)) > 1e-9 for actual, expected in zip(requested, commanded)):
+            command_state_mismatch_count += 1
+    heading_range_by_scenario = {
+        scenario: {
+            "min_rad": min(record["robot_state"]["heading_rad"] for record in records if record["scenario"] == scenario),
+            "max_rad": max(record["robot_state"]["heading_rad"] for record in records if record["scenario"] == scenario),
+        }
+        for scenario in ("neutral", "left", "right", "center", "stop")
+        if scenario_counts[scenario]
+    }
+    result = "PASS" if (
+        records and all_scenarios and stop_present and strict_timestamps and strict_sequences
+        and telemetry_gaps == 0 and post_command_state_count == len(records)
+        and command_state_mismatch_count == 0
+    ) else "FAIL"
     report = {
         "schema_version": "p6-05-telemetry-summary-v1",
         "execution_target": "Thor",
@@ -327,7 +354,12 @@ def main():
         "artifact_name": args.artifact.name,
         "artifact_sha256": artifact["sha256"],
         "nonfinite_count": 0,
-        "telemetry_gap_count": 0,
+        "strict_monotonic_timestamps": strict_timestamps,
+        "strict_sequences": strict_sequences,
+        "telemetry_gap_count": telemetry_gaps,
+        "post_command_state_count": post_command_state_count,
+        "command_state_mismatch_count": command_state_mismatch_count,
+        "heading_range_by_scenario": heading_range_by_scenario,
         "scheduler": scheduler_summary,
         "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "result": result,
