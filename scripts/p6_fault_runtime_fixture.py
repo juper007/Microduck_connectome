@@ -315,6 +315,7 @@ def main():
         try: session.adapter.send(session.output(vyaw=0.2)); raise AssertionError("disconnect not detected")
         except (MotionAdapterError, RobotdConnectionError): detected = time.monotonic_ns()
         safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "ipc_disconnect", "actual_disconnect": True})
         records.append(make_fault_record(fault="ipc_disconnect", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
@@ -323,6 +324,7 @@ def main():
         try: RobotdClient(str(args.runtime_dir / "absent-p6-06.sock"), timeout_s=args.timeout_s).connect(); raise AssertionError("connection unexpectedly accepted")
         except RobotdConnectionError: detected = time.monotonic_ns()
         session.adapter.send(session.output(mode="missing")); safe_at = time.monotonic_ns(); state = session.safe_state(); stopped = time.monotonic_ns(); recovered = session.recover(old)
+        raw.append({"fault": "connection_refused", "actual_absent_socket": True})
         records.append(make_fault_record(fault="connection_refused", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 
@@ -333,6 +335,7 @@ def main():
             except RobotdTimeoutError: detected = time.monotonic_ns()
         finally: os.kill(pid, signal.SIGCONT)
         safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
+        raw.append({"fault": "read_timeout", "actual_robotd_sigstop": True})
         records.append(make_fault_record(fault="read_timeout", injected_at_ns=injected, detected_at_ns=detected,
             safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped, recovery_at_ns=recovered, state_evidence=state))
 

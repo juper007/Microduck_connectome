@@ -132,4 +132,3 @@ def build_fault_matrix(*, execution_target: str, source_head: str, identities: M
 
 def write_fault_matrix(path: str | Path, value: Mapping) -> None:
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
-

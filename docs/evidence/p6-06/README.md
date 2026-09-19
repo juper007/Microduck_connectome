@@ -58,4 +58,3 @@ externally. No credentials, tokens, or machine secrets are present.
 This evidence proves Phase-6 fault convergence and fresh-state recovery in the
 official simulator. It does not claim a Phase-7 behavior success rate or any
 physical-hardware readiness.
-

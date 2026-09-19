@@ -57,4 +57,3 @@ def test_unsafe_or_inconsistent_record_is_rejected(mutation):
     from microduck_connectome.fault_evidence import validate_fault_record
     with pytest.raises(FaultEvidenceError):
         validate_fault_record(value)
-
