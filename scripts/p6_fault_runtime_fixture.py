@@ -113,7 +113,6 @@ class Session:
     def safe_state(self):
         observer = RobotdClient(str(self.args.socket), timeout_s=2.0)
         observer.connect()
-        before = self.body.heading()
         # robot.stop changes policy immediately, while the official policy's
         # applied velocity converges through its own bounded smoothing.
         deadline = time.monotonic() + 3.0
@@ -126,12 +125,20 @@ class Session:
                 break
         else:
             raise RuntimeError(f"official robot.state did not reach rest: {state['move']!r}")
-        time.sleep(0.08)
-        after = self.body.heading()
+        # A zero command alone is not motion-stop evidence. Restart recovery can
+        # carry body momentum, so require consecutive MuJoCo headings to settle.
+        heading_deadline = time.monotonic() + 3.0
+        before = self.body.heading()
+        while True:
+            time.sleep(0.10)
+            after = self.body.heading()
+            delta = abs(after - before)
+            if delta <= 0.02:
+                break
+            if time.monotonic() >= heading_deadline:
+                raise RuntimeError(f"MuJoCo heading still changing after stop: {delta}")
+            before = after
         observer.close()
-        delta = abs(after - before)
-        if delta > 0.02:
-            raise RuntimeError(f"MuJoCo heading still changing after stop: {delta}")
         return {
             "requested": list(state["move"]["requested"]),
             "applied": list(state["move"]["applied"]),
