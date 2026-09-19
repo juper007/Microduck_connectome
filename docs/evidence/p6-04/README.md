@@ -51,9 +51,9 @@ Artifacts remain on Thor at
 | `scheduler-runtime-raw.json` | 3126 | `2502aa4ffa459935b35d6a1ee77c30e0513146b84180bc5ca4ed9b2f2ef6f360` |
 | `fixture-stdout.log` | 2968 | `32e2377244b8f8ab69d5d3794f11dd640dc6f714531837bd7d7d5ac9ea20232a` |
 | `python312-tests.log` | 260 | `f3ef58e5f6aefdef89fef6455111d14da2e2b26dae8f488a51ca7ed5886a7d62` |
-| official MuJoCo body log | retained in `p604-state`, size varies until shutdown | `311181a118abe631f136b349972056a2240e1ff09de0071ba03de8144260919b` at evidence capture |
-| official robotd log | retained in `p604-state`, size varies until shutdown | `ea49f4cd78e637e132d77c02d313d2f00bf43b560093b6b78a5cbf7188b42b42` at evidence capture |
+| official MuJoCo body log | 361 | `311181a118abe631f136b349972056a2240e1ff09de0071ba03de8144260919b` |
+| official robotd log | 5083 | `de23545077a62c751f27d780e4d91a9754d7c26c120cd4de82defdde514c42ac` |
 
-The raw JSON and test logs contain no credentials or tokens. Simulator logs
-were hashed at evidence capture; their processes were still active, so those
-two hashes are snapshots rather than immutable final hashes.
+The raw JSON and test logs contain no credentials or tokens. The simulator was
+shut down through its official state-scoped `duck-sim down` lifecycle before
+the final body and robotd logs were hashed.
