@@ -49,6 +49,7 @@ Artifacts remain on Thor under
 | `fault-events.jsonl` | `aff92fae8d7a653c8958ccb7a17fbbe8b09568a958e881126815d4137dfe0aa8` |
 | `fault-matrix.json` | `6042dfa77c5ab1640acb5b73b21e2d99de7c53d8b24a0662680ca0d8605552c3` |
 | `fixture.log` | `3faefea08df4f1f9ca934eb0f8bc57edab8824f8955fa6f7bc587444033fb2fa` |
+| `python312-tests.log` | `d5fd1752ddbc85f3d2552b4b9ef5a03940e5dcec1c97bd75dff94aa647a394b5` |
 
 The large fixture log duplicates the compact matrix on stdout and is retained
 externally. No credentials, tokens, or machine secrets are present.
