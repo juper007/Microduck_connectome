@@ -114,7 +114,9 @@ class Session:
         observer = RobotdClient(str(self.args.socket), timeout_s=2.0)
         observer.connect()
         before = self.body.heading()
-        deadline = time.monotonic() + 1.0
+        # robot.stop changes policy immediately, while the official policy's
+        # applied velocity converges through its own bounded smoothing.
+        deadline = time.monotonic() + 3.0
         state = None
         while time.monotonic() < deadline:
             state = observer.state(hz=50)
@@ -123,7 +125,7 @@ class Session:
             if all(abs(float(v)) <= 1e-6 for v in requested + applied):
                 break
         else:
-            raise RuntimeError("official robot.state did not reach rest")
+            raise RuntimeError(f"official robot.state did not reach rest: {state['move']!r}")
         time.sleep(0.08)
         after = self.body.heading()
         observer.close()
