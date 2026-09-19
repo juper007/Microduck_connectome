@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
 
@@ -58,7 +59,10 @@ def main():
     parser.add_argument("--watchdog-config", type=Path, required=True)
     parser.add_argument("--restart-log", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source-head", required=True)
     args = parser.parse_args()
+    if re.fullmatch(r"[0-9a-f]{40}", args.source_head) is None:
+        raise ValueError("source-head must be a full lowercase Git SHA")
 
     events = []
     client = RobotdClient(str(args.socket), timeout_s=1.0)
@@ -79,14 +83,22 @@ def main():
     client.disconnect()
     second = client.connect()
     events.append({"event": "controller_reconnect", "generation": second.generation})
+    controller_pre_stop = output(
+        args.watchdog_config, 40, 40, vx=0.04, vyaw=-0.2
+    )
     try:
-        adapter.send(output(args.watchdog_config, 40, 40, vx=0.04, vyaw=-0.2))
+        adapter.send(controller_pre_stop)
         raise AssertionError("movement crossed controller reconnect without safe stop")
     except MotionAdapterError as error:
         events.append({"event": "controller_reconnect_move_blocked", "error": str(error)})
     events.append({"event": "controller_reconnect_safe_stop", "result": adapter.send(output(
         args.watchdog_config, 50, 50, stop=True
     ))})
+    try:
+        adapter.send(controller_pre_stop)
+        raise AssertionError("pre-safe-stop output replay crossed controller reconnect")
+    except MotionAdapterError as error:
+        events.append({"event": "controller_reconnect_replay_rejected", "error": str(error)})
     events.append({"event": "controller_reconnect_resume", "result": adapter.send(output(
         args.watchdog_config, 60, 60, vx=0.04, vyaw=-0.2
     ))})
@@ -130,14 +142,20 @@ def main():
                    "pid_before": pid, "pid_after": process.pid})
     enabled = client.enable(True)
     events.append({"event": "robotd_restart_enable", "result": enabled})
+    robotd_pre_stop = output(args.watchdog_config, 80, 80, vx=0.04, vyaw=0.2)
     try:
-        adapter.send(output(args.watchdog_config, 80, 80, vx=0.04, vyaw=0.2))
+        adapter.send(robotd_pre_stop)
         raise AssertionError("movement crossed robotd restart without safe stop")
     except MotionAdapterError as error:
         events.append({"event": "robotd_restart_move_blocked", "error": str(error)})
     events.append({"event": "robotd_restart_safe_stop", "result": adapter.send(output(
         args.watchdog_config, 90, 90, stop=True
     ))})
+    try:
+        adapter.send(robotd_pre_stop)
+        raise AssertionError("pre-safe-stop output replay crossed robotd restart")
+    except MotionAdapterError as error:
+        events.append({"event": "robotd_restart_replay_rejected", "error": str(error)})
     for index in range(25):
         resume_result = adapter.send(output(
             args.watchdog_config, 100 + index, 100 + index, vx=0.04, vyaw=0.2
@@ -159,6 +177,7 @@ def main():
     report = {
         "schema_version": "p6-03-adapter-restart-v1",
         "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "source_head": args.source_head,
         "started_with_generation": first.generation,
         "ended_with_generation": third.generation,
         "robotd_restart_exit_before_relaunch": True,
