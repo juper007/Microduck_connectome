@@ -206,7 +206,7 @@ def test_generic_request_rejects_unexposed_write_methods_without_wire_io(method)
     ("field", "value"),
     [("vx", float("nan")), ("vx", True), ("vy", 0.001), ("vyaw", 0.500001)],
 )
-def test_corrupted_genuine_output_is_rejected_before_wire_io(field, value):
+def test_corrupted_genuine_output_loses_authenticity_before_wire_io(field, value):
     client, stream = _client(_hello)
     client.connect()
     output = _watchdog_output(vx=0.01)
@@ -219,7 +219,28 @@ def test_corrupted_genuine_output_is_rejected_before_wire_io(field, value):
         "decoder_alive": output["decoder_alive"],
     }))
     before = len(stream.responses)
-    with pytest.raises(ValueError, match="finite numeric|P6-03 envelope"):
+    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
+        client._send_watchdog(output, "robot_stop")
+    assert len(stream.responses) == before
+
+
+def test_transport_rejects_replaced_contents_of_genuine_output_before_wire_io():
+    client, stream = _client(_hello)
+    client.connect()
+    output = _watchdog_output(vx=0.01)
+    replacement = {
+        "intent": make_behavior_intent(
+            timestamp_ns=20, sequence=20, vx=0.02, vyaw=0.1
+        ),
+        "watchdog_state": "healthy",
+        "stale_reason": None,
+        "decoder_alive": True,
+    }
+    object.__setattr__(
+        output, "_WatchdogOutput__values", MappingProxyType(replacement)
+    )
+    before = len(stream.responses)
+    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
         client._send_watchdog(output, "robot_stop")
     assert len(stream.responses) == before
 

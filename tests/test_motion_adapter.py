@@ -1,4 +1,5 @@
 import json
+import pickle
 from pathlib import Path
 from types import SimpleNamespace
 from types import MappingProxyType
@@ -105,6 +106,33 @@ def test_forged_pre_safety_mapping_and_direct_type_construction_are_rejected():
         genuine._WatchdogOutput__values = forged
     with pytest.raises(TypeError):
         genuine["intent"]["vx"] = 999
+    with pytest.raises(TypeError):
+        pickle.dumps(genuine)
+    subclass = type("WatchdogOutputSubclass", (WatchdogOutput,), {})
+    forged_subclass = object.__new__(subclass)
+    object.__setattr__(
+        forged_subclass, "_WatchdogOutput__values", MappingProxyType(forged)
+    )
+    with pytest.raises(TypeError, match="ControllerWatchdog.tick"):
+        adapter.send(forged_subclass)
+
+
+def test_replaced_contents_of_genuine_output_are_rejected():
+    adapter = RobotMotionAdapter(FakeClient(), CONFIG)
+    genuine = safe_output(timestamp=10, sequence=10)
+    replacement = {
+        "intent": make_behavior_intent(
+            timestamp_ns=20, sequence=20, vx=0.01, vyaw=0.1
+        ),
+        "watchdog_state": "healthy",
+        "stale_reason": None,
+        "decoder_alive": True,
+    }
+    object.__setattr__(
+        genuine, "_WatchdogOutput__values", MappingProxyType(replacement)
+    )
+    with pytest.raises(TypeError, match="ControllerWatchdog.tick"):
+        adapter.send(genuine)
 
 
 def test_robot_stop_is_refreshed_each_tick_and_safe_stop_is_typed():

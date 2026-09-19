@@ -197,21 +197,31 @@ def _install_tick_boundary():
         self._last_output_timestamp = now_ns
         self._last_output_sequence = output_sequence
         result = object.__new__(WatchdogOutput)
-        object.__setattr__(result, "_WatchdogOutput__values", MappingProxyType({
+        values = MappingProxyType({
             "intent": MappingProxyType(dict(intent)),
             "watchdog_state": state,
             "stale_reason": reason,
             "decoder_alive": self._decoder_alive,
-        }))
+        })
+        object.__setattr__(result, "_WatchdogOutput__values", values)
         output_id = id(result)
-        minted[output_id] = weakref.ref(
-            result, lambda _reference, output_id=output_id: forget(output_id)
+        minted[output_id] = (
+            weakref.ref(
+                result, lambda _reference, output_id=output_id: forget(output_id)
+            ),
+            values,
         )
         return result
 
     def is_authentic(output):
-        reference = minted.get(id(output))
-        return type(output) is WatchdogOutput and reference is not None and reference() is output
+        registration = minted.get(id(output))
+        if type(output) is not WatchdogOutput or registration is None:
+            return False
+        reference, values = registration
+        return (
+            reference() is output
+            and getattr(output, "_WatchdogOutput__values", None) is values
+        )
 
     ControllerWatchdog.tick = tick
     return is_authentic
