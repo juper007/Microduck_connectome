@@ -1,0 +1,146 @@
+{
+  "architecture": "aarch64",
+  "connection": {
+    "disconnect_observed": true,
+    "disconnected_call_rejected": true,
+    "first_generation": 1,
+    "reconnected_generation": 2
+  },
+  "elapsed_monotonic_ms": 31.699891,
+  "ended_utc": "2026-09-19T11:53:08.387539+00:00",
+  "execution_target": "Thor",
+  "health": {
+    "after_reconnect": {
+      "battery": {
+        "percent": 50.00000000000006,
+        "volts": 7.4
+      },
+      "bus": {
+        "consecutive_errors": 0,
+        "startup_failures": 0
+      },
+      "control_loop": {
+        "achieved_hz": 50.002129208313754,
+        "last_tick_age_ms": 0,
+        "missed": 0,
+        "target_hz": 50.0,
+        "ticks": 115
+      },
+      "cpu_temp_c": 42.187,
+      "healthy": true,
+      "imu": {
+        "consecutive_stale_blocks": 0,
+        "ready": true,
+        "stale_blocks": 0
+      },
+      "motors": {
+        "hottest": "left_hip_yaw",
+        "max_c": 32.0,
+        "mean_c": 32.0
+      }
+    },
+    "before_disconnect": {
+      "battery": {
+        "percent": 50.00000000000006,
+        "volts": 7.4
+      },
+      "bus": {
+        "consecutive_errors": 0,
+        "startup_failures": 0
+      },
+      "control_loop": {
+        "achieved_hz": 50.002129208313754,
+        "last_tick_age_ms": 9,
+        "missed": 0,
+        "target_hz": 50.0,
+        "ticks": 114
+      },
+      "cpu_temp_c": 42.187,
+      "healthy": true,
+      "imu": {
+        "consecutive_stale_blocks": 0,
+        "ready": true,
+        "stale_blocks": 0
+      },
+      "motors": {
+        "hottest": "left_hip_yaw",
+        "max_c": 32.0,
+        "mean_c": 32.0
+      }
+    }
+  },
+  "host": "jetsonthor01",
+  "motion_requests_sent": 0,
+  "os": "Linux-6.8.12-1021-tegra-aarch64-with-glibc2.39",
+  "protocol": {
+    "api_version": 31,
+    "framing": "newline-delimited JSON-RPC 2.0",
+    "health_method": "robot.health",
+    "state_notification_method": "robot.state",
+    "state_subscription_method": "robot.subscribe",
+    "transport": "Unix domain stream socket"
+  },
+  "result": "PASS",
+  "schema_version": 1,
+  "socket": "/tmp/p602-runtime-final4/robotd.sock",
+  "started_utc": "2026-09-19T11:53:08.355831+00:00",
+  "state": {
+    "after_reconnect": {
+      "joint_count": 15,
+      "loop": {
+        "hz": 50.002129208313754,
+        "missed": 0
+      },
+      "move": {
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "policy": "held",
+      "t": 2.302780445,
+      "t_ns": 1260308868012711,
+      "target_count": 15
+    },
+    "before_disconnect": {
+      "joint_count": 15,
+      "loop": {
+        "hz": 50.002129208313754,
+        "missed": 0
+      },
+      "move": {
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "policy": "held",
+      "t": 2.283440143,
+      "t_ns": 1260308848686095,
+      "target_count": 15
+    }
+  },
+  "task": "P6-02",
+  "upstream": {
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f"
+  }
+}
