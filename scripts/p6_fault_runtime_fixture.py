@@ -507,9 +507,18 @@ def main():
 
         # The active publisher is redirected to an absent endpoint, not a side probe.
         old = session.motion(); injected = time.monotonic_ns(); real_socket = session.client.socket_path
-        session.client.disconnect(); session.client.socket_path = str(args.runtime_dir / "absent-p6-06.sock")
+        refused_path = args.runtime_dir / "refused-p6-06.sock"
+        refused_path.unlink(missing_ok=True)
+        tombstone = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        tombstone.bind(str(refused_path)); tombstone.close()
+        session.client.disconnect(); session.client.socket_path = str(refused_path)
         try: session.client.connect(); raise AssertionError("connection unexpectedly accepted")
-        except RobotdConnectionError as error: detected = time.monotonic_ns(); observed_error = repr(error)
+        except RobotdConnectionError as error:
+            if "Errno 111" not in str(error) and "refused" not in str(error).lower():
+                raise AssertionError(f"expected actual connection refusal, got {error}") from error
+            detected = time.monotonic_ns(); observed_error = repr(error)
+        finally:
+            refused_path.unlink(missing_ok=True)
         session.client.socket_path = real_socket
         safe_at, state, stopped = reconnect_and_stop(session); recovered = session.recover(old)
         raw.append({"fault": "connection_refused", "injected_point": "active publisher endpoint", "observed_connect_exception": observed_error})
