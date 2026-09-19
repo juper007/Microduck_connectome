@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -157,6 +158,7 @@ def main():
     log.close()
     report = {
         "schema_version": "p6-03-adapter-restart-v1",
+        "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "started_with_generation": first.generation,
         "ended_with_generation": third.generation,
         "robotd_restart_exit_before_relaunch": True,
