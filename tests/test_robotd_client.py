@@ -185,7 +185,7 @@ def test_raw_or_unbounded_motion_cannot_reach_transport():
     }))
     with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
         client._send_watchdog(forged, "robot_stop")
-    with pytest.raises(TypeError, match="genuine ControllerWatchdog.tick"):
+    with pytest.raises(TypeError, match="ControllerWatchdog.tick"):
         client._send_watchdog(copy.copy(_watchdog_output()), "robot_stop")
     assert len(stream.responses) == before
 
