@@ -93,7 +93,7 @@
       "launch-negative.log": "3b50c8a8f7f89044eaecadd8bca3b41f0d5e5c56a18382672aac15b3fd4d9021",
       "launch-stop.log": "4e314276295c2638235facd1276b76ce7fdcb914ac92c1bb07f297dd91171e22",
       "adapter-restart.json": "accdc268949886aae77a64d2d8d639cc9569cc06ff30f1a90473f3258db5af42",
-      "remediation-launch.log": "08f5a9d1362165db6ee9660a163f1c31a63557bdb273fa6b32861036a20e5247",
+      "launch.log": "08f5a9d1362165db6ee9660a163f1c31a63557bdb273fa6b32861036a20e5247",
       "robotd-restart.log": "907511171d2dee129f054e268009dac0635903bcfd7fe14f8c9c4dac283e3756"
     }
   },
