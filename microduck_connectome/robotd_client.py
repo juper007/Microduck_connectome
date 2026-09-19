@@ -23,10 +23,12 @@ MAX_LINE_BYTES = 64 * 1024
 U16_MAX = (1 << 16) - 1
 U32_MAX = (1 << 32) - 1
 U64_MAX = (1 << 64) - 1
+I32_MIN = -(1 << 31)
+I32_MAX = (1 << 31) - 1
 _SEMVER = re.compile(
-    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
-    r"(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\."
-    r"(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+    r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\."
+    r"(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
 
@@ -246,6 +248,7 @@ class RobotdClient:
                     not isinstance(error, dict)
                     or isinstance(error.get("code"), bool)
                     or not isinstance(error.get("code"), int)
+                    or not I32_MIN <= error.get("code") <= I32_MAX
                     or not isinstance(error.get("message"), str)
                 ):
                     raise RobotdProtocolError("robotd returned an invalid error object")

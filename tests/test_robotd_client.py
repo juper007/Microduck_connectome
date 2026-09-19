@@ -7,11 +7,14 @@ import pytest
 
 from microduck_connectome.robotd_client import (
     MAX_LINE_BYTES,
+    I32_MAX,
+    I32_MIN,
     U32_MAX,
     U64_MAX,
     RobotdClient,
     RobotdConnectionError,
     RobotdProtocolError,
+    RobotdRemoteError,
     RobotdTimeoutError,
 )
 
@@ -571,3 +574,57 @@ def test_state_rejects_remaining_optional_top_level_shapes(field, bad_value, mat
     client.connect()
     with pytest.raises(RobotdProtocolError, match=match):
         client.state()
+
+
+@pytest.mark.parametrize(
+    "daemon_version", ["1.2.3٢", "1٢.0.0", "1.2.3-1٢", "١.2.3"]
+)
+def test_hello_rejects_non_ascii_semver_digits(daemon_version):
+    def handler(request):
+        return _response(
+            request,
+            {"api_version": 31, "daemon_version": daemon_version, "revision": None},
+        )
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdProtocolError, match="semantic version"):
+        client.connect()
+
+
+@pytest.mark.parametrize("code", [I32_MIN - 1, I32_MAX + 1])
+def test_jsonrpc_error_code_rejects_values_outside_i32(code):
+    def handler(request):
+        return (
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request["id"],
+                    "error": {"code": code, "message": "boundary"},
+                }
+            )
+            + "\n"
+        ).encode()
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdProtocolError, match="invalid error object"):
+        client.connect()
+
+
+@pytest.mark.parametrize("code", [I32_MIN, I32_MAX, 0])
+def test_jsonrpc_error_code_accepts_i32_boundaries(code):
+    def handler(request):
+        return (
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request["id"],
+                    "error": {"code": code, "message": "boundary"},
+                }
+            )
+            + "\n"
+        ).encode()
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdRemoteError) as caught:
+        client.connect()
+    assert caught.value.code == code
