@@ -16,10 +16,10 @@ Machine-readable evidence: `thor-runtime-v1.json`.
 - Execution target: `Thor` (`jetsonthor01`, Linux aarch64)
 - MicroDuck: `344925c9f8fa031f85428a305b1e8ec2eaae29c1`
 - microduck_rl: `cb70b792312d559a4da09064d92009079671815f`
-- MuJoCo body: `127.0.0.1:17802`
-- robotd socket: `/tmp/p602-runtime-final2/robotd.sock`
-- Evidence window: `2026-09-19T01:17:33.757449Z` through
-  `2026-09-19T01:17:33.789310Z`
+- MuJoCo body: `127.0.0.1:17804`
+- robotd socket: `/tmp/p602-runtime-final3/robotd.sock`
+- Evidence window: `2026-09-19T01:40:26.923200Z` through
+  `2026-09-19T01:40:26.954105Z`
 
 ## Authoritative upstream protocol facts
 
@@ -47,22 +47,25 @@ Focused unit test on Thor:
 
 ```text
 cd /tmp/p602-code && python3 -m pytest tests/test_robotd_client.py -q
-............................                                             [100%]
-28 passed in 0.03s
+........................................................................ [100%]
+72 passed in 0.06s
 ```
 
-The final pushed implementation was also checked out in `/tmp/p602-full` for the P6
-client/evidence tests plus P4/P5 safety regressions. The exact-head result is recorded in
-the PR validation summary.
+The implementation was also overlaid into a disposable Thor checkout for the P6
+client/evidence tests plus P4/P5 safety regressions:
+
+```text
+117 passed in 0.13s
+```
 
 Real runtime probe:
 
 ```text
 PYTHONPATH=/tmp/p602-code python3 /tmp/p602-code/probe_robotd_readonly.py \
-  --socket /tmp/p602-runtime-final2/robotd.sock \
+  --socket /tmp/p602-runtime-final3/robotd.sock \
   --microduck /home/juper007/projects/microduck-connectome-thor/microduck \
   --microduck-rl /home/juper007/projects/microduck-connectome-thor/microduck_rl \
-  --output /tmp/p602-runtime-final2/robotd-readonly-evidence.json
+  --output /tmp/p602-runtime-final3/robotd-readonly-evidence.json
 ```
 
 Observed: both health reads reported `healthy=true`; state before and after reconnect
@@ -76,9 +79,9 @@ Large/runtime-local logs remain on Thor.
 
 | Artifact | Bytes | SHA256 |
 |---|---:|---|
-| `/tmp/p602-runtime-final2/robotd-readonly-evidence.json` | 3306 | `f9a10e93392303b0bb416b4c789b72af0dbce58aa6e5039949947a59ed83d6c9` |
-| `/tmp/p602-runtime-final2/robotd-validation-final.log` | 2724 | `a708204c51abea767e0f5e7df3d2301794bfb03fd9524b60bb087caeb3825d50` |
-| `/tmp/p602-runtime-final2/body-validation-final.log` | 137 | `21dde2545ceb0ceb44076f8e3c26978fd8f3ff6359ffda3410d50501451d0bb9` |
+| `/tmp/p602-runtime-final3/robotd-readonly-evidence.json` | 3309 | `250c79e89bad9b308340c1d4e6b37f1f6532704db1667de1093e7f0cdc75a736` |
+| `/tmp/p602-runtime-final3/robotd-validation-final.log` | 2724 | `ad40452610e09f4064767b8a1ac61f48df2634de486fe5cb53df291a1daac88f` |
+| `/tmp/p602-runtime-final3/body-validation-final.log` | 137 | `7c8514a7ff0269e1b1e976cc1a39ae6dcdbe591c20b756ba5ea79cc4971f1df2` |
 
 The runtime log snapshots were copied only after both processes stopped and then made
 read-only, so the recorded hashes identify immutable files. They cover startup through

@@ -377,3 +377,197 @@ def test_invalid_upstream_response_id_is_rejected_immediately(response_id):
     client, _ = _client(handler)
     with pytest.raises(RobotdProtocolError, match="response id"):
         client.connect()
+
+
+@pytest.mark.parametrize(
+    "daemon_version",
+    [
+        "not-semver",
+        "1.2",
+        "01.2.3",
+        "1.02.3",
+        "1.2.03",
+        f"{U64_MAX + 1}.0.0",
+        123,
+    ],
+)
+def test_hello_rejects_invalid_semver_or_type(daemon_version):
+    def handler(request):
+        return _response(
+            request,
+            {"api_version": 31, "daemon_version": daemon_version, "revision": None},
+        )
+
+    client, _ = _client(handler)
+    with pytest.raises(RobotdProtocolError, match="daemon_version"):
+        client.connect()
+
+
+@pytest.mark.parametrize(
+    "daemon_version", [None, "0.0.0", "1.2.3-alpha.1+build.5", "999.0.1"]
+)
+def test_hello_accepts_pinned_semver_shapes(daemon_version):
+    def handler(request):
+        return _response(
+            request,
+            {"api_version": 31, "daemon_version": daemon_version, "revision": None},
+        )
+
+    client, _ = _client(handler)
+    assert client.connect().peer_api_version == 31
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    [
+        ("accepted", "yes"),
+        ("walk", 1),
+        ("stand", []),
+        ("unavailable", False),
+        ("sitstand", {}),
+        ("ground_pick", 0.5),
+        ("skills", ["valid", 3]),
+    ],
+)
+def test_subscribe_rejects_each_known_field_with_wrong_type(field, bad_value):
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        result = {"accepted": True, "skills": []}
+        result[field] = bad_value
+        return _response(request, result)
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match=f"robot.subscribe {field}"):
+        client.state()
+
+
+@pytest.mark.parametrize(
+    ("block", "field", "bad_value", "match"),
+    [
+        ("theremin", "hand_range_m", "near", "theremin.hand_range_m"),
+        ("theremin", "note_hz", [], "theremin.note_hz"),
+        ("theremin", "mouth", "bad", "theremin.mouth"),
+        ("theremin", "zones", -1, "theremin.zones"),
+        ("theremin", "zones", U32_MAX + 1, "theremin.zones"),
+        ("theremin", "held", 1, "theremin.held"),
+        ("theremin", "sensor", 1, "theremin.sensor"),
+        ("chorale", "listening", 1, "chorale.listening"),
+        ("chorale", "part", 1, "chorale.part"),
+        ("chorale", "joining", "yes", "chorale.joining"),
+        ("chorale", "beats", "one", "chorale.beats"),
+        ("chorale", "voices", -1, "chorale.voices"),
+        ("chorale", "voices", U32_MAX + 1, "chorale.voices"),
+    ],
+)
+def test_state_rejects_known_optional_nested_field_type(block, field, bad_value, match):
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        state = _state()
+        state[block] = {field: bad_value}
+        ack = _response(request, {"accepted": True})
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match=match):
+        client.state()
+
+
+def test_known_optional_nested_boundaries_and_unknown_fields_are_accepted():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        state = _state()
+        state["theremin"] = {
+            "hand_range_m": None,
+            "note_hz": 440.0,
+            "mouth": 1.0,
+            "zones": U32_MAX,
+            "held": False,
+            "sensor": None,
+            "future_field": "preserved",
+        }
+        state["chorale"] = {
+            "listening": True,
+            "part": None,
+            "joining": False,
+            "beats": None,
+            "voices": U32_MAX,
+            "future_field": {},
+        }
+        state["future_top_level"] = {"finite": 1.0}
+        ack = _response(
+            request,
+            {
+                "accepted": True,
+                "walk": None,
+                "stand": "stand.onnx",
+                "unavailable": None,
+                "sitstand": None,
+                "ground_pick": None,
+                "skills": ["wave"],
+                "future_field": 1,
+            },
+        )
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    assert client.state()["chorale"]["voices"] == U32_MAX
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "match"),
+    [
+        ("healthy", 1, "boolean healthy"),
+        ("degraded", 0, "degraded must be boolean"),
+        ("reason", 1, "reason must be a string"),
+        ("battery", {}, "battery lacks"),
+        ("motors", {}, "motors lacks"),
+        ("cpu_temp_c", "hot", "cpu_temp_c"),
+        ("control_loop", {}, "control_loop lacks"),
+        ("bus", [], "bus must be an object"),
+        ("imu", [], "imu must be an object"),
+    ],
+)
+def test_health_rejects_each_known_field_with_wrong_shape(field, bad_value, match):
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        health = {"healthy": True}
+        health[field] = bad_value
+        return _response(request, health)
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match=match):
+        client.health()
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "match"),
+    [
+        ("odom", None, "odom must be dict"),
+        ("frames", [], "frames must be dict"),
+        ("skeleton", {}, "skeleton must be an object array"),
+    ],
+)
+def test_state_rejects_remaining_optional_top_level_shapes(field, bad_value, match):
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        state = _state()
+        state[field] = bad_value
+        ack = _response(request, {"accepted": True})
+        note = {"jsonrpc": "2.0", "method": "robot.state", "params": state}
+        return ack + (json.dumps(note) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    with pytest.raises(RobotdProtocolError, match=match):
+        client.state()

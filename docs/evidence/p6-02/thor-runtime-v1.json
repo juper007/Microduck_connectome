@@ -6,8 +6,8 @@
     "first_generation": 1,
     "reconnected_generation": 2
   },
-  "elapsed_monotonic_ms": 31.851809,
-  "ended_utc": "2026-09-19T01:17:33.789310+00:00",
+  "elapsed_monotonic_ms": 30.897211,
+  "ended_utc": "2026-09-19T01:40:26.954105+00:00",
   "execution_target": "Thor",
   "health": {
     "after_reconnect": {
@@ -20,13 +20,13 @@
         "startup_failures": 0
       },
       "control_loop": {
-        "achieved_hz": 49.98318560637883,
+        "achieved_hz": 49.978515985226004,
         "last_tick_age_ms": 0,
         "missed": 0,
         "target_hz": 50.0,
-        "ticks": 116
+        "ticks": 115
       },
-      "cpu_temp_c": 44.593,
+      "cpu_temp_c": 44.531,
       "healthy": true,
       "imu": {
         "consecutive_stale_blocks": 0,
@@ -49,13 +49,13 @@
         "startup_failures": 0
       },
       "control_loop": {
-        "achieved_hz": 49.98318560637883,
-        "last_tick_age_ms": 9,
+        "achieved_hz": 49.978515985226004,
+        "last_tick_age_ms": 10,
         "missed": 0,
         "target_hz": 50.0,
-        "ticks": 115
+        "ticks": 114
       },
-      "cpu_temp_c": 44.593,
+      "cpu_temp_c": 44.531,
       "healthy": true,
       "imu": {
         "consecutive_stale_blocks": 0,
@@ -82,13 +82,13 @@
   },
   "result": "PASS",
   "schema_version": 1,
-  "socket": "/tmp/p602-runtime-final2/robotd.sock",
-  "started_utc": "2026-09-19T01:17:33.757449+00:00",
+  "socket": "/tmp/p602-runtime-final3/robotd.sock",
+  "started_utc": "2026-09-19T01:40:26.923200+00:00",
   "state": {
     "after_reconnect": {
       "joint_count": 15,
       "loop": {
-        "hz": 49.98318560637883,
+        "hz": 49.978515985226004,
         "missed": 0
       },
       "move": {
@@ -107,14 +107,14 @@
         ]
       },
       "policy": "held",
-      "t": 2.323412034,
-      "t_ns": 1222174269810164,
+      "t": 2.3031375,
+      "t_ns": 1223547434572760,
       "target_count": 15
     },
     "before_disconnect": {
       "joint_count": 15,
       "loop": {
-        "hz": 49.98318560637883,
+        "hz": 49.978515985226004,
         "missed": 0
       },
       "move": {
@@ -133,8 +133,8 @@
         ]
       },
       "policy": "held",
-      "t": 2.302995114,
-      "t_ns": 1222174249299513,
+      "t": 2.282788691,
+      "t_ns": 1223547414255211,
       "target_count": 15
     }
   },

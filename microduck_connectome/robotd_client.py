@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import math
+import re
 import socket
 import time
 from typing import Any, Callable, Protocol
@@ -22,6 +23,12 @@ MAX_LINE_BYTES = 64 * 1024
 U16_MAX = (1 << 16) - 1
 U32_MAX = (1 << 32) - 1
 U64_MAX = (1 << 64) - 1
+_SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\."
+    r"(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 
 
 class RobotdError(RuntimeError):
@@ -160,7 +167,8 @@ class RobotdClient:
         if isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0:
             raise ValueError("hz must be a positive integer")
         accepted = self._call("robot.subscribe", {"hz": hz})
-        if not isinstance(accepted, dict) or accepted.get("accepted") is not True:
+        self._validate_subscribe(accepted)
+        if accepted.get("accepted") is not True:
             raise RobotdProtocolError("robot.subscribe returned an unexpected result")
 
         deadline = time.monotonic() + self.timeout_s
@@ -304,6 +312,10 @@ class RobotdClient:
             result.get("daemon_version"), str
         ):
             raise RobotdProtocolError("hello daemon_version must be a string or null")
+        if isinstance(result.get("daemon_version"), str):
+            match = _SEMVER.fullmatch(result["daemon_version"])
+            if match is None or any(int(part) > U64_MAX for part in match.groups()[:3]):
+                raise RobotdProtocolError("hello daemon_version must be valid semantic version")
         if result.get("revision") is not None and not isinstance(result.get("revision"), str):
             raise RobotdProtocolError("hello revision must be a string or null")
 
@@ -399,9 +411,8 @@ class RobotdClient:
                 result["t_ns"], "robot.state t_ns", maximum=U64_MAX
             )
         RobotdClient._validate_state_imu(result.get("imu"))
-        for field in ("theremin", "chorale"):
-            if field in result and result[field] is not None and not isinstance(result[field], dict):
-                raise RobotdProtocolError(f"robot.state {field} must be an object or null")
+        RobotdClient._validate_theremin(result.get("theremin"))
+        RobotdClient._validate_chorale(result.get("chorale"))
         if result.get("frames") is not None:
             frames = RobotdClient._require_object(result, "frames", "robot.state")
             for frame_name in ("camera", "tof"):
@@ -506,6 +517,67 @@ class RobotdClient:
             RobotdClient._require_number_array(value["gyro"], 3, "robot.state imu.gyro")
         if "quat" in value:
             RobotdClient._require_number_array(value["quat"], 4, "robot.state imu.quat")
+
+    @staticmethod
+    def _validate_subscribe(value: Any) -> None:
+        if not isinstance(value, dict):
+            raise RobotdProtocolError("robot.subscribe result must be an object")
+        if "accepted" in value and not isinstance(value["accepted"], bool):
+            raise RobotdProtocolError("robot.subscribe accepted must be boolean")
+        for field in ("walk", "stand", "unavailable", "sitstand", "ground_pick"):
+            if field in value and value[field] is not None and not isinstance(value[field], str):
+                raise RobotdProtocolError(
+                    f"robot.subscribe {field} must be a string or null"
+                )
+        if "skills" in value and (
+            not isinstance(value["skills"], list)
+            or not all(isinstance(item, str) for item in value["skills"])
+        ):
+            raise RobotdProtocolError("robot.subscribe skills must be a string array")
+
+    @staticmethod
+    def _validate_theremin(value: Any) -> None:
+        if value is None:
+            return
+        if not isinstance(value, dict):
+            raise RobotdProtocolError("robot.state theremin must be an object or null")
+        for field in ("hand_range_m", "note_hz"):
+            if field in value and value[field] is not None:
+                RobotdClient._require_finite_number(
+                    value[field], f"robot.state theremin.{field}"
+                )
+        if "mouth" in value:
+            RobotdClient._require_finite_number(
+                value["mouth"], "robot.state theremin.mouth"
+            )
+        if "zones" in value:
+            RobotdClient._require_uint(
+                value["zones"], "robot.state theremin.zones", maximum=U32_MAX
+            )
+        if "held" in value and not isinstance(value["held"], bool):
+            raise RobotdProtocolError("robot.state theremin.held must be boolean")
+        if "sensor" in value and value["sensor"] is not None and not isinstance(
+            value["sensor"], str
+        ):
+            raise RobotdProtocolError("robot.state theremin.sensor must be a string or null")
+
+    @staticmethod
+    def _validate_chorale(value: Any) -> None:
+        if value is None:
+            return
+        if not isinstance(value, dict):
+            raise RobotdProtocolError("robot.state chorale must be an object or null")
+        for field in ("listening", "joining"):
+            if field in value and not isinstance(value[field], bool):
+                raise RobotdProtocolError(f"robot.state chorale.{field} must be boolean")
+        if "part" in value and value["part"] is not None and not isinstance(value["part"], str):
+            raise RobotdProtocolError("robot.state chorale.part must be a string or null")
+        if "beats" in value and value["beats"] is not None:
+            RobotdClient._require_finite_number(value["beats"], "robot.state chorale.beats")
+        if "voices" in value:
+            RobotdClient._require_uint(
+                value["voices"], "robot.state chorale.voices", maximum=U32_MAX
+            )
 
     @staticmethod
     def _validate_pose(value: Any, label: str) -> None:
