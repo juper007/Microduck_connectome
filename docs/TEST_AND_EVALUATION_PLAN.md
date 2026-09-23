@@ -10,25 +10,33 @@
 - left/right mapping,
 - decoder math,
 - safety clamp,
-- stale timeout.
+- stale timeout,
+- P11 TaskIntent schema/range/freshness validation,
+- SO-101 adapter action bounding and hold/stop translation.
 
 ### Component tests
 - neuPrint → local graph,
 - video → looming,
 - neural injection → readout,
 - readout → safe intent,
-- intent → simulated robot IPC.
+- intent → simulated robot IPC,
+- TaskIntent → mocked LeRobot SO-101 action,
+- SO-101 observation → canonical perception/telemetry fixture.
 
 ### Integration tests
 - camera/synthetic scene → MicroDuck simulator,
 - process restart,
 - dropped frame,
 - dropped neural update,
-- simulator restart.
+- simulator restart,
+- SO-101 mocked/dry-run connect → observe → action → disconnect lifecycle,
+- SO-101 stale/disconnect/reconnect safe-state transition,
+- cross-embodiment experiment replay using separate MicroDuck and SO-101 adapters.
 
 ### Soak tests
 - neural runtime: 10 min minimum,
 - closed-loop simulator: 10 min minimum,
+- SO-101 closed-loop: 10 min minimum before G11,
 - later release target: 1 h.
 
 ## 2. Required fault injections
@@ -43,9 +51,14 @@
 - robotd restart,
 - IPC disconnect,
 - extreme target position,
-- continuous maximal looming stimulus.
+- continuous maximal looming stimulus,
+- SO-101 USB/LeRobot disconnect,
+- SO-101 stale TaskIntent replay,
+- malformed/non-finite SO-101 action candidate,
+- SO-101 reconnect before fresh hold/stop,
+- SO-101 workspace/joint/gripper limit violation attempt.
 
-Expected result: safe neutral or stop; never unbounded persistent motion.
+Expected result: safe neutral, hold, or stop as appropriate to the embodiment; never unbounded persistent motion.
 
 ## 3. Behavior metrics
 
@@ -63,6 +76,22 @@ Expected result: safe neutral or stop; never unbounded persistent motion.
 - false positives,
 - missed responses,
 - collision rate.
+
+### SO-101 target orienting
+- correct horizontal/vertical response direction,
+- target-centering error,
+- time to settle,
+- oscillation rate,
+- workspace-limit events,
+- stale/hold transitions.
+
+### SO-101 looming withdrawal
+- detection-to-withdraw latency,
+- withdrawal distance/step count,
+- hold/stop activation,
+- false withdrawals,
+- missed withdrawals,
+- safety-limit events.
 
 ## 4. Connectome-value experiment
 
@@ -106,6 +135,8 @@ Each trial log must include:
 - git commit,
 - MaleCNS dataset ID,
 - upstream MicroDuck commit,
+- LeRobot commit/tag/version when SO-101 is involved,
+- SO-101 calibration/configuration identity when SO-101 is involved,
 - config hash,
 - random seed,
 - scenario ID,
@@ -117,4 +148,22 @@ Each trial log must include:
 - neural summary,
 - behavior intents,
 - robot telemetry,
+- robot adapter type/version,
+- TaskIntent trace for P11 trials,
 - final metrics.
+
+
+## 7. P11 cross-embodiment evaluation
+
+P11 must demonstrate portability without pretending that the two robots share identical motor semantics.
+
+For a cross-embodiment trial:
+
+- use the same pinned MaleCNS graph/runtime configuration where the hypothesis requires it;
+- use the same high-level stimulus definition and TaskIntent semantics;
+- allow robot-specific adapters and safety envelopes to differ;
+- record those adapter differences explicitly;
+- do not compare raw joint trajectories as though they were equivalent behaviors;
+- compare high-level outcomes such as correct orienting direction, response latency, successful withdrawal, stale/fault handling, and safety-limit violations.
+
+G11 requires a reproducible report showing that the same MaleCNS-derived high-level experiment definition can drive both MicroDuck and SO-101 through independent adapters while each robot retains its own low-level execution and safety authority.
