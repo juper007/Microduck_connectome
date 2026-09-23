@@ -18,6 +18,8 @@ Use the narrowest matching skill for the work:
 - `$reproducibility-devops-engineer` — environment pinning, CI, manifests, seeds, config hashes, artifact/log discipline.
 - `$independent-phase-reviewer` — defect-first independent review and phase-gate verification.
 
+P11 SO-101 work is a cross-role extension rather than a new repo-scoped skill: route architecture through `$microduck-pm-architect`, task-intent/control semantics through `$behavior-control-engineer`, hardware/fault boundaries through `$robot-safety-engineer`, reproducibility through `$reproducibility-devops-engineer`, and final gate review through `$independent-phase-reviewer`. Do not route SO-101 low-level motor control into the MaleCNS/connectome layer.
+
 ## Mandatory token/context efficiency
 
 These rules apply to every agent and are subordinate only to correctness, safety, scientific traceability, and reproducibility.
@@ -81,7 +83,7 @@ Detailed procedure: `docs/AGENT_GIT_WORKFLOW.md`.
 
 1. Read only the relevant sections needed for the task before changing architecture or interfaces; use the task packet/context map to locate them. Expand context when necessary rather than preloading `docs/ARCHITECTURE.md`, `docs/PROJECT_EXECUTION_PLAN.md`, `docs/COMPLETION_CRITERIA.md`, and `docs/RISK_REGISTER.md` in full.
 2. MaleCNS-derived control selects behavior intent; it must not directly command servos.
-3. `robotd` and the existing MicroDuck motion/safety stack retain motor ownership.
+3. For MicroDuck, `robotd` and the existing motion/safety stack retain motor ownership. For SO-101 P11 work, the supported Hugging Face LeRobot `Robot` interface and the dedicated SO-101 adapter own robot action delivery; connectome/perception/neural layers must not write directly to the Feetech motor bus.
 4. Simulation precedes physical robot testing.
 5. Biological claims require traceable evidence; engineering mappings must be labeled as engineering choices.
 6. A task is not done without evidence matching its task/phase completion criterion.

@@ -67,6 +67,17 @@ Task IDs are stable references for issues, commits, and experiment logs.
 | P10-06 | 10 | Physical looming demo | HW | trial set | safe response |
 | P10-07 | 10 | Release report | Lead | final package | project DoD satisfied |
 
+| P11-01 | 11 | Pin LeRobot + SO-101 environment | DevOps/Integration | version manifest | LeRobot version, dependencies, calibration identity recorded |
+| P11-02 | 11 | Robot-neutral TaskIntent contract | Control | schema/tests | malformed/stale/out-of-range intent rejected |
+| P11-03 | 11 | Generic RobotAdapter boundary | Architecture/Integration | interface/ADR | MicroDuck P5/P6 contract remains unchanged |
+| P11-04 | 11 | SO101Adapter via LeRobot | Integration | adapter/tests | connect/observe/action/stop lifecycle passes |
+| P11-05 | 11 | SO-101 safety envelope | Safety | limits/tests | joint/workspace/step/rate/gripper limits enforced |
+| P11-06 | 11 | Target orienting demo | Behavior/Integration | demo/telemetry | repeated correct-direction response within limits |
+| P11-07 | 11 | Looming withdrawal demo | Behavior/Safety | demo/telemetry | withdrawal/hold triggers before boundary |
+| P11-08 | 11 | Fault/reconnect suite | Safety | report | stale/disconnect/malformed/restart fail safe |
+| P11-09 | 11 | 10-min SO-101 closed-loop soak | QA | report | no runaway/stale command or safety-limit violation |
+| P11-10 | 11 | Cross-embodiment experiment | Experiment | report/demo | same high-level MaleCNS definition drives MicroDuck and SO-101 through separate adapters |
+
 ## Task-state rules
 
 Allowed states:
@@ -91,3 +102,4 @@ A task may enter `DONE` only when its explicit completion criterion has evidence
 - P7/P8 require P6.
 - P9 requires at least P7 and P8.
 - P10 requires all P6 safety criteria plus relevant P7/P8 simulation gates.
+- P11 is an extension after the MicroDuck high-level controller and safety contracts are stable. P11-02/P11-03 precede SO-101 motion work; P11-05 precedes powered autonomous P11-06/P11-07; P11-08 precedes P11-09; P11-10 requires reproducible MicroDuck and SO-101 adapter paths.

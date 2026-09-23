@@ -1,10 +1,10 @@
 # MicroDuck Connectome
 
-**MaleCNS × MicroDuck NeuroRobotics Project**
+**MaleCNS × Multi-Embodiment NeuroRobotics Project**
 
-This project explores whether the complete adult male *Drosophila* central nervous system connectome (MaleCNS v1.0) can serve as a biologically structured high-level controller for MicroDuck.
+This project explores whether the complete adult male *Drosophila* central nervous system connectome (MaleCNS v1.0) can serve as a biologically structured high-level controller across multiple robot embodiments. MicroDuck remains the primary locomotion platform; SO-101 is the planned second embodiment for manipulation-oriented experiments.
 
-The connectome **does not directly command servo joints**. Instead, it receives encoded sensory stimuli and produces high-level behavioral intent such as steering, stop/escape, backward motion, or target pursuit. MicroDuck's existing `robotd`, safety layer, and reinforcement-learning motion policies remain responsible for balance, gait, and actuator control.
+The connectome **does not directly command servo joints**. Instead, it receives encoded sensory stimuli and produces high-level behavioral/task intent such as steering, stop/escape, target pursuit, orienting, or withdrawal. MicroDuck's existing `robotd`, safety layer, and reinforcement-learning motion policies remain responsible for balance, gait, and actuator control. For SO-101, a dedicated adapter will translate validated robot-neutral task intent through the supported Hugging Face LeRobot `Robot` interface; the connectome layer will not write directly to the Feetech motor bus.
 
 ## Project hypothesis
 
@@ -25,17 +25,24 @@ MaleCNS Runtime / Reservoir
 Descending-Neuron Readout
         │
         ▼
-Behavior Decoder
+Robot-neutral TaskIntent
         │
-        ▼
-Safety Gate
-        │
-        ▼
-MicroDuck robotd / RL Motion Policy @ 50 Hz
-        │
-        ▼
-15 actuators
+   ┌────┴───────────────┐
+   │                    │
+   ▼                    ▼
+MicroDuck path      SO-101 path
+BehaviorIntent      SO101Adapter
+vx/vy/vyaw/stop         │
+   │                    ▼
+   ▼               LeRobot Robot API
+robotd / RL             │
+motion policy           ▼
+   │                  SO-101
+   ▼
+MicroDuck
 ```
+
+The existing MicroDuck P5/P6 contracts remain unchanged. The robot-neutral `TaskIntent` and SO-101 adapter are introduced as the later P11 cross-embodiment extension.
 
 ## Execution sequence
 
@@ -49,6 +56,7 @@ MicroDuck robotd / RL Motion Policy @ 50 Hz
 8. Demonstrate visual steering and looming avoidance.
 9. Run real-vs-shuffled-vs-random baseline experiments.
 10. Move the validated controller to physical MicroDuck.
+11. Add SO-101 as a second embodiment through LeRobot and demonstrate cross-embodiment target orienting and looming withdrawal.
 
 ## Codex agent team
 
@@ -66,6 +74,7 @@ Agent work uses lazy context loading and compact task packets so large-model con
 - [`docs/TASK_BREAKDOWN.md`](docs/TASK_BREAKDOWN.md) — detailed task/WBS plan
 - [`docs/COMPLETION_CRITERIA.md`](docs/COMPLETION_CRITERIA.md) — Definition of Done and phase gates
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture and interfaces
+- [`docs/SO101_INTEGRATION_PLAN.md`](docs/SO101_INTEGRATION_PLAN.md) — P11 SO-101/LeRobot second-embodiment plan
 - [`docs/TEST_AND_EVALUATION_PLAN.md`](docs/TEST_AND_EVALUATION_PLAN.md) — test strategy and scientific evaluation
 - [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) — technical/scientific risks and mitigations
 - [`docs/AGENT_GIT_WORKFLOW.md`](docs/AGENT_GIT_WORKFLOW.md) — mandatory branch/review/PR workflow
@@ -77,7 +86,8 @@ Agent work uses lazy context loading and compact task packets so large-model con
 ## Key principles
 
 - Simulation first.
-- Connectome output never bypasses MicroDuck safety.
+- Connectome output never bypasses robot-specific safety or supported high-level APIs.
+- Existing MicroDuck P5/P6 contracts remain frozen while new embodiments integrate above them through explicit adapters.
 - Every biological mapping must be traceable to a source or explicitly marked as a hypothesis.
 - Every experiment must be reproducible from configuration + seed + commit SHA.
 - Claims about biological advantage require controlled baselines.
@@ -85,15 +95,16 @@ Agent work uses lazy context loading and compact task packets so large-model con
 
 ## Current status
 
-Preflight definitions frozen; Phase 0 ready.
+The repository has progressed beyond the original Phase 0 bootstrap marker. The current `main` branch includes the P6-05 end-to-end telemetry integration. P6-06 fault/recovery work exists on a separate task branch and G6 is not yet declared complete. P11 SO-101 support is a planned extension defined in [`docs/SO101_INTEGRATION_PLAN.md`](docs/SO101_INTEGRATION_PLAN.md).
 
-Phase 0 bootstrap setup and remaining acceptance work:
-[`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
+Historical Phase 0 bootstrap material remains in [`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
 
 ## Upstream projects
 
 - MaleCNS project: https://male-cns.janelia.org/
 - MicroDuck runtime: https://github.com/pollen-robotics/microduck
 - MicroDuck RL simulation/training: https://github.com/pollen-robotics/microduck_rl
+- Hugging Face LeRobot: https://github.com/huggingface/lerobot
+- SO-101 hardware project: https://github.com/TheRobotStudio/SO-ARM100
 
 > This is an independent research/education project and is not an official Pollen Robotics, HHMI Janelia, Google Research, or University of Cambridge project.

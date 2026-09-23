@@ -108,9 +108,25 @@ Physical autonomous tests are allowed only if:
 - first tests are physically restrained/supported,
 - logger is active.
 
+### Gate G11 — SO-101 embodiment validated
+
+Pass only if:
+- supported LeRobot observation/action interfaces are used;
+- no MaleCNS/connectome component directly controls an SO-101 servo;
+- TaskIntent validation rejects stale, malformed, non-finite, and out-of-range input;
+- joint/workspace/step/rate/gripper safety limits pass;
+- startup, stop/hold, disconnect, reconnect, stale-input, and controller-crash tests fail safe;
+- target-orienting and looming-withdrawal demonstrations are reproducible;
+- autonomous 10-minute SO-101 soak completes with no runaway/stale command or safety-limit violation;
+- telemetry reconstructs perception → MaleCNS → TaskIntent → SO-101 action → observation;
+- MicroDuck P5/P6 safety and regression evidence remains valid;
+- cross-embodiment reports distinguish biological evidence from engineering mappings.
+
 ---
 
 # Project Definition of Done
+
+G11 is an extension gate for a later multi-embodiment release; it does not retroactively change the MicroDuck-focused v1 Definition of Done.
 
 The project reaches v1 completion only when all are true:
 

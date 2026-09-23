@@ -54,11 +54,40 @@ https://github.com/pollen-robotics/microduck_rl
 
 Used for MicroDuck physics, policy training, and simulator body integration.
 
+## SO-101 / LeRobot
+
+### Hugging Face LeRobot repository
+https://github.com/huggingface/lerobot
+
+LeRobot provides a common `Robot` interface for supported robots. The documented contract includes `connect`, `disconnect`, `get_observation`, and `send_action`, allowing policies/adapters to target a stable robot abstraction instead of writing directly to low-level motor transports.
+
+### Official SO-101 guide
+https://github.com/huggingface/lerobot/blob/main/docs/source/so101.mdx
+
+Important implementation details:
+- the SO-101 follower is supported by LeRobot;
+- the follower uses six STS3215 servos;
+- LeRobot provides setup, USB port discovery, calibration, and follower configuration workflows;
+- the Feetech dependency is installed through LeRobot's optional Feetech support;
+- the follower can be created and controlled through the LeRobot SO follower API without requiring a leader arm for autonomous programmatic control.
+
+### LeRobot Robot API
+https://github.com/huggingface/lerobot/blob/main/docs/source/api/robots.mdx
+
+The Robot API is the authoritative P11 integration boundary. P11 must use the supported observation/action lifecycle rather than introduce direct connectome-to-servo writes.
+
+### SO-ARM100 / SO-101 hardware project
+https://github.com/TheRobotStudio/SO-ARM100
+
+Used as the upstream hardware/BOM reference linked by the official LeRobot SO-101 documentation.
+
+
 ## Source policy
 
 Project documents must prefer:
 1. official MaleCNS/Janelia sources,
 2. primary neuroscience papers,
-3. official MicroDuck repositories/docs.
+3. official MicroDuck repositories/docs,
+4. official Hugging Face LeRobot and SO-101 upstream documentation for P11 robot integration.
 
 Third-party simulators or interpretations may be evaluated, but cannot silently become the source of biological ground truth.

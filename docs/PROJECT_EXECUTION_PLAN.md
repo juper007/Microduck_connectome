@@ -605,6 +605,64 @@ Physical testing is forbidden until:
 
 ---
 
+## Phase 11 — SO-101 cross-embodiment integration
+
+### Goal
+
+Add the Hugging Face LeRobot SO-101 follower as a second embodiment while preserving the existing MicroDuck P5/P6 path. Demonstrate that the same MaleCNS-derived high-level controller can drive locomotion and manipulation embodiments through separate robot-specific adapters.
+
+### Required agent roles
+
+- **PM/Systems Architect Agent**
+- **Behavior/Control Agent**
+- **Robot Integration Agent**
+- **Robot Safety Agent**
+- **Reproducibility/DevOps Agent**
+- **Independent Reviewer Agent**
+
+No new repo-scoped agent skill is required by this planning change. SO-101 implementation work should be routed through the existing PM/architecture, behavior/control, safety, reproducibility, and review roles, with integration-specific task packets.
+
+### Design constraints
+
+1. Do not modify or weaken the frozen MicroDuck P5/P6 `BehaviorIntent` and `robotd` safety boundaries.
+2. Introduce a robot-neutral `TaskIntent` above robot-specific execution.
+3. The SO-101 path must use the supported LeRobot `Robot` interface.
+4. The connectome/runtime/decoder layers must not write directly to the Feetech motor bus.
+5. Manipulation primitives such as grasp/release are engineering abstractions unless separately supported by reviewed biological evidence.
+6. Physical SO-101 testing requires conservative workspace/rate limits, a human-accessible stop, calibrated hardware identity, and fault-safe stale/disconnect behavior.
+7. Simulation, mock, dry-run, or action-logging validation precedes powered autonomous motion where practical.
+
+### Detailed activities
+
+1. Pin a LeRobot commit/tag/version and record the SO-101 follower configuration and Feetech dependency.
+2. Define and test the robot-neutral `TaskIntent` contract.
+3. Define a generic RobotAdapter boundary without changing the MicroDuck P5/P6 interfaces.
+4. Implement an SO-101 adapter using LeRobot `connect`, `get_observation`, `send_action`, and `disconnect`.
+5. Add joint/workspace/step/rate/gripper/freshness safety limits.
+6. Integrate camera observations into the existing perception pipeline.
+7. Demonstrate target orienting from MaleCNS-derived steering activity.
+8. Demonstrate looming-triggered withdrawal/hold behavior.
+9. Run stale-input, malformed-action, disconnect/reconnect, and process-failure tests.
+10. Complete a 10-minute autonomous closed-loop soak.
+11. Run a cross-embodiment experiment in which the same high-level MaleCNS experiment definition drives MicroDuck and SO-101 through separate adapters.
+12. Record full telemetry from perception → neural runtime → TaskIntent → robot-specific action → robot observation.
+
+### Exit criteria
+
+- SO-101 uses supported LeRobot observation/action interfaces;
+- no connectome component directly commands an SO-101 servo;
+- startup/reconnect defaults are safe;
+- stale, malformed, disconnect, and controller-crash cases fail to hold/neutral;
+- target orienting and looming withdrawal are reproducible and remain within the configured safety envelope;
+- a 10-minute autonomous soak completes with no runaway or stale command;
+- telemetry is sufficient to reconstruct the control chain;
+- MicroDuck regression evidence remains valid;
+- biological mappings and embodiment-specific engineering mappings are explicitly separated.
+
+Detailed plan: `docs/SO101_INTEGRATION_PLAN.md`.
+
+---
+
 # 5. Recommended milestone releases
 
 | Milestone | Meaning |
@@ -620,8 +678,11 @@ Physical testing is forbidden until:
 | M8 | Baseline comparison report |
 | M9 | Physical MicroDuck low-speed demo |
 | M10 | Reproducible research release |
+| M11 | SO-101 cross-embodiment demonstration |
 
 ---
+
+> P11/M11 is an extension milestone and does not retroactively change the MicroDuck-focused v1 completion definition below. A later multi-embodiment release may promote G11 into the release Definition of Done.
 
 # 6. Definition of project completion
 
