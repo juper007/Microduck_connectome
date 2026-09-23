@@ -6,7 +6,7 @@ Target release: M11 — Cross-embodiment demonstration
 
 ## 1. Purpose
 
-Add the Hugging Face LeRobot SO-101 follower arm as a second physical embodiment for the MaleCNS-derived controller without weakening or rewriting the validated MicroDuck control path.
+Add the Hugging Face LeRobot SO-101 follower arm as a second physical embodiment for the MaleCNS-derived controller without weakening or rewriting the existing MicroDuck control path.
 
 The goal is not to make MaleCNS directly command SO-101 servo joints. The connectome remains a high-level behavior-selection component. A robot-specific adapter translates bounded, fresh high-level task intent into an SO-101 action using the supported LeRobot `Robot` interface.
 
