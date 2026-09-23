@@ -181,7 +181,7 @@ This prevents an engineering choice from silently becoming a biological “fact.
 
 ## 8. Cross-embodiment extension (P11)
 
-P11 adds SO-101 without changing the validated MicroDuck P5/P6 control contract.
+P11 adds SO-101 without changing the existing MicroDuck P5/P6 control contract.
 
 ```text
                      MaleCNS-derived readout
