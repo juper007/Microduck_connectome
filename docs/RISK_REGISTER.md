@@ -18,6 +18,12 @@
 | R14 | Results are not reproducible | Medium | High | pin versions, seed/config logging, CI | G0/G9 |
 | R15 | Dataset/network scale creates storage burden | Medium | Medium | use neuPrint/cache/subgraphs before bulk synapse tables | G1 |
 | R16 | Biological advantage is zero or negative | Medium | Low scientifically | treat as valid result; publish negative finding | G9 |
+| R17 | SO-101 direct motor-bus integration bypasses adapter safety | Low | Critical | prohibit connectome-layer Feetech writes; use supported LeRobot Robot interface only | G11 |
+| R18 | Locomotion-specific intent leaks into manipulation semantics | Medium | High | introduce explicit robot-neutral TaskIntent; keep MicroDuck P5/P6 contract frozen | G11 |
+| R19 | SO-101 stale/replayed command continues arm motion | Medium | Critical | timestamps, monotonic sequence, watchdog/hold, reconnect safe-state requirement | G11 |
+| R20 | SO-101 workspace/joint/gripper limits are unsafe or uncalibrated | Medium | Critical | conservative hardware profile, calibration identity, bounded step/rate/workspace/gripper limits, supervised promotion | G11 |
+| R21 | Cross-embodiment result is misrepresented as biological motor homology | Medium | High | label adapter mappings as engineering choices; review claims separately from neural evidence | G11 |
+| R22 | LeRobot API/config changes break SO-101 integration | Medium | Medium | pin LeRobot version/commit, add adapter contract tests and compatibility notes | G11 |
 
 ## P0 risks
 
@@ -28,4 +34,7 @@ These block hardware autonomous motion:
 - unexplained left/right inversion,
 - non-deterministic safety behavior,
 - stale commands surviving controller failure,
-- no human E-stop.
+- no human E-stop,
+- SO-101 direct Feetech writes outside the approved adapter/LeRobot path,
+- unbounded SO-101 joint/workspace/gripper actions,
+- SO-101 reconnect without a fresh safe/hold state.
