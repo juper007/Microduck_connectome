@@ -42,7 +42,7 @@ motion policy           ▼
 MicroDuck
 ```
 
-The existing validated MicroDuck P5/P6 contracts remain unchanged. The robot-neutral `TaskIntent` and SO-101 adapter are introduced as the later P11 cross-embodiment extension.
+The existing MicroDuck P5/P6 contracts remain unchanged. The robot-neutral `TaskIntent` and SO-101 adapter are introduced as the later P11 cross-embodiment extension.
 
 ## Execution sequence
 
@@ -95,10 +95,9 @@ Agent work uses lazy context loading and compact task packets so large-model con
 
 ## Current status
 
-Preflight definitions frozen; Phase 0 ready.
+The repository has progressed beyond the original Phase 0 bootstrap marker. The current `main` branch includes the P6-05 end-to-end telemetry integration. P6-06 fault/recovery work exists on a separate task branch and G6 is not yet declared complete. P11 SO-101 support is a planned extension defined in [`docs/SO101_INTEGRATION_PLAN.md`](docs/SO101_INTEGRATION_PLAN.md).
 
-Phase 0 bootstrap setup and remaining acceptance work:
-[`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
+Historical Phase 0 bootstrap material remains in [`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
 
 ## Upstream projects
 
