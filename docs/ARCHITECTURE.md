@@ -4,9 +4,9 @@
 
 The central rule is:
 
-> MaleCNS chooses **behavioral intent**; MicroDuck owns **motion execution and actuator safety**.
+> MaleCNS chooses **high-level behavioral/task intent**; each supported robot stack owns **motion execution and actuator safety**.
 
-The project must not create a parallel motor controller.
+For MicroDuck, `robotd` remains the motor-control owner. For SO-101, the P11 adapter uses the supported LeRobot `Robot` interface and must not bypass LeRobot to let the connectome layer command Feetech servos directly. The project must not create a parallel low-level motor controller.
 
 ## 2. Runtime layers
 
@@ -177,3 +177,83 @@ population:
 ```
 
 This prevents an engineering choice from silently becoming a biological “fact.”
+
+
+## 8. Cross-embodiment extension (P11)
+
+P11 adds SO-101 without changing the validated MicroDuck P5/P6 control contract.
+
+```text
+                     MaleCNS-derived readout
+                              │
+                              ▼
+                    Robot-neutral TaskIntent
+                              │
+                  ┌───────────┴───────────┐
+                  │                       │
+                  ▼                       ▼
+        MicroDuck translation       SO-101 translation
+        BehaviorIntent              SO101Adapter
+        vx/vy/vyaw/stop                  │
+                  │                       ▼
+                  ▼                 LeRobot Robot API
+               robotd               get_observation()
+                  │                  send_action()
+                  ▼                       │
+             MicroDuck                    ▼
+                                        SO-101
+```
+
+The MicroDuck path remains authoritative for locomotion validation. P11 is a separate cross-embodiment layer and must not retroactively relax G5/G6 invariants.
+
+### Robot-neutral TaskIntent
+
+Initial P11 contract:
+
+```json
+{
+  "timestamp_ns": 0,
+  "sequence": 0,
+  "horizontal_bias": 0.0,
+  "vertical_bias": 0.0,
+  "approach": 0.0,
+  "withdraw": 0.0,
+  "grasp": 0.0,
+  "release": 0.0,
+  "stop": false,
+  "confidence": 1.0,
+  "source": "male-cns-controller"
+}
+```
+
+This contract expresses task-level intent rather than joint targets. `grasp` and `release` are engineering primitives unless a separate biological evidence review explicitly supports a mapping.
+
+### SO-101 adapter responsibilities
+
+The SO-101 adapter:
+
+- owns creation and lifecycle of the LeRobot SO-101 follower object;
+- acquires state/camera observations through supported LeRobot interfaces;
+- maps fresh validated TaskIntent to bounded arm actions;
+- enforces joint, workspace, step-size, rate, gripper, and freshness limits;
+- requires a safe/hold state on startup and after reconnect;
+- records intent, action, and observation timestamps;
+- fails to hold/neutral on stale input, disconnect, exception, or controller crash.
+
+No connectome, perception, neural-runtime, or experiment component may write directly to the SO-101 motor bus.
+
+### Cross-embodiment mapping rule
+
+A neural behavior concept may map differently by embodiment while retaining the same high-level interpretation:
+
+| High-level intent | MicroDuck | SO-101 |
+|---|---|---|
+| horizontal orient | yaw/steering | arm/end-effector horizontal orienting |
+| approach | bounded forward velocity | bounded end-effector approach |
+| withdraw/escape | stop/backward primitive | bounded arm retract/hold |
+| stop | robot stop/zero twist | hold/neutral action |
+| grasp/release | not used in initial locomotion demo | manipulation primitive/policy handoff |
+
+The adapter mapping is an engineering choice and must not be described as a direct biological motor homology.
+
+See `docs/SO101_INTEGRATION_PLAN.md` for the P11 task sequence and safety gate.
