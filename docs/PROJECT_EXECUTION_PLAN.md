@@ -609,7 +609,7 @@ Physical testing is forbidden until:
 
 ### Goal
 
-Add the Hugging Face LeRobot SO-101 follower as a second embodiment while preserving the validated MicroDuck P5/P6 path. Demonstrate that the same MaleCNS-derived high-level controller can drive locomotion and manipulation embodiments through separate robot-specific adapters.
+Add the Hugging Face LeRobot SO-101 follower as a second embodiment while preserving the existing MicroDuck P5/P6 path. Demonstrate that the same MaleCNS-derived high-level controller can drive locomotion and manipulation embodiments through separate robot-specific adapters.
 
 ### Required agent roles
 
