@@ -44,6 +44,7 @@ class P7TemporalSteeringDecoder:
     def reset(self) -> None:
         self._target_visible = False
         self._held_vyaw = 0.0
+        self._held_confidence = 0.0
         self._last_evidence_ns = None
 
     def observe_frame(self, frame, *, now_ns: int) -> None:
@@ -74,14 +75,16 @@ class P7TemporalSteeringDecoder:
             return self._stop(readout)
         if direct["vyaw"] != 0.0:
             self._held_vyaw = direct["vyaw"]
+            self._held_confidence = direct["confidence"]
             self._last_evidence_ns = readout["timestamp_ns"]
             return direct
         if (self._last_evidence_ns is not None
                 and 0 <= readout["timestamp_ns"] - self._last_evidence_ns <= self.hold_ns):
             return make_behavior_intent(
                 timestamp_ns=readout["timestamp_ns"], sequence=readout["sequence"],
-                vyaw=self._held_vyaw, confidence=min(1.0, abs(self._held_vyaw)),
+                vyaw=self._held_vyaw, confidence=self._held_confidence,
             )
         self._held_vyaw = 0.0
+        self._held_confidence = 0.0
         self._last_evidence_ns = None
         return direct

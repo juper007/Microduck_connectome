@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 from microduck_connectome.steering_decoder import SteeringDecoder, SteeringDecoderConfig
+from microduck_connectome.safety_clamp import SafetyClamp
 from microduck_connectome.temporal_steering import (
     P7TemporalSteeringDecoder, load_temporal_steering_config,
 )
@@ -51,6 +52,23 @@ class P7TemporalSteeringTests(unittest.TestCase):
         self.assertEqual(self.decode_at(0, 1, left=0.2)["vyaw"], 0.5)
         self.assertEqual(self.decode_at(280, 2, right=0.2)["vyaw"], -0.5)
         self.assertEqual(self.decode_at(500, 3)["vyaw"], -0.5)
+
+    def test_measured_pulse_train_reaches_frozen_safety_slew_limit(self):
+        safety = SafetyClamp()
+        safe_yaws = []
+        for index, milliseconds in enumerate(range(0, 1000, 20), 1):
+            active = any(start <= milliseconds < start + 100
+                         for start in (0, 380, 760))
+            intent = self.decode_at(milliseconds, index,
+                                    left=0.2 if active else 0.0)
+            result = safety.apply(intent, now_ns=milliseconds * 1_000_000,
+                                  fallback_sequence=index)
+            safe_yaws.append(result["intent"]["vyaw"])
+        self.assertEqual(max(safe_yaws), 0.5)
+        self.assertGreater(min(safe_yaws[18:]), 0.0)
+        stopped = self.decode_at(1000, 51, visible=False)
+        self.assertTrue(safety.apply(stopped, now_ns=1_000_000_000,
+                                     fallback_sequence=51)["intent"]["stop"])
 
     def test_target_loss_and_invalid_frame_stop_and_clear_hold(self):
         self.decode_at(0, 1, left=0.2)
