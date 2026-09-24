@@ -48,7 +48,8 @@ sequence. The final official `robotd` health query was healthy at approximately
 50 Hz, with zero missed control-loop ticks. An independent streaming verifier
 at `scripts/verify_p6_soak.py` checks the raw trace against the summary,
 including post-command state, requested twist, sensor-loss neutrality, stop
-transport, bounds, sequence continuity, wall-clock duration, size and hash.
+transport, bounds, sequence continuity, wall-clock duration, size and hash. It
+reported PASS with zero mismatches across all 30,252 records.
 
 The pinned graph produces zero robot-facing motion under natural perception
 inputs, as already reported in P6-05. This soak therefore verifies sustained
@@ -69,6 +70,7 @@ The summary in this repository is byte-identical to the Thor file.
 | `soak-summary.json` | 6,351 | `8f20b0d5f5555e183cc81543ddabf2730e7a452b23df93e0ecd8c1e0c2acc5fe` |
 | `fixture.log` | 314 | `a8e491d1ad2a362875d288411b2d81ef1d7f4ac43e8a8c4b4484b43ba1a62bf7` |
 | `python312-tests.log` | 334 | `b0f8e0c6a361934cfaddd1e27ad45b127ec265cbe74ef13c2bc33c08817dc297` |
+| `verification.log` | 384 | `6d7723a33bc3372834c28c1d873228b777d4e17085012c761a11360d41ef9db3` |
 
 Thor Python 3.12 relevant P4/P5/P6 safety, integration, telemetry, and soak
 regressions: **209 passed, 26 subtests passed in 3.74 s**.
