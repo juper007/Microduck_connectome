@@ -15,7 +15,12 @@ class P7PreregistrationV4Tests(unittest.TestCase):
         old = json.loads(V3_PATH.read_text(encoding="utf-8"))
         policy = {key: "pinned" for key in ("sha256", "training_source_commit",
                   "training_recipe_sha256", "checkpoint_sha256",
-                  "exporter_source_commit", "artifact_path")}
+                  "exporter_source_commit", "artifact_path", "base_policy_path",
+                  "base_policy_sha256", "checkpoint_path", "adapter_script_path",
+                  "adapter_script_sha256", "offline_equivalence_path",
+                  "offline_equivalence_sha256")}
+        policy.update({"training_seed": 70202, "training_num_envs": 4096,
+                       "checkpoint_iteration": 750})
         validation = {key: "pinned" for key in
                       ("selection_summary_path", "selection_summary_sha256",
                        "affected_p6_summary_path", "affected_p6_summary_sha256")}
@@ -45,24 +50,30 @@ class P7PreregistrationV4Tests(unittest.TestCase):
         self.assertEqual(current["validity"]["pretrial_pose_acquisition_max_attempts"], 3)
 
     def test_policy_selection_requires_repeated_signed_net_heading(self):
-        policy = {"training_source_commit": "source", "training_recipe_sha256": "recipe",
-                  "checkpoint_sha256": "checkpoint", "sha256": "onnx"}
-        runs = [{"trial": f"{side}05-vx0-r{index}",
+        policy = {"training_source_commit": "source", "base_policy_sha256": "base",
+                  "adapter_script_sha256": "script", "offline_equivalence_sha256": "offline",
+                  "sha256": "onnx", "training_seed": 70202,
+                  "training_num_envs": 4096, "checkpoint_iteration": 750}
+        runs = [{"trial": f"{side}{magnitude}-r{index}",
                  "net_trunk_heading_rad": sign * .2,
+                 "requested_final_yaw_rad_s": sign * value,
+                 "applied_final_yaw_rad_s": sign * value,
                  "max_command_sign_200_to_270ms_rad": .03,
                  "qualifying_command_sign_windows_ge_0p02": 2,
                  "command_limited_by": [], "walk_samples": 60,
-                 "readback_mode": "walk", "readback_walk_slot": {
+                 "readback_walk_slot": {
                      "slot": "walk", "origin": "local", "overridden": True,
                      "error": None}}
+                for magnitude, value in (("02", .2), ("05", .5))
                 for side, sign in (("plus", 1), ("minus", -1))
                 for index in range(1, 6)]
-        summary = {"status": "interim_candidate_not_recertified",
+        summary = {"schema_version": "p7-policy-adapter-development-diagnostic-v1",
+                   "status": "adapter_v2_candidate_pending_p6_recert",
+                   "diagnostic_only_not_g7": True,
                    "isolated_sim_down_at_summary": True,
-                   "training_seed": 70202, "training_num_envs": 4096,
-                   "checkpoint_iteration": 750,
-                   "source_commit": "source", "recipe_sha256": "recipe",
-                   "checkpoint_sha256": "checkpoint", "onnx_sha256": "onnx",
+                   "training_source_commit": "source", "base_onnx_sha256": "base",
+                   "adapter_script_sha256": "script",
+                   "offline_equivalence_sha256": "offline", "onnx_sha256": "onnx",
                    "runs": runs}
         validate_selection_metrics(summary, policy)
         runs[0]["net_trunk_heading_rad"] = -.1
