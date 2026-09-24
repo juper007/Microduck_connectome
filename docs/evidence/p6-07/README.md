@@ -22,6 +22,11 @@ loss. The stop state is an explicitly labeled engineering stop intent inserted
 before SafetyClamp; sensor loss makes the camera source invalid and passes
 zero sensory stimulation through the runtime. The frozen transport remained
 `robot_stop`, and steering sign remained `-1`.
+The frozen P6-05 telemetry schema permits five `scenario` values, so
+sensor-loss records use `scenario: neutral` for schema compatibility and carry
+`sensor_loss` in the `trial_id` suffix. Their invalid perception frame and
+zero stimulus are retained in each raw record; the summary and verifier count
+them by `trial_id`.
 
 ## Measured outcome
 
