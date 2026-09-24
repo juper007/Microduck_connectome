@@ -1,0 +1,2960 @@
+{
+  "execution_target": "Thor",
+  "fault_count": 23,
+  "identities": {
+    "behavior_ttl_ms": 100,
+    "fixture_sha256": "cea10f9eade3c5bcec891afa78c4feaf05181eff3123a8ea9d532f7cd0f2bd8d",
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "neural_ttl_ms": 100,
+    "perception_ttl_ms": 100,
+    "robotd_interface": "official JSON-RPC high-level intent",
+    "steering_yaw_sign": -1,
+    "stop_transport": "robot_stop"
+  },
+  "raw_artifact": {
+    "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p6-06/20260924T-p606-final-v4/fault-events.jsonl",
+    "record_count": 23,
+    "sha256": "1584c299ac3c64e9d95a4d34b55764da7ee3be21eacc5570d0216674e69d2226"
+  },
+  "records": [
+    {
+      "detected_at_ns": 1715475028014393,
+      "detection_latency_ms": 82.047397,
+      "fault": "camera_dropout",
+      "injected_at_ns": 1715474945966996,
+      "motion_stop_latency_ms": 2058.513729,
+      "motion_stopped_at_ns": 1715477004480725,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715478644233043,
+      "recovery_latency_ms": 3698.266047,
+      "result": "PASS",
+      "safe_command_at_ns": 1715475028014393,
+      "safe_command_latency_ms": 82.047397,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0001362151936716917,
+          2.257551583368551e-05,
+          0.0002704262969307054,
+          0.00010132814194237347,
+          9.366463259402079e-05
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          3.3306716457657523e-09
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.731155879076175e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715476544084772
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.288820126764545e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715476663469610
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.000004633105647e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715476783896976
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.5728652145408468e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715476903401880
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              5.153964735007447e-12
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715477004293438
+          }
+        ],
+        "heading_after_rad": 0.1203496989787474,
+        "heading_before_rad": 0.12027651479685597,
+        "heading_delta_rad": 7.31841818914225e-05,
+        "heading_samples": [
+          0.12027651479685597,
+          0.1202928778972231,
+          0.12029557307152366,
+          0.12032813979816016,
+          0.12034024900803549,
+          0.1203496989787474
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0002704262969307054,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715478854805314,
+      "detection_latency_ms": 82.073382,
+      "fault": "tof_dropout",
+      "injected_at_ns": 1715478772731932,
+      "motion_stop_latency_ms": 2051.841995,
+      "motion_stopped_at_ns": 1715480824573927,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715482483893462,
+      "recovery_latency_ms": 3711.16153,
+      "result": "PASS",
+      "safe_command_at_ns": 1715478854805314,
+      "safe_command_latency_ms": 82.073382,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.00045206035865249014,
+          0.0003032254935351269,
+          0.0004067647514200784,
+          0.00033380363118222923,
+          0.0003653041344013167
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          3.331031227932239e-09
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.732098502150688e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715480363444047
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.2890672297477902e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715480483945891
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.000652398750048e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715480603756539
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.5730350224179328e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715480723399590
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              5.154521161459082e-12
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715480824324121
+          }
+        ],
+        "heading_after_rad": 0.12062432531497047,
+        "heading_before_rad": 0.1204083181210701,
+        "heading_delta_rad": 0.00021600719390037215,
+        "heading_samples": [
+          0.1204083181210701,
+          0.12046224590209414,
+          0.12049878513321294,
+          0.12054751988166414,
+          0.12058745716653366,
+          0.12062432531497047
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.00045206035865249014,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715482699062422,
+      "detection_latency_ms": 83.095685,
+      "fault": "stale_perception",
+      "injected_at_ns": 1715482615966737,
+      "motion_stop_latency_ms": 2068.239402,
+      "motion_stopped_at_ns": 1715484684206139,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715486344737109,
+      "recovery_latency_ms": 3728.770372,
+      "result": "PASS",
+      "safe_command_at_ns": 1715482699062422,
+      "safe_command_latency_ms": 83.095685,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0005039605542842668,
+          0.0002382490279219913,
+          0.0004770595653955689,
+          0.0002754715273959452,
+          0.0004739924424480155
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          3.3307575877314663e-09
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.731381170782775e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715484204219199
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.2888791856336795e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715484323550917
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.000159452387552e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715484443407931
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.5729057994866827e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715484563224795
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.12327817900637e-12
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715484683930445
+          }
+        ],
+        "heading_after_rad": 0.12124621959870882,
+        "heading_before_rad": 0.12101010086895204,
+        "heading_delta_rad": 0.00023611872975677628,
+        "heading_samples": [
+          0.12101010086895204,
+          0.12107039029749196,
+          0.12109882096330572,
+          0.12115599989831417,
+          0.12118900603284805,
+          0.12124621959870882
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0005039605542842668,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715486477974419,
+      "detection_latency_ms": 0.537566,
+      "fault": "invalid_perception",
+      "injected_at_ns": 1715486477436853,
+      "motion_stop_latency_ms": 1386.188804,
+      "motion_stopped_at_ns": 1715487863625657,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715489524547133,
+      "recovery_latency_ms": 3047.11028,
+      "result": "PASS",
+      "safe_command_at_ns": 1715486477974419,
+      "safe_command_latency_ms": 0.537566,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0006145635798089933,
+          0.0005189527258499224,
+          0.0006481855342110152,
+          0.00037088444023709963,
+          0.0005155567194125767
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          8.002743070664631e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.0978710795163094e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715487383313629
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              5.499443162687234e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715487503443472
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.4416460284394822e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715487623228765
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              3.7791885647923965e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715487744069642
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              9.90691607128938e-10
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715487863415573
+          }
+        ],
+        "heading_after_rad": 0.12165726858949374,
+        "heading_before_rad": 0.12133766221567335,
+        "heading_delta_rad": 0.00031960637382039137,
+        "heading_samples": [
+          0.12133766221567335,
+          0.12141093618819364,
+          0.12147327789767441,
+          0.12155092099180824,
+          0.12159573899283214,
+          0.12165726858949374
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0006481855342110152,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715489748307742,
+      "detection_latency_ms": 82.828789,
+      "fault": "compositor_invalid",
+      "injected_at_ns": 1715489665478953,
+      "motion_stop_latency_ms": 2078.996948,
+      "motion_stopped_at_ns": 1715491744475901,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715493404073189,
+      "recovery_latency_ms": 3738.594236,
+      "result": "PASS",
+      "safe_command_at_ns": 1715489748307742,
+      "safe_command_latency_ms": 82.828789,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0004139033826389448,
+          0.0002897623327787946,
+          0.0006826189506015093,
+          0.00028792422369062234,
+          0.0003896671572027759
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          3.333391483757287e-09
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.738285771180703e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715491264144007
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.2906891852003945e-10
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715491384464365
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.004904257651722e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715491504267907
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.574149621717853e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715491623776163
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.126538784356049e-12
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715491744218243
+          }
+        ],
+        "heading_after_rad": 0.12246956839910125,
+        "heading_before_rad": 0.12222203536037589,
+        "heading_delta_rad": 0.00024753303872536436,
+        "heading_samples": [
+          0.12222203536037589,
+          0.1222715822786134,
+          0.12230644658622826,
+          0.12238822675434664,
+          0.12242263607618006,
+          0.12246956839910125
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0006826189506015093,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715493537825241,
+      "detection_latency_ms": 0.532112,
+      "fault": "extreme_target_position",
+      "injected_at_ns": 1715493537293129,
+      "motion_stop_latency_ms": 1386.779964,
+      "motion_stopped_at_ns": 1715494924073093,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715496584489214,
+      "recovery_latency_ms": 3047.196085,
+      "result": "PASS",
+      "safe_command_at_ns": 1715493537825241,
+      "safe_command_latency_ms": 0.532112,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0006247118413326993,
+          0.00044548269158856374,
+          0.000510353431040784,
+          0.0005648783476928576,
+          0.0004133545171327802
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          8.005365371654717e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.0985584999870542e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715494443423356
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              5.5012451942060645e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715494563418415
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.4421184201899546e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715494684088925
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              3.780426911422754e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715494803856003
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              9.910162322680065e-10
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715494923749889
+          }
+        ],
+        "heading_after_rad": 0.12285805101394168,
+        "heading_before_rad": 0.12255142553290467,
+        "heading_delta_rad": 0.0003066254810370067,
+        "heading_samples": [
+          0.12255142553290467,
+          0.12262579817479374,
+          0.12267925389665439,
+          0.12274083850545833,
+          0.12280849233458697,
+          0.12285805101394168
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0006247118413326993,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715496680719860,
+      "detection_latency_ms": 2.956947,
+      "fault": "runtime_unhealthy",
+      "injected_at_ns": 1715496677762913,
+      "motion_stop_latency_ms": 1066.526525,
+      "motion_stopped_at_ns": 1715497744289438,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715499404354427,
+      "recovery_latency_ms": 2726.591514,
+      "result": "PASS",
+      "safe_command_at_ns": 1715496680719860,
+      "safe_command_latency_ms": 2.956947,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.000734100464648872,
+          0.0008719371015114988,
+          0.0006372793365794731,
+          0.0008220840206733241,
+          0.00038304524908632566
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -1.968525634963903e-12
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -5.160371840519773e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715497264134831
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.3527605157612152e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715497384195395
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -3.5461805264370795e-14
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715497503322332
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -9.296099479223219e-15
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715497624137543
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.4369167018814916e-15
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715497743996799
+          }
+        ],
+        "heading_after_rad": 0.12318436828891531,
+        "heading_before_rad": 0.12277068491899176,
+        "heading_delta_rad": 0.00041368336992354815,
+        "heading_samples": [
+          0.12277068491899176,
+          0.12285853412036801,
+          0.12296321938054801,
+          0.12303913651592811,
+          0.12313845677034549,
+          0.12318436828891531
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0008719371015114988,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715499620959700,
+      "detection_latency_ms": 83.102466,
+      "fault": "neural_freeze",
+      "injected_at_ns": 1715499537857234,
+      "motion_stop_latency_ms": 1026.724486,
+      "motion_stopped_at_ns": 1715500564581720,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715502223871597,
+      "recovery_latency_ms": 2686.014363,
+      "result": "PASS",
+      "safe_command_at_ns": 1715499620959700,
+      "safe_command_latency_ms": 83.102466,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0007397875050642876,
+          0.0009198904521794902,
+          0.0007044192497514794,
+          0.0006019774780080112,
+          0.0006547164468322723
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -1.9685256523047556e-12
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -5.160371885977779e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715500084304257
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.352760527677759e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715500204227805
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -3.5461805576755845e-14
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715500324210902
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -9.296099561113083e-15
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715500443491324
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.436916723348428e-15
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715500564319433
+          }
+        ],
+        "heading_after_rad": 0.12369526334921271,
+        "heading_before_rad": 0.12326030142509008,
+        "heading_delta_rad": 0.0004349619241226371,
+        "heading_samples": [
+          0.12326030142509008,
+          0.12334951614143119,
+          0.12345983266822788,
+          0.12354435107139948,
+          0.12361615519901077,
+          0.12369526334921271
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0009198904521794902,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715502320893422,
+      "detection_latency_ms": 3.150104,
+      "fault": "malformed_neural",
+      "injected_at_ns": 1715502317743318,
+      "motion_stop_latency_ms": 606.296167,
+      "motion_stopped_at_ns": 1715502924039485,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715504583998258,
+      "recovery_latency_ms": 2266.25494,
+      "result": "PASS",
+      "safe_command_at_ns": 1715502320893422,
+      "safe_command_latency_ms": 3.150104,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0011236805223928752,
+          0.0011500886529029386,
+          0.0010746056652635191,
+          0.0009095325218040264,
+          0.0007357718387796578
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -3.334812170034783e-10
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -8.742010015015982e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715502444199375
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.2916654733763498e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715502563538177
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -6.007463538527697e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715502683322831
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.5748205218438046e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715502804089408
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -4.1282975087822234e-13
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715502923727179
+          }
+        ],
+        "heading_after_rad": 0.12389214071486795,
+        "heading_before_rad": 0.12329330670043766,
+        "heading_delta_rad": 0.0005988340144302967,
+        "heading_samples": [
+          0.12329330670043766,
+          0.12342830201295207,
+          0.1235655522149833,
+          0.12369427348278333,
+          0.12380411461211178,
+          0.12389214071486795
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0011500886529029386,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715504678832185,
+      "detection_latency_ms": 0.553824,
+      "fault": "neural_unavailable",
+      "injected_at_ns": 1715504678278361,
+      "motion_stop_latency_ms": 605.981173,
+      "motion_stopped_at_ns": 1715505284259534,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715506944423133,
+      "recovery_latency_ms": 2266.144772,
+      "result": "PASS",
+      "safe_command_at_ns": 1715504678832185,
+      "safe_command_latency_ms": 0.553824,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.001568165183571009,
+          0.0009799087207622696,
+          0.001180703904503789,
+          0.0009114063692365203,
+          0.000792154928631413
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -3.334812170046945e-10
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -8.742010015047863e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715504803671506
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.2916654733847072e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715504923524415
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -6.007463538549606e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715505043311779
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.574820521849548e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715505164170851
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -4.128297508797279e-13
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715505283949765
+          }
+        ],
+        "heading_after_rad": 0.12429691969984819,
+        "heading_before_rad": 0.12364574460177087,
+        "heading_delta_rad": 0.000651175098077314,
+        "heading_samples": [
+          0.12364574460177087,
+          0.12383300619565331,
+          0.12395045110639114,
+          0.12409188451477615,
+          0.12420203624277697,
+          0.12429691969984819
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.001568165183571009,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715507041623519,
+      "detection_latency_ms": 3.262002,
+      "fault": "decoder_crash",
+      "injected_at_ns": 1715507038361517,
+      "motion_stop_latency_ms": 585.879302,
+      "motion_stopped_at_ns": 1715507624240819,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715509283869624,
+      "recovery_latency_ms": 2245.508107,
+      "result": "PASS",
+      "safe_command_at_ns": 1715507041623519,
+      "safe_command_latency_ms": 3.262002,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0013640779625798502,
+          0.0011074555487530415,
+          0.001127179772087645,
+          0.0008324606099708925,
+          0.0009132978368022023
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -3.334812170046945e-10
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -8.742010015047863e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715507163626810
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.2916654733847072e-11
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715507283653530
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -7.509329423187007e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715507385073340
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.968525652311935e-12
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715507504120697
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -5.160371885996599e-13
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715507623923550
+          }
+        ],
+        "heading_after_rad": 0.12470029410853323,
+        "heading_before_rad": 0.12408109150123814,
+        "heading_delta_rad": 0.0006192026072950885,
+        "heading_samples": [
+          0.12408109150123814,
+          0.12424453357123835,
+          0.12437745782830098,
+          0.12449177618662195,
+          0.1245908784220456,
+          0.12470029410853323
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0013640779625798502,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715509421548756,
+      "detection_latency_ms": 3.299206,
+      "fault": "decoder_stale",
+      "injected_at_ns": 1715509418249550,
+      "motion_stop_latency_ms": 1026.303931,
+      "motion_stopped_at_ns": 1715510444553481,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715512104433568,
+      "recovery_latency_ms": 2686.184018,
+      "result": "PASS",
+      "safe_command_at_ns": 1715509421548756,
+      "safe_command_latency_ms": 3.299206,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0008979687322268301,
+          0.0007830994200733864,
+          0.000664818597496382,
+          0.0007035350928711049,
+          0.0004965625080272094
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -1.9685256523137407e-12
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -5.160371886001332e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715509963629958
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.3527605276839332e-13
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715510083342871
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -3.54618055769177e-14
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715510203623238
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -9.296099561155513e-15
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715510323252088
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.436916723359551e-15
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715510444237638
+          }
+        ],
+        "heading_after_rad": 0.12545784303891194,
+        "heading_before_rad": 0.12503266813593636,
+        "heading_delta_rad": 0.0004251749029755836,
+        "heading_samples": [
+          0.12503266813593636,
+          0.1251398913190332,
+          0.1252336384317788,
+          0.12531360305667408,
+          0.1253977661507689,
+          0.12545784303891194
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0008979687322268301,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715512268909342,
+      "detection_latency_ms": 101.175124,
+      "fault": "delayed_command",
+      "injected_at_ns": 1715512167734218,
+      "motion_stop_latency_ms": 1776.665585,
+      "motion_stopped_at_ns": 1715513944399803,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715515583810986,
+      "recovery_latency_ms": 3416.076768,
+      "result": "PASS",
+      "safe_command_at_ns": 1715512269092797,
+      "safe_command_latency_ms": 101.358579,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0028680574989676326,
+          0.003195900726904992,
+          0.0029424102141117105,
+          0.0026318504545265616,
+          0.0024616389427174795
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          9.730418796357273e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.550770904952281e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715513463843598
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.686692881078106e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715513583547886
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.752876418617339e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715513703977373
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.595060358820238e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715513823723111
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.2045675027025725e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715513943429609
+          }
+        ],
+        "heading_after_rad": 0.12387042374302606,
+        "heading_before_rad": 0.12218145734215591,
+        "heading_delta_rad": 0.0016889664008701566,
+        "heading_samples": [
+          0.12218145734215591,
+          0.12252368071720814,
+          0.12290624373824098,
+          0.12326059669087001,
+          0.12357574956585293,
+          0.12387042374302606
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.003195900726904992,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715515684120810,
+      "detection_latency_ms": 2.60539,
+      "fault": "maximal_looming_stimulus",
+      "injected_at_ns": 1715515681515420,
+      "motion_stop_latency_ms": 1622.91236,
+      "motion_stopped_at_ns": 1715517304427780,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715518963955948,
+      "recovery_latency_ms": 3282.440528,
+      "result": "PASS",
+      "safe_command_at_ns": 1715516684466837,
+      "safe_command_latency_ms": 1002.951417,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0008365067245081981,
+          0.000711267920447434,
+          0.0005150733381556531,
+          0.0004576024267838068,
+          0.0006207718980491238
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          -4.759602924327452e-15
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -1.2477013489948955e-15
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715516824165689
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -3.2707742243091788e-16
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715516944130332
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -8.574138382573052e-17
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715517064157647
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -2.24765893216123e-17
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715517184151875
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              -5.8921030311247355e-18
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715517304154770
+          }
+        ],
+        "heading_after_rad": 0.1268567450934002,
+        "heading_before_rad": 0.12647970270383532,
+        "heading_delta_rad": 0.00037704238956487446,
+        "heading_samples": [
+          0.12647970270383532,
+          0.12658019114660607,
+          0.1266655181487599,
+          0.1267273410185668,
+          0.12678225066849966,
+          0.1268567450934002
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0008365067245081981,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715519650996933,
+      "detection_latency_ms": 7.223995,
+      "fault": "connectome_process_crash",
+      "injected_at_ns": 1715519643772938,
+      "motion_stop_latency_ms": 2100.432755,
+      "motion_stopped_at_ns": 1715521744205693,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715524003615395,
+      "recovery_latency_ms": 4359.842457,
+      "result": "PASS",
+      "safe_command_at_ns": 1715521123829667,
+      "safe_command_latency_ms": 1480.056729,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.003645198273967231,
+          0.0032061457056374813,
+          0.003077357939126355,
+          0.002663894675340445,
+          0.002656419365008278
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          6.83855178449289e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.7926853189941046e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0600971175
+            ],
+            "timestamp_ns": 1715521263833689
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.699417002623905e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0600971175
+            ],
+            "timestamp_ns": 1715521383502789
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.2319239707358408e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0600971175
+            ],
+            "timestamp_ns": 1715521504135963
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              3.2294147738457627e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0600971175
+            ],
+            "timestamp_ns": 1715521623719857
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.465717064750237e-10
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0600971175
+            ],
+            "timestamp_ns": 1715521743808286
+          }
+        ],
+        "heading_after_rad": 0.12415241114892084,
+        "heading_before_rad": 0.12232642480519003,
+        "heading_delta_rad": 0.0018259863437308094,
+        "heading_samples": [
+          0.12232642480519003,
+          0.12275993899533533,
+          0.12314361556639783,
+          0.12351484702212874,
+          0.12383340592061182,
+          0.12415241114892084
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.003645198273967231,
+        "requested": [
+          0.0,
+          0.0,
+          0.0600971175
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715524683512254,
+      "detection_latency_ms": 0.13324,
+      "fault": "connectome_process_freeze",
+      "injected_at_ns": 1715524683379014,
+      "motion_stop_latency_ms": 2100.189039,
+      "motion_stopped_at_ns": 1715526783568053,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715529063645804,
+      "recovery_latency_ms": 4380.26679,
+      "result": "PASS",
+      "safe_command_at_ns": 1715526163465989,
+      "safe_command_latency_ms": 1480.086975,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0032263279405618087,
+          0.0031529702585082926,
+          0.0028946181653047927,
+          0.0029484969724062234,
+          0.0027040302295604423
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          6.83808094902691e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.7925618923017104e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.060092979000000005
+            ],
+            "timestamp_ns": 1715526303725379
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.6990934469553964e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.060092979000000005
+            ],
+            "timestamp_ns": 1715526423495366
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.2318391525586757e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.060092979000000005
+            ],
+            "timestamp_ns": 1715526543340427
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              3.229192428083415e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.060092979000000005
+            ],
+            "timestamp_ns": 1715526663865808
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              8.465134198674987e-10
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.060092979000000005
+            ],
+            "timestamp_ns": 1715526783297590
+          }
+        ],
+        "heading_after_rad": 0.1248926920961299,
+        "heading_before_rad": 0.12310558935263202,
+        "heading_delta_rad": 0.0017871027434978731,
+        "heading_samples": [
+          0.12310558935263202,
+          0.12348983932878943,
+          0.12386747053566236,
+          0.12421437622625502,
+          0.12456974494723162,
+          0.1248926920961299
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0032263279405618087,
+        "requested": [
+          0.0,
+          0.0,
+          0.060092979000000005
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715529174964565,
+      "detection_latency_ms": 50.77042,
+      "fault": "ipc_disconnect",
+      "injected_at_ns": 1715529124194145,
+      "motion_stop_latency_ms": 3781.679455,
+      "motion_stopped_at_ns": 1715532905873600,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715534565524110,
+      "recovery_latency_ms": 5441.329965,
+      "result": "PASS",
+      "safe_command_at_ns": 1715529226547225,
+      "safe_command_latency_ms": 102.35308,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0012882778244133275,
+          0.004884145816817572,
+          -0.0010682401893999547,
+          0.0004500568387683816,
+          -1.8240344738053416e-05
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715532425437590
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715532545160857
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715532665050140
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715532785749123
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715532905520683
+          }
+        ],
+        "heading_after_rad": 0.43629370273927504,
+        "heading_before_rad": 0.4356298049116987,
+        "heading_delta_rad": 0.0006638978275763097,
+        "heading_samples": [
+          0.4356298049116987,
+          0.4357848906677729,
+          0.43636963656146666,
+          0.4362415660110877,
+          0.43629588741381925,
+          0.43629370273927504
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.004884145816817572,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715534626156866,
+      "detection_latency_ms": 0.205973,
+      "fault": "connection_refused",
+      "injected_at_ns": 1715534625950893,
+      "motion_stop_latency_ms": 1639.621289,
+      "motion_stopped_at_ns": 1715536265572182,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715537925891298,
+      "recovery_latency_ms": 3299.940405,
+      "result": "PASS",
+      "safe_command_at_ns": 1715534626852579,
+      "safe_command_latency_ms": 0.901686,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0027075230138814952,
+          0.0016117887494110337,
+          0.0012076596060403616,
+          0.0009224555102521555,
+          0.000758068355384652
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          8.915159940122482e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.337055687343468e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715535784656595
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.12645126102966e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715535905073728
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.606012439371359e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715536025319361
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.210065249065655e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715536144802979
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.1036433446510671e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715536265313932
+          }
+        ],
+        "heading_after_rad": 0.44036922913059456,
+        "heading_before_rad": 0.4395056234355521,
+        "heading_delta_rad": 0.0008636056950424575,
+        "heading_samples": [
+          0.4395056234355521,
+          0.43982835249485647,
+          0.4400224394750622,
+          0.44016765526883905,
+          0.440277873590648,
+          0.44036922913059456
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0027075230138814952,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715538136694488,
+      "detection_latency_ms": 150.359322,
+      "fault": "read_timeout",
+      "injected_at_ns": 1715537986335166,
+      "motion_stop_latency_ms": 1799.093311,
+      "motion_stopped_at_ns": 1715539785428477,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715541445559919,
+      "recovery_latency_ms": 3459.224753,
+      "result": "PASS",
+      "safe_command_at_ns": 1715538137573535,
+      "safe_command_latency_ms": 151.238369,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0025661198461934326,
+          0.002531450831214778,
+          0.002366334064682775,
+          0.0021633741439284777,
+          0.0019765753126789764
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          8.62870563634019e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.2619634103327626e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715539305205311
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              5.929601362382718e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715539425605900
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.5544094195404552e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715539545514101
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.07479102876013e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715539664896118
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.0681820194432953e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715539785204217
+          }
+        ],
+        "heading_after_rad": 0.4360417997262462,
+        "heading_before_rad": 0.4346488778674828,
+        "heading_delta_rad": 0.0013929218587633851,
+        "heading_samples": [
+          0.4346488778674828,
+          0.4349572027072557,
+          0.4352619908783585,
+          0.4355457337390196,
+          0.43580400170784744,
+          0.4360417997262462
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0025661198461934326,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715541556567114,
+      "detection_latency_ms": 50.572698,
+      "fault": "write_failure",
+      "injected_at_ns": 1715541505994416,
+      "motion_stop_latency_ms": 3542.243889,
+      "motion_stopped_at_ns": 1715545048238305,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715546708133453,
+      "recovery_latency_ms": 5202.139037,
+      "result": "PASS",
+      "safe_command_at_ns": 1715541608151395,
+      "safe_command_latency_ms": 102.156979,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          -0.008196479527971045,
+          0.004074406321854667,
+          -0.00032651152949278185,
+          0.008614487920142072,
+          -0.0008289954982649016
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715544567523239
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715544688191030
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715544808303727
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715544927956204
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715545047867027
+          }
+        ],
+        "heading_after_rad": 0.6353216444257682,
+        "heading_before_rad": 0.6349195864645139,
+        "heading_delta_rad": 0.0004020579612543651,
+        "heading_samples": [
+          0.6349195864645139,
+          0.6339378737104112,
+          0.6344295233209059,
+          0.6343903051404969,
+          0.6354210499582285,
+          0.6353216444257682
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.008614487920142072,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715546768670210,
+      "detection_latency_ms": 0.13013,
+      "fault": "socket_close",
+      "injected_at_ns": 1715546768540080,
+      "motion_stop_latency_ms": 1639.250441,
+      "motion_stopped_at_ns": 1715548407790521,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715550068472568,
+      "recovery_latency_ms": 3299.932488,
+      "result": "PASS",
+      "safe_command_at_ns": 1715546769217164,
+      "safe_command_latency_ms": 0.677084,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.0020233168933187825,
+          0.0019007286384854793,
+          0.0020677168566918566,
+          0.0018824723410833459,
+          0.0018532155984830284
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          8.915159940122482e-07
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              2.337055687343468e-07
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715547927701612
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              6.12645126102966e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715548047954759
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.606012439371359e-08
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715548167503366
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              4.210065249065655e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715548288046850
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              1.1036433446510671e-09
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715548407599484
+          }
+        ],
+        "heading_after_rad": 0.6369375689243589,
+        "heading_before_rad": 0.6357718876993552,
+        "heading_delta_rad": 0.0011656812250037119,
+        "heading_samples": [
+          0.6357718876993552,
+          0.6360133310734037,
+          0.6362418996737746,
+          0.6364890923436626,
+          0.6367160121181904,
+          0.6369375689243589
+        ],
+        "limited_by": [
+          "deadman"
+        ],
+        "max_abs_angular_rate_radps": 0.0020677168566918566,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715550230876773,
+      "detection_latency_ms": 101.957336,
+      "fault": "robotd_restart",
+      "injected_at_ns": 1715550128919437,
+      "motion_stop_latency_ms": 3997.824809,
+      "motion_stopped_at_ns": 1715554126744246,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715555785811447,
+      "recovery_latency_ms": 5656.89201,
+      "result": "PASS",
+      "safe_command_at_ns": 1715550231038014,
+      "safe_command_latency_ms": 102.118577,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.004752715581008413,
+          -0.0011115453632849729,
+          0.0004228144187003053,
+          0.0007461800104411314,
+          0.00046875016265883685
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715553645617923
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715553766275303
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715553885978310
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715554005749308
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715554126422394
+          }
+        ],
+        "heading_after_rad": 0.9323848413334379,
+        "heading_before_rad": 0.9317526538915275,
+        "heading_delta_rad": 0.0006321874419104034,
+        "heading_samples": [
+          0.9317526538915275,
+          0.9323224090741724,
+          0.9321882929228873,
+          0.9322389050802087,
+          0.9323282758047469,
+          0.9323848413334379
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.004752715581008413,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    },
+    {
+      "detected_at_ns": 1715562040788768,
+      "detection_latency_ms": 6194.566886,
+      "fault": "simulator_restart",
+      "injected_at_ns": 1715555846221882,
+      "motion_stop_latency_ms": 14094.553957,
+      "motion_stopped_at_ns": 1715569940775839,
+      "old_command_replayed": false,
+      "recovery_at_ns": 1715571600855940,
+      "recovery_latency_ms": 15754.634058,
+      "result": "PASS",
+      "safe_command_at_ns": 1715569337217917,
+      "safe_command_latency_ms": 13490.996035,
+      "safe_state_reached": true,
+      "state_evidence": {
+        "angular_rate_samples_radps": [
+          0.00026532322473080323,
+          0.00017735382498358535,
+          0.00012269636421979735,
+          0.0002972026365469692,
+          0.0003675315009613161
+        ],
+        "applied": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_samples": [
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715569461004278
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715569581091804
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715569700787489
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715569820553651
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "limited_by": [
+              "deadman"
+            ],
+            "requested": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "timestamp_ns": 1715569940527200
+          }
+        ],
+        "heading_after_rad": 0.11699997104105342,
+        "heading_before_rad": 0.1168524785527182,
+        "heading_delta_rad": 0.00014749248833521855,
+        "heading_samples": [
+          0.1168524785527182,
+          0.11688429795596707,
+          0.11690559593803598,
+          0.11692028216339828,
+          0.11695587698251379,
+          0.11699997104105342
+        ],
+        "limited_by": [],
+        "max_abs_angular_rate_radps": 0.0003675315009613161,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "settled_windows": 5
+      },
+      "stop_transport": "robot_stop"
+    }
+  ],
+  "result": "PASS",
+  "schema_version": "p6-06-fault-matrix-v1",
+  "source_head": "2891cb952a5bf9168de418056c5c850d0b9ffb33",
+  "worst_detection_latency_ms": 6194.566886,
+  "worst_motion_stop_latency_ms": 14094.553957
+}
