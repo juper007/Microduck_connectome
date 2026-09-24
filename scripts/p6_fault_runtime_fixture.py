@@ -273,7 +273,7 @@ class Session:
             requested = state["move"]["requested"]
             applied = state["move"]["applied"]
             stopped = all(abs(float(v)) <= 1e-6 for v in applied)
-            source = "deadman" in state["move"]["limited_by"] if require_deadman else all(abs(float(v)) <= 1e-6 for v in requested)
+            source = "deadman" in state["move"].get("limited_by", []) if require_deadman else all(abs(float(v)) <= 1e-6 for v in requested)
             if stopped and source:
                 break
         else:
@@ -295,11 +295,11 @@ class Session:
             rate = (heading - headings[-1]) / ((sample_ns - heading_times[-1]) / 1e9)
             if (
                 all(abs(float(v)) <= 1e-6 for v in applied)
-                and ("deadman" in sample["move"]["limited_by"] if require_deadman else all(abs(float(v)) <= 1e-6 for v in requested))
+                and ("deadman" in sample["move"].get("limited_by", []) if require_deadman else all(abs(float(v)) <= 1e-6 for v in requested))
                 and abs(rate) <= 0.01
             ):
                 headings.append(heading); heading_times.append(sample_ns); rates.append(rate)
-                command_samples.append({"timestamp_ns": sample_ns, "requested": requested, "applied": applied, "limited_by": list(sample["move"]["limited_by"])})
+                command_samples.append({"timestamp_ns": sample_ns, "requested": requested, "applied": applied, "limited_by": list(sample["move"].get("limited_by", []))})
             else:
                 headings = [heading]; heading_times = [sample_ns]; rates = []; command_samples = []
             if time.monotonic() >= heading_deadline:
@@ -310,7 +310,7 @@ class Session:
         return {
             "requested": list(state["move"]["requested"]),
             "applied": list(state["move"]["applied"]),
-            "limited_by": list(state["move"]["limited_by"]),
+            "limited_by": list(state["move"].get("limited_by", [])),
             "heading_before_rad": before, "heading_after_rad": after,
             "heading_delta_rad": delta,
             "settled_windows": 5, "heading_samples": headings,
@@ -587,7 +587,7 @@ def process_fault(session, name, args, raw):
                 deadline = time.monotonic() + 3.0
                 while time.monotonic() < deadline:
                     move = observer.state(hz=50)["move"]
-                    if "deadman" in move["limited_by"] and all(abs(float(v)) <= 1e-6 for v in move["applied"]):
+                    if "deadman" in move.get("limited_by", []) and all(abs(float(v)) <= 1e-6 for v in move["applied"]):
                         safe_at = time.monotonic_ns()
                         break
                 else:
