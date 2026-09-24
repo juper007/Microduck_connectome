@@ -111,6 +111,7 @@ class WorkerFaultChain:
         self.fault_armed = False
         self.fault_active = False
         self.pre_fault_snapshot = None
+        self.test_stimulus_logged = False
 
     def inject(self, point, now_ns, **details):
         with self.lock:
@@ -160,6 +161,17 @@ class WorkerFaultChain:
             return None
         mapped = {} if frame is None else self.mapper.build_external(frame, now_ns=now_ns)
         external = {key: value for key, value in mapped.items() if key in self.index}
+        # The pinned graph produces zero robot-facing motion under the five
+        # natural P6-05 scenarios.  A fault test must start from actual motion,
+        # so inject a labeled, bounded DNa02 test current *inside* the MaleCNS
+        # runtime.  Runtime, DN aggregation, decoding, clamp and watchdog still
+        # execute; this is not evidence for biological sensory steering.
+        if self.fault == "none" or (sensor_fault and not self.fault_active):
+            external[523769] = 1.0
+            if not self.test_stimulus_logged:
+                self.events.append({"timestamp_ns": now_ns, "engineering_test_input": "direct_DNa02_runtime_current",
+                                    "body_id": 523769, "amplitude": 1.0})
+                self.test_stimulus_logged = True
         if self.fault == "neural_unavailable":
             self.inject("MaleCNS Runtime", now_ns, action="raise unavailable")
             raise RuntimeError("injected neural runtime unavailable")
@@ -192,6 +204,7 @@ class WorkerFaultChain:
             self.pre_fault_snapshot = {
                 "timestamp_ns": now_ns, "frame": dict(frame), "stimulus_channels": channels,
                 "dn_readout": dict(readout), "robot_facing_intent": dict(safe["intent"]),
+                "engineering_test_input": "direct_DNa02_runtime_current",
             }
             self.events.append({"timestamp_ns": now_ns, "observed_point": "healthy_non_neutral_full_chain", "snapshot": self.pre_fault_snapshot})
             self.fault_armed = True
