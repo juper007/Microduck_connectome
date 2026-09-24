@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import platform
@@ -24,6 +25,48 @@ def started_trial_failed(item: dict) -> bool:
         or "safety_limit_violations" not in item
         or "summary_sha256" not in item
         or "trace_sha256" not in item))
+
+
+def collect_started_trial(command: list[str], folder: Path, *, env: dict,
+                          root: Path, runner=run_logged) -> dict:
+    row = {"trial_exit": None}
+    try:
+        row["trial_exit"] = runner(command, folder / "trial.log", env=env, cwd=root)
+        row["trial_log_sha256"] = sha256_file(folder / "trial.log")
+        summary_path = folder / "summary.json"
+        if not summary_path.exists():
+            row["outcome"] = "invalid"
+            row["invalid_reasons"] = ["trial_process_failed_before_summary"]
+            return row
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        row.update({field: summary[field] for field in (
+            "outcome", "safety_limit_violations", "initial_heading_rad",
+            "final_heading_delta_rad", "response", "invalid_reasons",
+            "max_abs_robot_facing_vyaw", "max_heading_sample_delay_ms")})
+        row["summary_sha256"] = sha256_file(summary_path)
+        trace_path = folder / "trace.jsonl"
+        if trace_path.exists():
+            row["trace_sha256"] = sha256_file(trace_path)
+    except BaseException as error:
+        row["outcome"] = "invalid"
+        row["invalid_reasons"] = ["trial_harness_or_summary_exception"]
+        row["harness_exception"] = f"{type(error).__name__}: {error}"
+    return row
+
+
+@contextmanager
+def ensure_sim_down(sim_script: Path, output_dir: Path, env: dict,
+                    record: dict, runner=run_logged):
+    try:
+        yield
+    finally:
+        log = output_dir / "batch-final-sim-down.log"
+        try:
+            record["exit"] = runner([str(sim_script), "down"], log, env=env)
+        except BaseException as error:
+            record["error"] = f"{type(error).__name__}: {error}"
+        if log.exists():
+            record["sha256"] = sha256_file(log)
 
 
 def summarize(results: list[dict], experiment: dict, *, head: str,
@@ -121,23 +164,33 @@ def main() -> None:
     })
     results = []
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    with journal.open("w", encoding="utf-8") as output:
+    final_down = {}
+    with ensure_sim_down(args.sim_script, args.output, env, final_down), \
+            journal.open("w", encoding="utf-8") as output:
         for index, spec in enumerate(experiment["target_trials"], 1):
             folder = args.output / spec["trial_id"]
             folder.mkdir()
             spec_path = folder / "trial-spec.json"
             spec_path.write_text(json.dumps(spec, sort_keys=True, indent=2) + "\n",
                                  encoding="utf-8")
-            acquisition = acquire(root=root, experiment_path=experiment_path,
-                                  experiment=experiment, trial_dir=folder,
-                                  sim_script=args.sim_script, body_port=args.body_port,
-                                  env=env)
             row = {"index": index, "trial_id": spec["trial_id"], "seed": spec["seed"],
-                   "spec": spec, "pretrial_acquisition_sha256": sha256_file(
-                       folder / "pretrial-acquisition.json"),
-                   "pretrial_attempts_used": acquisition["attempts_used"],
-                   "trial_started": acquisition["accepted"]}
-            if acquisition["accepted"]:
+                   "spec": spec, "trial_started": False}
+            acquisition = None
+            try:
+                acquisition = acquire(root=root, experiment_path=experiment_path,
+                                      experiment=experiment, trial_dir=folder,
+                                      sim_script=args.sim_script, body_port=args.body_port,
+                                      env=env)
+                row["pretrial_acquisition_sha256"] = sha256_file(
+                    folder / "pretrial-acquisition.json")
+                row["pretrial_attempts_used"] = acquisition["attempts_used"]
+                row["trial_started"] = acquisition["accepted"]
+            except BaseException as error:
+                acquisition = None
+                row["outcome"] = "invalid"
+                row["invalid_reasons"] = ["pretrial_acquisition_exception"]
+                row["harness_exception"] = f"{type(error).__name__}: {error}"
+            if acquisition is not None and acquisition["accepted"]:
                 command = [
                     sys.executable, str(root / "scripts/p7_target_steering_trial.py"),
                     "--root", str(root), "--graph-cache", str(args.graph_cache),
@@ -152,31 +205,21 @@ def main() -> None:
                     "--artifact", str(folder / "trace.jsonl"),
                     "--summary", str(folder / "summary.json"),
                 ]
-                row["trial_exit"] = run_logged(command, folder / "trial.log", env=env, cwd=root)
-                row["trial_log_sha256"] = sha256_file(folder / "trial.log")
-                summary_path = folder / "summary.json"
-                if summary_path.exists():
-                    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-                    row.update({field: summary[field] for field in (
-                        "outcome", "safety_limit_violations", "initial_heading_rad",
-                        "final_heading_delta_rad", "response", "invalid_reasons",
-                        "max_abs_robot_facing_vyaw", "max_heading_sample_delay_ms")})
-                    row["summary_sha256"] = sha256_file(summary_path)
-                    trace_path = folder / "trace.jsonl"
-                    if trace_path.exists():
-                        row["trace_sha256"] = sha256_file(trace_path)
-                else:
-                    row["outcome"] = "invalid"
-                    row["invalid_reasons"] = ["trial_process_failed_before_summary"]
-            else:
+                row.update(collect_started_trial(command, folder, env=env, root=root))
+            elif acquisition is not None:
                 row["outcome"] = "invalid"
                 row["invalid_reasons"] = ["pretrial_pose_acquisition_exhausted"]
-            abort = started_trial_failed(row) or bool(row.get("safety_limit_violations", 0))
+            abort = (acquisition is None or started_trial_failed(row)
+                     or bool(row.get("safety_limit_violations", 0)))
             if abort:
                 emergency_log = folder / "emergency-sim-down.log"
-                row["emergency_sim_down_exit"] = run_logged(
-                    [str(args.sim_script), "down"], emergency_log, env=env)
-                row["emergency_sim_down_sha256"] = sha256_file(emergency_log)
+                try:
+                    row["emergency_sim_down_exit"] = run_logged(
+                        [str(args.sim_script), "down"], emergency_log, env=env)
+                except BaseException as error:
+                    row["emergency_sim_down_error"] = f"{type(error).__name__}: {error}"
+                if emergency_log.exists():
+                    row["emergency_sim_down_sha256"] = sha256_file(emergency_log)
             output.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
             output.flush()
             results.append(row)
@@ -187,6 +230,11 @@ def main() -> None:
     batch = summarize(results, experiment, head=head,
                       manifest_hash=sha256_file(experiment_path),
                       journal_hash=sha256_file(journal), started_utc=started)
+    batch["final_sim_down_exit"] = final_down.get("exit")
+    batch["final_sim_down_sha256"] = final_down.get("sha256")
+    batch["final_sim_down_error"] = final_down.get("error")
+    if final_down.get("exit") != 0:
+        batch["result"] = "FAIL"
     batch["raw_journal_bytes"] = journal.stat().st_size
     (args.output / "batch-summary.json").write_text(
         json.dumps(batch, sort_keys=True, indent=2, allow_nan=False) + "\n",

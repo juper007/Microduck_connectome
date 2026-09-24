@@ -1,8 +1,11 @@
 """The v4 batch gate counts invalid resets and no-response trials correctly."""
 
+from pathlib import Path
+import tempfile
 import unittest
 
-from scripts.p7_target_batch_v4 import summarize
+from scripts.p7_target_batch_v4 import (collect_started_trial, ensure_sim_down,
+                                         started_trial_failed, summarize)
 
 
 class BatchV4GateTests(unittest.TestCase):
@@ -55,6 +58,37 @@ class BatchV4GateTests(unittest.TestCase):
         rows[-1] = {"trial_id": "pretrial-rejected", "outcome": "invalid",
                     "spec": spec, "trial_started": False}
         self.assertEqual(summarize(rows, experiment, **kwargs)["result"], "PASS")
+
+    def test_malformed_started_trial_summary_becomes_fail_closed_record(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder / "summary.json").write_text('{"outcome":', encoding="utf-8")
+            def runner(command, log, *, env, cwd):
+                log.write_text("trial process completed\n", encoding="utf-8")
+                return 0
+            record = collect_started_trial(["trial"], folder, env={}, root=folder,
+                                           runner=runner)
+            self.assertEqual(record["outcome"], "invalid")
+            self.assertEqual(record["invalid_reasons"],
+                             ["trial_harness_or_summary_exception"])
+            self.assertTrue(started_trial_failed({"trial_id": "bad", "trial_started": True,
+                                                  **record}))
+
+    def test_simulator_is_taken_down_after_unhandled_batch_exception(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            calls = []
+            def runner(command, log, *, env):
+                calls.append(command)
+                log.write_text("down complete\n", encoding="utf-8")
+                return 0
+            record = {}
+            with self.assertRaisesRegex(RuntimeError, "journal unavailable"):
+                with ensure_sim_down(Path("duck-sim"), folder, {}, record, runner=runner):
+                    raise RuntimeError("journal unavailable")
+            self.assertEqual(calls, [["duck-sim", "down"]])
+            self.assertEqual(record["exit"], 0)
+            self.assertIn("sha256", record)
 
 
 if __name__ == "__main__":
