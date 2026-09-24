@@ -158,9 +158,12 @@ class WorkerFaultChain:
         sensor_fault = self.fault in ("camera_dropout", "tof_dropout", "stale_perception", "invalid_perception", "compositor_invalid", "extreme_target_position")
         if self.fault_active and sensor_fault:
             self.events.append({"timestamp_ns": now_ns, "observed_point": "SensoryMapper", "channels": channels})
-            return None
         mapped = {} if frame is None else self.mapper.build_external(frame, now_ns=now_ns)
         external = {key: value for key, value in mapped.items() if key in self.index}
+        if self.fault_active and sensor_fault:
+            if any(value != 0.0 for value in channels.values()) or any(value != 0.0 for value in external.values()):
+                raise AssertionError(f"{self.fault} failed to neutralize sensory stimulation")
+            self.events.append({"timestamp_ns": now_ns, "observed_point": "StimulusInjector", "external_nonzero": 0})
         # The pinned graph produces zero robot-facing motion under the five
         # natural P6-05 scenarios.  A fault test must start from actual motion,
         # so inject a labeled, bounded DNa02 test current *inside* the MaleCNS
@@ -176,6 +179,8 @@ class WorkerFaultChain:
             self.inject("MaleCNS Runtime", now_ns, action="raise unavailable")
             raise RuntimeError("injected neural runtime unavailable")
         snapshot = self.runtime.step(external)
+        if self.fault_active and sensor_fault:
+            self.events.append({"timestamp_ns": now_ns, "observed_point": "MaleCNS Runtime", "healthy": snapshot["healthy"]})
         if self.fault == "neural_freeze" and self.completed_updates >= 2:
             self.inject("MaleCNS Runtime", now_ns, action="freeze updates")
             return None
@@ -413,9 +418,19 @@ def scheduler_fault(session, graph, name, raw):
         raise AssertionError(f"{name} lacked a healthy non-neutral full-chain pre-fault command")
     if sensor_fault and "output" not in pre_fault_transport:
         raise AssertionError(f"{name} lacked an actual non-neutral robot-facing transport")
-    causal = next((item for item in observations if item["timestamp_ns"] >= injected and item["stop"]), None)
+    neutral_sensor_fault = name in ("camera_dropout", "tof_dropout", "stale_perception", "compositor_invalid")
+    causal = next((item for item in observations if item["timestamp_ns"] >= injected and
+                   (item["stop"] or (neutral_sensor_fault and
+                    all(item[key] == 0.0 for key in ("vx", "vy", "vyaw"))))), None)
     if causal is None:
-        raise AssertionError(f"{name} did not propagate to a robot-facing stop")
+        raise AssertionError(f"{name} did not propagate to a robot-facing stop or neutral command")
+    if neutral_sensor_fault:
+        later = [item for item in observations if item["timestamp_ns"] >= causal["timestamp_ns"]]
+        if any(not item["stop"] and any(item[key] != 0.0 for key in ("vx", "vy", "vyaw")) for item in later):
+            raise AssertionError(f"{name} resumed motion after neutral sensory propagation")
+        required = ("SensoryMapper", "StimulusInjector", "MaleCNS Runtime")
+        if any(not any(event.get("observed_point") == point for event in chain.events) for point in required):
+            raise AssertionError(f"{name} missed a full-chain neutral sensory stage")
     detected = causal["timestamp_ns"]
     safe_at = detected
     state = session.safe_state()
@@ -583,12 +598,13 @@ def process_fault(session, name, args, raw):
                         raise AssertionError("controller process did not crash")
                 else:
                     wait_for(lambda: Path(f"/proc/{worker.pid}/stat").read_text().split()[2] == "T", timeout_s=2.0)
-                detected = time.monotonic_ns()
+                harness_observed_at = time.monotonic_ns()
                 deadline = time.monotonic() + 3.0
                 while time.monotonic() < deadline:
                     move = observer.state(hz=50)["move"]
                     if "deadman" in move.get("limited_by", []) and all(abs(float(v)) <= 1e-6 for v in move["applied"]):
                         safe_at = time.monotonic_ns()
+                        detected = safe_at
                         break
                 else:
                     raise RuntimeError(f"{name} did not reach official robotd deadman: {move!r}")
@@ -605,6 +621,7 @@ def process_fault(session, name, args, raw):
             recovered = session.recover(stop)
             raw.append({"fault": name, "injected_point": "separate full-chain controller process",
                         "worker_pid": worker.pid, "worker_marker": marker, "pre_fault_move": before,
+                        "harness_observed_fault_at_ns": harness_observed_at,
                         "observed_deadman_move": move, "worker_log": str(worker_log),
                         "worker_log_sha256": hashlib.sha256(worker_log.read_bytes()).hexdigest()})
             return make_fault_record(
