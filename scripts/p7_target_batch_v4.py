@@ -17,6 +17,15 @@ from scripts.p7_pretrial_acquisition import acquire, run_logged, sha256_file
 from scripts.p7_target_batch import percentile, wilson_interval
 
 
+def started_trial_failed(item: dict) -> bool:
+    return bool(item.get("trial_started") and (
+        item.get("trial_exit") != 0
+        or item["outcome"] == "invalid"
+        or "safety_limit_violations" not in item
+        or "summary_sha256" not in item
+        or "trace_sha256" not in item))
+
+
 def summarize(results: list[dict], experiment: dict, *, head: str,
               manifest_hash: str, journal_hash: str, started_utc: str) -> dict:
     counts = Counter(item["outcome"] for item in results)
@@ -36,6 +45,8 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
             for label, items in sorted(groups.items())
         }
     safety = sum(item.get("safety_limit_violations", 0) for item in results)
+    started_trial_failures = [item["trial_id"] for item in results
+                              if started_trial_failed(item)]
     expected = experiment["target_trial_count"]
     rate = counts["correct"] / valid if valid else None
     return {
@@ -55,12 +66,13 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
             (item.get("max_heading_sample_delay_ms", 0.0) for item in results), default=0.0),
         "breakdown": breakdown,
         "safety_limit_violations": safety,
+        "started_trial_failures": started_trial_failures,
         "raw_journal_sha256": journal_hash,
         "invalid_trial_ids": [item["trial_id"] for item in results if item["outcome"] == "invalid"],
         "result": "PASS" if (len(results) == expected and valid >= 100
                              and rate is not None
                              and rate >= experiment["target_response"]["correct_direction_rate_min"]
-                             and safety == 0) else "FAIL",
+                             and safety == 0 and not started_trial_failures) else "FAIL",
     }
 
 
@@ -88,6 +100,13 @@ def main() -> None:
     head = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("final batch requires clean source checkout")
+    tracked_manifest = root / "config/steering_experiment_v4.json"
+    if experiment_path != tracked_manifest.resolve():
+        raise RuntimeError("final batch requires the tracked v4 manifest")
+    committed_manifest = subprocess.check_output(
+        ["git", "-C", str(root), "show", "HEAD:config/steering_experiment_v4.json"])
+    if experiment_path.read_bytes() != committed_manifest:
+        raise RuntimeError("v4 manifest bytes differ from the committed source")
     args.output.mkdir(parents=True, exist_ok=False)
     journal = args.output / "trial-results.jsonl"
     env = dict(__import__("os").environ)
@@ -116,7 +135,8 @@ def main() -> None:
             row = {"index": index, "trial_id": spec["trial_id"], "seed": spec["seed"],
                    "spec": spec, "pretrial_acquisition_sha256": sha256_file(
                        folder / "pretrial-acquisition.json"),
-                   "pretrial_attempts_used": acquisition["attempts_used"]}
+                   "pretrial_attempts_used": acquisition["attempts_used"],
+                   "trial_started": acquisition["accepted"]}
             if acquisition["accepted"]:
                 command = [
                     sys.executable, str(root / "scripts/p7_target_steering_trial.py"),
@@ -142,19 +162,27 @@ def main() -> None:
                         "final_heading_delta_rad", "response", "invalid_reasons",
                         "max_abs_robot_facing_vyaw", "max_heading_sample_delay_ms")})
                     row["summary_sha256"] = sha256_file(summary_path)
-                    row["trace_sha256"] = sha256_file(folder / "trace.jsonl")
+                    trace_path = folder / "trace.jsonl"
+                    if trace_path.exists():
+                        row["trace_sha256"] = sha256_file(trace_path)
                 else:
                     row["outcome"] = "invalid"
                     row["invalid_reasons"] = ["trial_process_failed_before_summary"]
             else:
                 row["outcome"] = "invalid"
                 row["invalid_reasons"] = ["pretrial_pose_acquisition_exhausted"]
+            abort = started_trial_failed(row) or bool(row.get("safety_limit_violations", 0))
+            if abort:
+                emergency_log = folder / "emergency-sim-down.log"
+                row["emergency_sim_down_exit"] = run_logged(
+                    [str(args.sim_script), "down"], emergency_log, env=env)
+                row["emergency_sim_down_sha256"] = sha256_file(emergency_log)
             output.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
             output.flush()
             results.append(row)
             print(f"{index}/{expected} {spec['trial_id']} {row['outcome']}", flush=True)
-            if row.get("safety_limit_violations", 0):
-                print("safety violation: ending final batch early", flush=True)
+            if abort:
+                print("started trial failure or safety violation: batch stopped", flush=True)
                 break
     batch = summarize(results, experiment, head=head,
                       manifest_hash=sha256_file(experiment_path),
