@@ -1,0 +1,89 @@
+{
+  "attempted_trials": 100,
+  "breakdown": {
+    "target_eccentricity": {
+      "far": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 30
+      },
+      "medium": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 33
+      },
+      "near_center": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 33
+      }
+    },
+    "target_motion": {
+      "slow_crossing": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 49
+      },
+      "static": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 47
+      }
+    },
+    "target_side": {
+      "left": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 48
+      },
+      "right": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 48
+      }
+    },
+    "visual_noise_level": {
+      "clean": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 50
+      },
+      "moderate": {
+        "correct": 0,
+        "correct_direction_rate": 0.0,
+        "evaluated": 46
+      }
+    }
+  },
+  "correct_direction_95pct_wilson_ci": [
+    3.469446951953614e-18,
+    0.038475587857675686
+  ],
+  "correct_direction_rate": 0.0,
+  "counts": {
+    "invalid": 4,
+    "no_response": 96
+  },
+  "ended_utc": "2026-09-24T20:49:49Z",
+  "evaluated_valid_target_trials": 96,
+  "execution_target": "Thor",
+  "expected_target_trials": 100,
+  "experiment_sha256": "9d640e8d23305548c209077dc20b72a2c33fccdff02b04d820d816aee868caff",
+  "hostname": "jetsonthor01",
+  "invalid_trial_ids": [
+    "p7-target-026",
+    "p7-target-086",
+    "p7-target-089",
+    "p7-target-093"
+  ],
+  "max_heading_sample_delay_ms": 23.685788,
+  "raw_journal_bytes": 101221,
+  "raw_journal_sha256": "7ab5aa2e4947008b0a76e8d4747dffbad222386ebcfd54c1bc4217bf83d402ad",
+  "response_latency_median_s": null,
+  "response_latency_p95_s": null,
+  "result": "FAIL",
+  "safety_limit_violations": 0,
+  "schema_version": "p7-02-target-batch-v1",
+  "source_head": "bc1f6f69743953b9b4d6c4b528fa756d9b5abc45",
+  "started_utc": "2026-09-24T20:29:29Z"
+}
