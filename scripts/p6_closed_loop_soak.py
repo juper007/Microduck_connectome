@@ -10,7 +10,9 @@ import json
 import math
 from pathlib import Path
 import platform
+import queue
 import socket
+import threading
 import time
 
 from microduck_connectome.control_contracts import make_behavior_intent
@@ -166,10 +168,14 @@ def main() -> None:
     trace_digest = hashlib.sha256()
     args.artifact.parent.mkdir(parents=True, exist_ok=True)
     trace_file = args.artifact.open("wb")
+    observation_queue = queue.Queue(maxsize=256)
+    observer_error = []
     started_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
     def publish(output):
         nonlocal ipc_error_count
+        if observer_error:
+            raise RuntimeError("telemetry observer failed") from observer_error[0]
         intent = output["intent"]
         values = (intent["vx"], intent["vy"], intent["vyaw"])
         if not all(math.isfinite(value) for value in values):
@@ -191,7 +197,7 @@ def main() -> None:
         })
         return result
 
-    def observe(update, output, transport_result):
+    def process_observation(update, output, transport_result):
         nonlocal telemetry_count, telemetry_gaps, post_command_states
         nonlocal unsafe_sensor_loss, safety_interventions, first_record_ns
         nonlocal last_record_ns, last_record_sequence
@@ -232,6 +238,30 @@ def main() -> None:
             unsafe_sensor_loss += 1
         safety_interventions += bool(record["clamp_applied"])
 
+    def observation_worker():
+        while True:
+            item = observation_queue.get()
+            try:
+                if item is None:
+                    return
+                if not observer_error:
+                    process_observation(*item)
+            except BaseException as error:
+                observer_error.append(error)
+            finally:
+                observation_queue.task_done()
+
+    observer_thread = threading.Thread(target=observation_worker, name="p6-07-telemetry", daemon=False)
+    observer_thread.start()
+
+    def observe(update, output, transport_result):
+        if observer_error:
+            raise RuntimeError("telemetry observer failed") from observer_error[0]
+        try:
+            observation_queue.put_nowait((update, output, transport_result))
+        except queue.Full as error:
+            raise RuntimeError("telemetry observer queue overran") from error
+
     scheduler = ClosedLoopScheduler(
         config=args.root / "config/scheduler_v1.json",
         watchdog=ControllerWatchdog(args.root / "config/watchdog_v1.json"),
@@ -242,9 +272,15 @@ def main() -> None:
     try:
         scheduler_summary = scheduler.run(args.duration_s)
         ended_ns = time.monotonic_ns()
+        observation_queue.join()
+        if observer_error:
+            raise RuntimeError("telemetry observer failed") from observer_error[0]
         health = command_client.health()
         connected_before_close = command_client.status.connected
     finally:
+        observation_queue.put(None)
+        observation_queue.join()
+        observer_thread.join(timeout=5.0)
         trace_file.close()
         command_client.close()
         sampler.close()
