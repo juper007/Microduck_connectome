@@ -67,6 +67,8 @@ def generate(*, policy: dict, validation: dict, controller_commit: str,
                 "base_policy_path", "base_policy_sha256", "checkpoint_path",
                 "adapter_script_path", "adapter_script_sha256",
                 "offline_equivalence_path", "offline_equivalence_sha256",
+                "diagnostic_summary_path", "diagnostic_summary_sha256",
+                "p6_recert_summary_path", "p6_recert_summary_sha256",
                 "training_seed", "training_num_envs", "checkpoint_iteration"}
     if required - policy.keys():
         raise ValueError(f"missing policy provenance: {sorted(required - policy.keys())}")
@@ -144,6 +146,9 @@ def main() -> None:
         if not path.is_absolute() or sha256_file(path) != policy[hash_key]:
             raise ValueError(f"policy provenance mismatch: {path_key}")
     selection = json.loads(args.selection_summary.read_text(encoding="utf-8"))
+    if (args.selection_summary.resolve() != Path(policy["diagnostic_summary_path"]).resolve()
+            or sha256_file(args.selection_summary) != policy["diagnostic_summary_sha256"]):
+        raise ValueError("policy metadata is not bound to the selected diagnostic")
     validate_selection_metrics(selection, policy)
     for row in selection["runs"]:
         for name in ("trace", "readback"):
@@ -152,6 +157,9 @@ def main() -> None:
             if sha256_file(durable) != row[f"{name}_sha256"]:
                 raise ValueError(f"candidate {name} artifact hash mismatch")
     p6 = json.loads(args.affected_p6_summary.read_text(encoding="utf-8"))
+    if (args.affected_p6_summary.resolve() != Path(policy["p6_recert_summary_path"]).resolve()
+            or sha256_file(args.affected_p6_summary) != policy["p6_recert_summary_sha256"]):
+        raise ValueError("policy metadata is not bound to the affected P6 evidence")
     if p6["result"] != "PASS" or p6["walking_policy_sha256"] != policy["sha256"]:
         raise ValueError("affected P6 recertification has not passed for this policy")
     validation = {

@@ -18,7 +18,9 @@ class P7PreregistrationV4Tests(unittest.TestCase):
                   "exporter_source_commit", "artifact_path", "base_policy_path",
                   "base_policy_sha256", "checkpoint_path", "adapter_script_path",
                   "adapter_script_sha256", "offline_equivalence_path",
-                  "offline_equivalence_sha256")}
+                  "offline_equivalence_sha256", "diagnostic_summary_path",
+                  "diagnostic_summary_sha256", "p6_recert_summary_path",
+                  "p6_recert_summary_sha256")}
         policy.update({"training_seed": 70202, "training_num_envs": 4096,
                        "checkpoint_iteration": 750})
         validation = {key: "pinned" for key in
