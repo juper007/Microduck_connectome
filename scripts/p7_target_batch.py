@@ -64,7 +64,7 @@ def main():
     root = args.root.resolve()
     experiment_path = args.experiment.resolve()
     experiment = json.loads(experiment_path.read_text(encoding="utf-8"))
-    if experiment["schema_version"] != "steering-experiment-v1" or len(experiment["target_trials"]) != 100:
+    if experiment["schema_version"] != "steering-experiment-v2" or len(experiment["target_trials"]) != 100:
         raise RuntimeError("frozen target trial count mismatch")
     head = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
@@ -92,14 +92,15 @@ def main():
             spec_path = trial_dir / "trial-spec.json"
             spec_path.write_text(json.dumps(spec, sort_keys=True, indent=2) + "\n", encoding="utf-8")
             down_status = run_logged([str(args.sim_script), "down"], trial_dir / "sim-down.log", env=env)
-            up_status = run_logged([str(args.sim_script), "up"], trial_dir / "sim-up.log", env=env)
+            up_status = (run_logged([str(args.sim_script), "up"], trial_dir / "sim-up.log", env=env)
+                         if down_status == 0 else None)
             record = {
                 "index": index, "trial_id": spec["trial_id"], "seed": spec["seed"],
                 "spec": spec, "sim_down_exit": down_status, "sim_up_exit": up_status,
                 "sim_down_sha256": sha256_file(trial_dir / "sim-down.log"),
-                "sim_up_sha256": sha256_file(trial_dir / "sim-up.log"),
+                "sim_up_sha256": sha256_file(trial_dir / "sim-up.log") if up_status is not None else None,
             }
-            if up_status == 0:
+            if down_status == 0 and up_status == 0:
                 command = [
                     sys.executable, str(root / "scripts/p7_target_steering_trial.py"),
                     "--root", str(root), "--graph-cache", str(args.graph_cache),
@@ -134,7 +135,10 @@ def main():
                     record["invalid_reasons"] = ["trial_process_failed_before_summary"]
             else:
                 record["outcome"] = "invalid"
-                record["invalid_reasons"] = ["official_simulator_failed_to_start"]
+                record["invalid_reasons"] = [
+                    "official_simulator_failed_to_stop" if down_status != 0
+                    else "official_simulator_failed_to_start"
+                ]
             output.write(json.dumps(record, sort_keys=True, allow_nan=False) + "\n")
             output.flush()
             results.append(record)

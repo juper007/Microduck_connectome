@@ -9,6 +9,7 @@ import json
 import math
 from pathlib import Path
 import platform
+import queue
 import socket
 import threading
 import time
@@ -108,6 +109,37 @@ def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02,
     return None
 
 
+def score_target_response(config, trial, response, response_row, *, started_ns,
+                          center_tolerance_rad):
+    """Score actual heading against the rendered bearing at response onset."""
+    if response is None:
+        return "no_response", None
+    response = dict(response)
+    elapsed_s = (response_row["timestamp_ns"] - started_ns) / 1e9
+    truth = evaluator_truth(config, trial, elapsed_s=elapsed_s)
+    relative = wrap_angle(
+        truth["target_world_bearing_rad"] - response_row["robot_state"]["heading_rad"]
+    )
+    visible = response_row["perception"]["target_area"] > 0
+    side = "left" if relative > 0 else "right"
+    response.update(target_relative_bearing_rad=relative,
+                    target_visible=visible, target_side_at_response=side)
+    outcome = "correct" if (
+        visible and abs(relative) > center_tolerance_rad
+        and response["direction"] == side
+    ) else "incorrect"
+    return outcome, response
+
+
+def initial_pose_matches(body, reference):
+    return (
+        abs(wrap_angle(body["heading_rad"] - reference["heading_rad"]))
+        <= reference["heading_tolerance_rad"]
+        and abs(body["trunk_z"] - reference["trunk_z_m"])
+        <= reference["trunk_z_tolerance_m"]
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
@@ -138,7 +170,7 @@ def main():
     if args.experiment is not None:
         from scripts.p7_preregister import HASH_PATHS
         experiment = json.loads(args.experiment.read_text(encoding="utf-8"))
-        if experiment["schema_version"] != "steering-experiment-v1":
+        if experiment["schema_version"] != "steering-experiment-v2":
             raise ValueError("unexpected experiment schema")
         for name, relative in HASH_PATHS.items():
             actual = hashlib.sha256((args.root / relative).read_bytes()).hexdigest()
@@ -162,13 +194,22 @@ def main():
     body_lock = threading.Lock()
     with body_lock:
         initial_body = body.read()
+    if experiment is not None:
+        reference = experiment["reset_reference"]
+        if not initial_pose_matches(initial_body, reference):
+            command_client.close()
+            sampler.close()
+            body.close()
+            raise RuntimeError("official simulator initial pose outside preregistered tolerance")
     trial = make_target_trial(config, **spec, initial_robot_heading_rad=initial_body["heading_rad"])
     chain = TargetChain(args.root, graph, config, trial, body, body_lock,
                         gain_config, gain_hash, steering_hash)
     health_before = command_client.health()
     observed = []
+    observation_queue = queue.Queue(maxsize=256)
+    observer_error = []
 
-    def observe(update, output, transport_result):
+    def process_observation(update, output, transport_result):
         if update is None or update.trace is None:
             return
         command_ns = output["intent"]["timestamp_ns"]
@@ -187,6 +228,30 @@ def main():
         )
         observed.append(record)
 
+    def observation_worker():
+        while True:
+            item = observation_queue.get()
+            try:
+                if item is None:
+                    return
+                if not observer_error:
+                    process_observation(*item)
+            except BaseException as error:
+                observer_error.append(error)
+            finally:
+                observation_queue.task_done()
+
+    observer_thread = threading.Thread(target=observation_worker, name="p7-02-telemetry", daemon=False)
+    observer_thread.start()
+
+    def observe(update, output, transport_result):
+        if observer_error:
+            raise RuntimeError("telemetry observer failed") from observer_error[0]
+        try:
+            observation_queue.put_nowait((update, output, transport_result))
+        except queue.Full as error:
+            raise RuntimeError("telemetry observer queue overran") from error
+
     scheduler = ClosedLoopScheduler(
         config=args.root / "config/scheduler_v1.json",
         watchdog=ControllerWatchdog(args.root / "config/watchdog_v1.json"),
@@ -196,12 +261,18 @@ def main():
     started_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     try:
         scheduler_result = scheduler.run(trial.trial_timeout_s)
+        observation_queue.join()
+        if observer_error:
+            raise RuntimeError("telemetry observer failed") from observer_error[0]
         health_after = command_client.health()
         with body_lock:
             final_body = body.read()
         args.artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact = telemetry.write(args.artifact)
     finally:
+        observation_queue.put(None)
+        observation_queue.join()
+        observer_thread.join(timeout=5.0)
         command_client.close()
         sampler.close()
         body.close()
@@ -223,9 +294,14 @@ def main():
         or abs(row["robot_facing_vyaw"]) > 0.50
         for row in observed
     )
-    outcome = "no_response" if response is None else (
-        "correct" if response["direction"] == trial.target_side else "incorrect"
-    )
+    outcome = "no_response"
+    if response is not None and trial.target_present:
+        response_row = next(row for row in active
+                            if row["timestamp_ns"] >= response["start_timestamp_ns"])
+        outcome, response = score_target_response(
+            config, trial, response, response_row, started_ns=chain.started_ns,
+            center_tolerance_rad=response_rules.get("center_tolerance_rad", 0.05),
+        )
     if not trial.target_present:
         outcome = "no_target"
     perception_active_frames = sum(row["perception"]["target_area"] > 0 for row in active)
@@ -234,6 +310,8 @@ def main():
         invalid_reasons.append("official_robotd_unhealthy")
     if not active or scheduler_result["scheduler_exceptions"]:
         invalid_reasons.append("missing_active_records_or_scheduler_exception")
+    if scheduler_result["missed_deadlines"]["watchdog"]:
+        invalid_reasons.append("missed_control_deadline")
     if trial.target_present and perception_active_frames == 0:
         invalid_reasons.append("camera_fixture_failed_to_show_target")
     if not trial.target_present and perception_active_frames:
