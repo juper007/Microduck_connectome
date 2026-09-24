@@ -26,6 +26,9 @@ from microduck_connectome.target_scenario import (
 from microduck_connectome.target_stimulus_gain import (
     TargetDriveSensoryMapper, load_target_stimulus_drive,
 )
+from microduck_connectome.temporal_steering import (
+    P7TemporalSteeringDecoder, load_temporal_steering_config,
+)
 from microduck_connectome.telemetry import EndToEndTelemetry, build_run_identity
 from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p6_telemetry_runtime_fixture import (
@@ -47,10 +50,14 @@ class TargetChain(FullChain):
             self.mapper.config, gain_config,
         )
         self.gain_hash = gain_hash
-        self.steering = SteeringDecoder(
-            load_steering_decoder_config(root / "config/steering_decoder_p7_v1.json")
+        temporal_path = root / "config/steering_temporal_p7_v1.json"
+        self.steering = P7TemporalSteeringDecoder(
+            SteeringDecoder(load_steering_decoder_config(
+                root / "config/steering_decoder_p7_v1.json")),
+            load_temporal_steering_config(temporal_path),
         )
         self.steering_hash = steering_hash
+        self.temporal_hash = hashlib.sha256(temporal_path.read_bytes()).hexdigest()
         self.started_ns = None
         self.scenario = trial.target_side if trial.target_present else "neutral"
 
@@ -75,10 +82,12 @@ class TargetChain(FullChain):
         )
 
     def neural(self, frame, now_ns):
+        self.steering.observe_frame(frame, now_ns=now_ns)
         update = super().neural(frame, now_ns)
         if update is not None and update.trace is not None:
             update.trace["male_cns"]["target_drive_config_sha256"] = self.gain_hash
             update.trace["male_cns"]["steering_decoder_p7_sha256"] = self.steering_hash
+            update.trace["male_cns"]["steering_temporal_p7_sha256"] = self.temporal_hash
         return update
 
 
@@ -206,7 +215,17 @@ def main():
             command_client.close()
             sampler.close()
             body.close()
-            raise RuntimeError("official simulator initial pose outside preregistered tolerance")
+            raise RuntimeError(
+                "official simulator initial pose outside preregistered tolerance: "
+                + json.dumps({
+                    "measured_heading_rad": initial_body["heading_rad"],
+                    "measured_trunk_z_m": initial_body["trunk_z"],
+                    "reference_heading_rad": reference["heading_rad"],
+                    "reference_trunk_z_m": reference["trunk_z_m"],
+                    "heading_tolerance_rad": reference["heading_tolerance_rad"],
+                    "trunk_z_tolerance_m": reference["trunk_z_tolerance_m"],
+                }, sort_keys=True)
+            )
     trial = make_target_trial(config, **spec, initial_robot_heading_rad=initial_body["heading_rad"])
     chain = TargetChain(args.root, graph, config, trial, body, body_lock,
                         gain_config, gain_hash, steering_hash)

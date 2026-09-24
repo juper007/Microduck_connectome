@@ -1,0 +1,7 @@
+{
+  "schema_version": "p7-temporal-steering-v1",
+  "hold_ms": 320,
+  "target_ttl_ms": 100,
+  "source": "phase-7-engineering-calibration",
+  "scope": "bridge measured DNa02 inter-burst gaps while a fresh visual target remains present; reset on target loss or unhealthy neural runtime"
+}
