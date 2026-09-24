@@ -12,11 +12,13 @@ from microduck_connectome.perception_compositor import PerceptionPipeline
 
 def record(name):
     deadman = name in ("connectome_process_crash", "connectome_process_freeze")
+    neutral = name in ("camera_dropout", "tof_dropout", "stale_perception", "compositor_invalid")
     requested = [0.0, 0.0, 0.2] if deadman else [0.0, 0.0, 0.0]
     limited_by = ["deadman"] if deadman else []
     return make_fault_record(
         fault=name, injected_at_ns=10, detected_at_ns=20,
         safe_command_at_ns=30, motion_stopped_at_ns=40, recovery_at_ns=50,
+        first_safe_transport="robotd_deadman" if deadman else "neutral_move" if neutral else "robot_stop",
         state_evidence={
             "requested": requested, "applied": [0.0, 0.0, 0.0], "limited_by": limited_by,
             "heading_before_rad": 0.1, "heading_after_rad": 0.1001,
@@ -63,7 +65,7 @@ def test_process_loss_requires_observed_robotd_deadman():
         validate_fault_record(value)
 
 
-@pytest.mark.parametrize("mutation", ["replay", "moving", "time", "transport", "rate", "short_window"])
+@pytest.mark.parametrize("mutation", ["replay", "moving", "time", "transport", "first_transport", "rate", "short_window"])
 def test_unsafe_or_inconsistent_record_is_rejected(mutation):
     value = record(REQUIRED_FAULTS[0])
     if mutation == "replay":
@@ -74,6 +76,8 @@ def test_unsafe_or_inconsistent_record_is_rejected(mutation):
         value["motion_stopped_at_ns"] = 15
     elif mutation == "transport":
         value["stop_transport"] = "zero_twist"
+    elif mutation == "first_transport":
+        value["first_safe_transport"] = "robot_stop"
     elif mutation == "rate":
         value["state_evidence"]["angular_rate_samples_radps"][2] = 0.02
     else:

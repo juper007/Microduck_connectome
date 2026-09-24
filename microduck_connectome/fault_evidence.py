@@ -32,7 +32,7 @@ def validate_fault_record(value: Mapping) -> dict:
     required = {
         "fault", *_TIMES, "detection_latency_ms", "safe_command_latency_ms",
         "motion_stop_latency_ms", "recovery_latency_ms", "safe_state_reached",
-        "old_command_replayed", "stop_transport", "state_evidence", "result",
+        "old_command_replayed", "first_safe_transport", "stop_transport", "state_evidence", "result",
     }
     if not isinstance(value, Mapping) or set(value) != required:
         raise FaultEvidenceError("fault record fields mismatch")
@@ -62,6 +62,12 @@ def validate_fault_record(value: Mapping) -> dict:
         raise FaultEvidenceError("record does not prove safe state and no replay")
     if value["stop_transport"] != "robot_stop" or value["result"] != "PASS":
         raise FaultEvidenceError("record violates frozen transport or PASS contract")
+    neutral_faults = {"camera_dropout", "tof_dropout", "stale_perception", "compositor_invalid"}
+    process_faults = {"connectome_process_crash", "connectome_process_freeze"}
+    expected_transport = ("neutral_move" if value["fault"] in neutral_faults else
+                          "robotd_deadman" if value["fault"] in process_faults else "robot_stop")
+    if value["first_safe_transport"] != expected_transport:
+        raise FaultEvidenceError("first safe transport does not match fault path")
     state = value["state_evidence"]
     if not isinstance(state, Mapping) or set(state) != {
         "requested", "applied", "limited_by", "heading_before_rad", "heading_after_rad", "heading_delta_rad",
@@ -111,7 +117,8 @@ def validate_fault_record(value: Mapping) -> dict:
 
 def make_fault_record(*, fault: str, injected_at_ns: int, detected_at_ns: int,
                       safe_command_at_ns: int, motion_stopped_at_ns: int,
-                      recovery_at_ns: int, state_evidence: Mapping) -> dict:
+                      recovery_at_ns: int, state_evidence: Mapping,
+                      first_safe_transport: str = "robot_stop") -> dict:
     record = {
         "fault": fault,
         "injected_at_ns": injected_at_ns,
@@ -125,6 +132,7 @@ def make_fault_record(*, fault: str, injected_at_ns: int, detected_at_ns: int,
         "recovery_latency_ms": (recovery_at_ns - injected_at_ns) / 1e6,
         "safe_state_reached": True,
         "old_command_replayed": False,
+        "first_safe_transport": first_safe_transport,
         "stop_transport": "robot_stop",
         "state_evidence": dict(state_evidence),
         "result": "PASS",

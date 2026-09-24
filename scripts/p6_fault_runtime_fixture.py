@@ -492,6 +492,7 @@ def standard_fault(session, name, mode, raw, perception=False):
         fault=name, injected_at_ns=injected, detected_at_ns=detected,
         safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped,
         recovery_at_ns=recovered, state_evidence=state,
+        first_safe_transport="neutral_move" if neutral_sensor_fault else "robot_stop",
     )
 
 
@@ -628,6 +629,7 @@ def process_fault(session, name, args, raw):
                 fault=name, injected_at_ns=injected, detected_at_ns=detected,
                 safe_command_at_ns=safe_at, motion_stopped_at_ns=stopped,
                 recovery_at_ns=recovered, state_evidence=state,
+                first_safe_transport="robotd_deadman",
             )
         finally:
             if worker.poll() is None:
