@@ -1,0 +1,54 @@
+{
+  "schema_version": "p7-01-scenario-manifest-v1",
+  "scenario_config": "config/target_scenario_v1.json",
+  "execution_target": "Thor",
+  "initial_state_mode": "official duck-sim up/stand; read-only MuJoCo heading/trunk pose at each trial start",
+  "trial_seed_rule": "explicit 32-bit seed per trial; SHA256(seed, frame_index) for frame noise; Python 3.12",
+  "smoke_trials": [
+    {
+      "trial_id": "smoke-left-near-static",
+      "seed": 101,
+      "target_present": true,
+      "target_side": "left",
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "visual_noise_level": "clean"
+    },
+    {
+      "trial_id": "smoke-right-medium-static",
+      "seed": 202,
+      "target_present": true,
+      "target_side": "right",
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "visual_noise_level": "clean"
+    },
+    {
+      "trial_id": "smoke-left-far-crossing",
+      "seed": 303,
+      "target_present": true,
+      "target_side": "left",
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "visual_noise_level": "clean"
+    },
+    {
+      "trial_id": "smoke-right-near-crossing-noisy",
+      "seed": 404,
+      "target_present": true,
+      "target_side": "right",
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "trial_id": "smoke-no-target",
+      "seed": 505,
+      "target_present": false,
+      "target_side": "none",
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "visual_noise_level": "clean"
+    }
+  ]
+}
