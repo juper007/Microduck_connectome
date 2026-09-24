@@ -6,7 +6,8 @@ import unittest
 from microduck_connectome.perception_frame import make_perception_frame
 from microduck_connectome.sensory_mapping import load_sensory_mapping_config
 from microduck_connectome.target_stimulus_gain import (
-    TargetGainSensoryMapper, load_target_stimulus_gain,
+    TargetDriveSensoryMapper, TargetGainSensoryMapper,
+    load_target_stimulus_drive, load_target_stimulus_gain,
 )
 
 
@@ -43,6 +44,19 @@ class TargetStimulusGainTests(unittest.TestCase):
         stale = self.mapper.build_external(self.frame(), now_ns=1_100_000_001)
         no_target = self.mapper.build_external(self.frame(target_area=0.0), now_ns=1_000_000_000)
         self.assertEqual((invalid, stale, no_target), ({}, {}, {}))
+
+    def test_v2_side_drive_is_bounded_and_neutral_when_stale(self):
+        sensory = load_sensory_mapping_config(ROOT / "config/sensory_mapping_v1.json")
+        drive = load_target_stimulus_drive(ROOT / "config/target_stimulus_drive_v2.json")
+        ids = tuple(sorted(body_id for spec in sensory["populations"].values()
+                           for body_id in spec["body_ids"]))
+        mapper = TargetDriveSensoryMapper(ids, sensory, drive)
+        left = mapper.map_channels(self.frame(target_x=-0.17), now_ns=1_000_000_000)
+        right = mapper.map_channels(self.frame(target_x=0.17), now_ns=1_000_000_000)
+        self.assertEqual((left["lc10a_left"], left["lc10a_right"]), (1.0, 0.0))
+        self.assertEqual((right["lc10a_left"], right["lc10a_right"]), (0.0, 1.0))
+        self.assertEqual(mapper.build_external(self.frame(), now_ns=1_100_000_001), {})
+        self.assertEqual(mapper.build_external(self.frame(target_area=0.0), now_ns=1_000_000_000), {})
 
 
 if __name__ == "__main__":

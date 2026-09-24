@@ -22,7 +22,7 @@ from microduck_connectome.target_scenario import (
     render_camera_pixels, wrap_angle,
 )
 from microduck_connectome.target_stimulus_gain import (
-    TargetGainSensoryMapper, load_target_stimulus_gain,
+    TargetDriveSensoryMapper, load_target_stimulus_drive,
 )
 from microduck_connectome.telemetry import EndToEndTelemetry, build_run_identity
 from microduck_connectome.watchdog import ControllerWatchdog
@@ -38,7 +38,7 @@ class TargetChain(FullChain):
         self.trial = trial
         self.body = body
         self.body_lock = body_lock
-        self.mapper = TargetGainSensoryMapper(
+        self.mapper = TargetDriveSensoryMapper(
             tuple(sorted(body_id for spec in self.mapper.config["populations"].values()
                          for body_id in spec["body_ids"])),
             self.mapper.config, gain_config,
@@ -70,7 +70,7 @@ class TargetChain(FullChain):
     def neural(self, frame, now_ns):
         update = super().neural(frame, now_ns)
         if update is not None and update.trace is not None:
-            update.trace["male_cns"]["target_gain_config_sha256"] = self.gain_hash
+            update.trace["male_cns"]["target_drive_config_sha256"] = self.gain_hash
         return update
 
 
@@ -119,8 +119,8 @@ def main():
         raise RuntimeError("behavior evidence requires Thor Python 3.12")
     config_path = args.root / "config/target_scenario_v1.json"
     config = load_target_scenario_config(config_path)
-    gain_path = args.root / "config/target_stimulus_gain_v1.json"
-    gain_config = load_target_stimulus_gain(gain_path)
+    gain_path = args.root / "config/target_stimulus_drive_v2.json"
+    gain_config = load_target_stimulus_drive(gain_path)
     gain_hash = hashlib.sha256(gain_path.read_bytes()).hexdigest()
     spec = json.loads(args.trial_spec.read_text(encoding="utf-8"))
     graph = ConnectomeGraph.from_cache(args.graph_cache, args.graph_key)
@@ -207,7 +207,7 @@ def main():
         "ended_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "identity": identity, "trial": trial.metadata(),
         "scenario_config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
-        "target_gain_config_sha256": gain_hash,
+        "target_drive_config_sha256": gain_hash,
         "trial_spec_sha256": hashlib.sha256(args.trial_spec.read_bytes()).hexdigest(),
         "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "health_before": health_before, "health_after": health_after,
