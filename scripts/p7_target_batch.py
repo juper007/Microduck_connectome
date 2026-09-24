@@ -64,7 +64,7 @@ def main():
     root = args.root.resolve()
     experiment_path = args.experiment.resolve()
     experiment = json.loads(experiment_path.read_text(encoding="utf-8"))
-    if experiment["schema_version"] != "steering-experiment-v2" or len(experiment["target_trials"]) != 100:
+    if experiment["schema_version"] != "steering-experiment-v3" or len(experiment["target_trials"]) != 100:
         raise RuntimeError("frozen target trial count mismatch")
     head = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
@@ -130,6 +130,7 @@ def main():
                     record["response"] = summary["response"]
                     record["invalid_reasons"] = summary["invalid_reasons"]
                     record["max_abs_robot_facing_vyaw"] = summary["max_abs_robot_facing_vyaw"]
+                    record["max_heading_sample_delay_ms"] = summary["max_heading_sample_delay_ms"]
                 else:
                     record["outcome"] = "invalid"
                     record["invalid_reasons"] = ["trial_process_failed_before_summary"]
@@ -173,6 +174,8 @@ def main():
         "correct_direction_95pct_wilson_ci": wilson_interval(counts["correct"], evaluated),
         "response_latency_median_s": statistics.median(latencies) if latencies else None,
         "response_latency_p95_s": percentile(latencies, .95),
+        "max_heading_sample_delay_ms": max(
+            (item.get("max_heading_sample_delay_ms", 0.0) for item in results), default=0.0),
         "breakdown": breakdown,
         "safety_limit_violations": sum(item.get("safety_limit_violations", 0) for item in results),
         "raw_journal_sha256": sha256_file(journal),

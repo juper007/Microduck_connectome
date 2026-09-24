@@ -85,11 +85,13 @@ class TargetChain(FullChain):
 def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02,
                                duration_s=0.2, same_sign_fraction=0.8):
     """Find the first 200 ms net heading change supported by consistent samples."""
-    active = [row for row in records if row["timestamp_ns"] >= stimulus_ns]
+    active = [row for row in records
+              if row["robot_state"]["body_sample_timestamp_ns"] >= stimulus_ns]
     for start in range(len(active)):
         initial = active[start]["robot_state"]["heading_rad"]
         for end in range(start + 1, len(active)):
-            if (active[end]["timestamp_ns"] - active[start]["timestamp_ns"]) / 1e9 < duration_s:
+            if (active[end]["robot_state"]["body_sample_timestamp_ns"]
+                    - active[start]["robot_state"]["body_sample_timestamp_ns"]) / 1e9 < duration_s:
                 continue
             segment = active[start:end + 1]
             delta = wrap_angle(segment[-1]["robot_state"]["heading_rad"] - initial)
@@ -99,11 +101,11 @@ def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02,
                 consistent = sum(1 for item in increments if item * delta > 0)
                 if consistent >= math.ceil(same_sign_fraction * len(increments)):
                     return {
-                        "start_timestamp_ns": segment[0]["timestamp_ns"],
-                        "end_timestamp_ns": segment[-1]["timestamp_ns"],
+                        "start_timestamp_ns": segment[0]["robot_state"]["body_sample_timestamp_ns"],
+                        "end_timestamp_ns": segment[-1]["robot_state"]["body_sample_timestamp_ns"],
                         "heading_delta_rad": delta,
                         "direction": "left" if delta > 0 else "right",
-                        "latency_s": (segment[0]["timestamp_ns"] - stimulus_ns) / 1e9,
+                        "latency_s": (segment[0]["robot_state"]["body_sample_timestamp_ns"] - stimulus_ns) / 1e9,
                     }
             break
     return None
@@ -115,15 +117,19 @@ def score_target_response(config, trial, response, response_row, *, started_ns,
     if response is None:
         return "no_response", None
     response = dict(response)
-    elapsed_s = (response_row["timestamp_ns"] - started_ns) / 1e9
+    sample_ns = response_row["robot_state"]["body_sample_timestamp_ns"]
+    elapsed_s = (sample_ns - started_ns) / 1e9
     truth = evaluator_truth(config, trial, elapsed_s=elapsed_s)
     relative = wrap_angle(
         truth["target_world_bearing_rad"] - response_row["robot_state"]["heading_rad"]
     )
-    visible = response_row["perception"]["target_area"] > 0
+    perception_age_ns = sample_ns - response_row["perception"]["timestamp_ns"]
+    visible = (response_row["perception"]["target_area"] > 0
+               and 0 <= perception_age_ns <= 100_000_000)
     side = "left" if relative > 0 else "right"
     response.update(target_relative_bearing_rad=relative,
-                    target_visible=visible, target_side_at_response=side)
+                    target_visible=visible, target_side_at_response=side,
+                    perception_age_ms=perception_age_ns / 1e6)
     outcome = "correct" if (
         visible and abs(relative) > center_tolerance_rad
         and response["direction"] == side
@@ -170,7 +176,7 @@ def main():
     if args.experiment is not None:
         from scripts.p7_preregister import HASH_PATHS
         experiment = json.loads(args.experiment.read_text(encoding="utf-8"))
-        if experiment["schema_version"] != "steering-experiment-v2":
+        if experiment["schema_version"] != "steering-experiment-v3":
             raise ValueError("unexpected experiment schema")
         for name, relative in HASH_PATHS.items():
             actual = hashlib.sha256((args.root / relative).read_bytes()).hexdigest()
@@ -216,6 +222,7 @@ def main():
         state, received_ns = sampler.after(command_ns)
         with body_lock:
             body_state = body.read()
+            body_sample_ns = time.monotonic_ns()
         trace = copy.deepcopy(update.trace)
         trace["male_cns"].pop("scenario_fixture")
         record = telemetry.append(
@@ -224,7 +231,8 @@ def main():
             trace=trace, watchdog_output=output,
             robotd_transport_result=transport_result,
             robotd_connected=command_client.status.connected,
-            robot_state=compact_state(state, received_ns, body_state),
+            robot_state={**compact_state(state, received_ns, body_state),
+                         "body_sample_timestamp_ns": body_sample_ns},
         )
         observed.append(record)
 
@@ -280,7 +288,8 @@ def main():
     if not observed:
         raise RuntimeError("no full-chain telemetry records")
     stimulus_ns = chain.started_ns + int(trial.stimulus_start_s * 1e9)
-    active = [row for row in observed if row["timestamp_ns"] >= stimulus_ns]
+    active = [row for row in observed
+              if row["robot_state"]["body_sample_timestamp_ns"] >= stimulus_ns]
     response_rules = experiment["target_response"] if experiment is not None else {}
     response = sustained_heading_response(
         observed, stimulus_ns=stimulus_ns,
@@ -297,7 +306,8 @@ def main():
     outcome = "no_response"
     if response is not None and trial.target_present:
         response_row = next(row for row in active
-                            if row["timestamp_ns"] >= response["start_timestamp_ns"])
+                            if row["robot_state"]["body_sample_timestamp_ns"]
+                            >= response["start_timestamp_ns"])
         outcome, response = score_target_response(
             config, trial, response, response_row, started_ns=chain.started_ns,
             center_tolerance_rad=response_rules.get("center_tolerance_rad", 0.05),
@@ -318,6 +328,13 @@ def main():
         invalid_reasons.append("no_target_camera_fixture_contaminated")
     if any(row["robot_state"]["sample_timestamp_ns"] < row["timestamp_ns"] for row in observed):
         invalid_reasons.append("missing_post_command_state")
+    heading_sample_skew_ms = [
+        (row["robot_state"]["body_sample_timestamp_ns"] - row["timestamp_ns"]) / 1e6
+        for row in observed
+    ]
+    max_skew_ms = experiment["validity"]["max_body_sample_delay_ms"] if experiment else 100.0
+    if any(skew < 0 or skew > max_skew_ms for skew in heading_sample_skew_ms):
+        invalid_reasons.append("heading_sample_too_late_for_command")
     if invalid_reasons:
         outcome = "invalid"
     summary = {
@@ -337,6 +354,7 @@ def main():
         "initial_heading_rad": initial_body["heading_rad"],
         "final_heading_delta_rad": wrap_angle(final_body["heading_rad"] - initial_body["heading_rad"]),
         "response": response, "outcome": outcome, "invalid_reasons": invalid_reasons,
+        "max_heading_sample_delay_ms": max(heading_sample_skew_ms),
         "safety_limit_violations": safety_violations,
         "perception_active_frames": perception_active_frames,
         "max_abs_robot_facing_vyaw": max(abs(row["robot_facing_vyaw"]) for row in observed),

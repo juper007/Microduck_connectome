@@ -13,7 +13,8 @@ from microduck_connectome.target_scenario import load_target_scenario_config, ma
 def records(headings):
     return [
         {"timestamp_ns": index * 20_000_000,
-         "robot_state": {"heading_rad": heading}}
+         "robot_state": {"heading_rad": heading,
+                         "body_sample_timestamp_ns": index * 20_000_000}}
         for index, heading in enumerate(headings)
     ]
 
@@ -47,8 +48,10 @@ class SteeringResponseTests(unittest.TestCase):
             visual_noise_level="clean", initial_robot_heading_rad=0.0,
         )
         row = {"timestamp_ns": 2_200_000_000,
-               "robot_state": {"heading_rad": 0.0},
-               "perception": {"target_area": 0.03}}
+               "robot_state": {"heading_rad": 0.0,
+                               "body_sample_timestamp_ns": 2_210_000_000},
+               "perception": {"target_area": 0.03,
+                              "timestamp_ns": 2_190_000_000}}
         right, enriched = score_target_response(
             config, trial, {"direction": "right"}, row,
             started_ns=0, center_tolerance_rad=0.05,
@@ -59,6 +62,31 @@ class SteeringResponseTests(unittest.TestCase):
         )
         self.assertEqual((right, left), ("correct", "incorrect"))
         self.assertEqual(enriched["target_side_at_response"], "right")
+
+    def test_crossing_uses_heading_sample_time_and_fresh_perception(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_target_scenario_config(root / "config/target_scenario_v1.json")
+        trial = make_target_trial(
+            config, trial_id="center-crossing", seed=1, target_present=True,
+            target_side="left", target_eccentricity="far", target_motion="slow_crossing",
+            visual_noise_level="clean", initial_robot_heading_rad=0.0,
+        )
+        row = {"timestamp_ns": 1_590_000_000,
+               "robot_state": {"heading_rad": 0.0,
+                               "body_sample_timestamp_ns": 1_610_000_000},
+               "perception": {"target_area": 0.03,
+                              "timestamp_ns": 1_580_000_000}}
+        outcome, scored = score_target_response(
+            config, trial, {"direction": "right"}, row,
+            started_ns=0, center_tolerance_rad=0.0,
+        )
+        self.assertEqual((outcome, scored["target_side_at_response"]), ("correct", "right"))
+        row["perception"]["timestamp_ns"] = 1_400_000_000
+        outcome, _ = score_target_response(
+            config, trial, {"direction": "right"}, row,
+            started_ns=0, center_tolerance_rad=0.0,
+        )
+        self.assertEqual(outcome, "incorrect")
 
     def test_pose_reset_tolerance_rejects_drift(self):
         reference = dict(heading_rad=0.1188, trunk_z_m=0.1159,
