@@ -17,6 +17,7 @@ from microduck_connectome.graph import ConnectomeGraph
 from microduck_connectome.motion_adapter import RobotMotionAdapter
 from microduck_connectome.robotd_client import RobotdClient
 from microduck_connectome.scheduler import ClosedLoopScheduler
+from microduck_connectome.steering_decoder import SteeringDecoder, load_steering_decoder_config
 from microduck_connectome.target_scenario import (
     evaluator_truth, load_target_scenario_config, make_target_trial,
     render_camera_pixels, wrap_angle,
@@ -32,7 +33,8 @@ from scripts.p6_telemetry_runtime_fixture import (
 
 
 class TargetChain(FullChain):
-    def __init__(self, root, graph, config, trial, body, body_lock, gain_config, gain_hash):
+    def __init__(self, root, graph, config, trial, body, body_lock,
+                 gain_config, gain_hash, steering_hash):
         super().__init__(root, graph)
         self.config = config
         self.trial = trial
@@ -44,6 +46,10 @@ class TargetChain(FullChain):
             self.mapper.config, gain_config,
         )
         self.gain_hash = gain_hash
+        self.steering = SteeringDecoder(
+            load_steering_decoder_config(root / "config/steering_decoder_p7_v1.json")
+        )
+        self.steering_hash = steering_hash
         self.started_ns = None
         self.scenario = trial.target_side if trial.target_present else "neutral"
 
@@ -71,6 +77,7 @@ class TargetChain(FullChain):
         update = super().neural(frame, now_ns)
         if update is not None and update.trace is not None:
             update.trace["male_cns"]["target_drive_config_sha256"] = self.gain_hash
+            update.trace["male_cns"]["steering_decoder_p7_sha256"] = self.steering_hash
         return update
 
 
@@ -122,6 +129,8 @@ def main():
     gain_path = args.root / "config/target_stimulus_drive_v2.json"
     gain_config = load_target_stimulus_drive(gain_path)
     gain_hash = hashlib.sha256(gain_path.read_bytes()).hexdigest()
+    steering_path = args.root / "config/steering_decoder_p7_v1.json"
+    steering_hash = hashlib.sha256(steering_path.read_bytes()).hexdigest()
     spec = json.loads(args.trial_spec.read_text(encoding="utf-8"))
     graph = ConnectomeGraph.from_cache(args.graph_cache, args.graph_key)
     identity = build_run_identity(
@@ -140,7 +149,8 @@ def main():
     with body_lock:
         initial_body = body.read()
     trial = make_target_trial(config, **spec, initial_robot_heading_rad=initial_body["heading_rad"])
-    chain = TargetChain(args.root, graph, config, trial, body, body_lock, gain_config, gain_hash)
+    chain = TargetChain(args.root, graph, config, trial, body, body_lock,
+                        gain_config, gain_hash, steering_hash)
     health_before = command_client.health()
     observed = []
 
@@ -208,6 +218,7 @@ def main():
         "identity": identity, "trial": trial.metadata(),
         "scenario_config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
         "target_drive_config_sha256": gain_hash,
+        "steering_decoder_p7_sha256": steering_hash,
         "trial_spec_sha256": hashlib.sha256(args.trial_spec.read_bytes()).hexdigest(),
         "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "health_before": health_before, "health_after": health_after,
