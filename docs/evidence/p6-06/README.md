@@ -11,8 +11,8 @@ observed rest, recovery, and replay outcome for each case. Its runtime result
 is PASS; the P6-06 task still requires independent final-head review.
 
 The test ran on `jetsonthor01` with source commit
-`2891cb952a5bf9168de418056c5c850d0b9ffb33` and fixture SHA256
-`cea10f9eade3c5bcec891afa78c4feaf05181eff3123a8ea9d532f7cd0f2bd8d`.
+`bd460084cd37575af1f8821a8ab047652dc2537f` and fixture SHA256
+`1401e65637c5c4a9cf9fea80b4a8917efcceb8bbfa92b456c9a5541d932f215e`.
 Pinned upstream identities were MicroDuck
 `344925c9f8fa031f85428a305b1e8ec2eaae29c1` and microduck_rl
 `cb70b792312d559a4da09064d92009079671815f`. The graph cache key was
@@ -34,33 +34,39 @@ Phase-7 behavior result.
 - All 23 cases reached five consecutive official `robot.state` and 100 ms
   MuJoCo heading windows at rest. Requested and applied twist were within
   `1e-6` for ordinary stops; body angular rate was at most `0.01 rad/s`.
+- Camera, ToF, stale-frame, and compositor faults produced zero sensory
+  channels and external stimulation, then continued through the MaleCNS
+  runtime, DN readout, decoder, clamp, watchdog, and official robot-facing
+  neutral command. No later motion command appeared in those fault windows.
 - Separate process crash and freeze left a stale requested twist of about
   `0.060 rad/s`; official `robotd` reported `limited_by: ["deadman"]` and
-  applied twist below `1e-6` for five windows. The fixture sent a new safe
-  stop before resuming.
+  applied twist below `1e-6` for five windows. The matrix's detection time
+  is the observed `robotd` deadman state; the earlier harness confirmation of
+  the process fault is recorded separately in the raw artifact. The fixture
+  sent a new safe stop before resuming.
 - Seven reconnect/restart paths explicitly rejected a **new** motion output
   before a fresh watchdog safe stop with `reconnect requires a fresh watchdog
   safe-stop output`. Previously used output replay was also rejected.
 - Worst detection, safe-command, and observed-rest times were respectively
-  6194.567 ms, 13490.996 ms, and 14094.554 ms. The largest values belong to
+  6197.536 ms, 13469.542 ms, and 14073.366 ms. The largest values belong to
   full simulator shutdown/startup and are **not** watchdog response times.
 
 ## Validation and retained artifacts
 
 Thor Python 3.12 ran focused P4/P5/P6 perception, sensory, decoder, safety,
 watchdog, adapter, IPC, scheduler, telemetry, and new fault tests:
-`213 passed, 38 subtests passed in 2.73s`.
+`208 passed, 26 subtests passed in 2.73s`.
 
 Raw files remain under
-`/home/juper007/projects/microduck-connectome-thor/evidence/p6-06/20260924T-p606-final-v4`.
+`/home/juper007/projects/microduck-connectome-thor/evidence/p6-06/20260924T-p606-final-v5`.
 The matrix copied into this repository is byte-identical to the Thor file.
 
 | Artifact | Bytes | SHA256 |
 |---|---:|---|
-| `fault-events.jsonl` | 219684 | `1584c299ac3c64e9d95a4d34b55764da7ee3be21eacc5570d0216674e69d2226` |
-| `fault-matrix.json` | 74452 | `230b3e5fb53eba5864aeac4bccd50057dcb89c62047f1b3fd45a2c47003ad301` |
-| `fixture.log` | 41836 | `b544ce5d84c434f133dbfbf171dc1845ab343e1afd6c7783097cbbe274d902bc` |
-| `python312-tests.log` | 314 | `ea526238c94d443fe9a03c74b5c32068104de90557ba187cb791aa6a5324dba9` |
+| `fault-events.jsonl` | 267871 | `1b883e1cddd4dd931786e78f2daddfd4ca2ebfd1c30544ba8b99a5d2106899e9` |
+| `fault-matrix.json` | 74411 | `803fe21cdb31e3c53f6fc07cf183e79f8f57a80c01e5059e83008553baaeb7c3` |
+| `fixture.log` | 41795 | `2d139038bcaf61307ed6e6472fc58c08d04b5fa6132ca22da167b71258db3939` |
+| `python312-tests.log` | 334 | `32581053706a7729cc993dc8f9a349f5a70e5639212e21439de6b7b052d96ce2` |
 
 The two separate worker stderr logs were empty (SHA256
 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
