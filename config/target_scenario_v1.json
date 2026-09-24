@@ -1,0 +1,27 @@
+{
+  "schema_version": "target-scenario-v1",
+  "source": "phase-7-engineering-visual-fixture",
+  "image_width_px": 65,
+  "image_height_px": 11,
+  "target_square_width_px": 5,
+  "horizontal_fov_half_angle_rad": 0.8,
+  "eccentricity_center_rad": {
+    "near_center": 0.14,
+    "medium": 0.36,
+    "far": 0.64
+  },
+  "eccentricity_jitter_rad": 0.015,
+  "crossing_duration_s": 2.0,
+  "warmup_duration_s": 0.6,
+  "trial_timeout_s": 3.0,
+  "tof_mm": 500,
+  "visual_noise": {
+    "clean": {"target_pixel_dropout": 0.0, "background_rgb_jitter": 0},
+    "moderate": {"target_pixel_dropout": 0.2, "background_rgb_jitter": 20}
+  },
+  "initial_pose_tolerance": {
+    "heading_rad": 0.02,
+    "trunk_z_m": 0.01
+  },
+  "scope": "deterministic synthetic camera pixels driven by read-only official MuJoCo heading; evaluator bearing truth is never passed to the controller"
+}

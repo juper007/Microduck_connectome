@@ -1,0 +1,145 @@
+{
+  "checks": {
+    "all_frames_valid": true,
+    "initial_pose_repeatability": true,
+    "official_robotd_health": true,
+    "smoke-left-far-crossing": true,
+    "smoke-left-near-static": true,
+    "smoke-no-target": true,
+    "smoke-right-medium-static": true,
+    "smoke-right-near-crossing-noisy": true
+  },
+  "ended_utc": "2026-09-24T19:54:33Z",
+  "execution_target": "Thor",
+  "fixture_sha256": "2bd796acaed01f2f7ab1dec1434d6ea6ea1552f7854e0afd002873969ae80a4a",
+  "frame_count": 150,
+  "health_after": {
+    "battery": {
+      "percent": 50.00000000000006,
+      "volts": 7.4
+    },
+    "bus": {
+      "consecutive_errors": 0,
+      "startup_failures": 0
+    },
+    "control_loop": {
+      "achieved_hz": 50.019097830973514,
+      "last_tick_age_ms": 3,
+      "missed": 0,
+      "target_hz": 50.0,
+      "ticks": 1605
+    },
+    "cpu_temp_c": 41.687,
+    "healthy": true,
+    "imu": {
+      "consecutive_stale_blocks": 0,
+      "ready": true,
+      "stale_blocks": 0
+    },
+    "motors": {
+      "hottest": "left_hip_yaw",
+      "max_c": 32.0,
+      "mean_c": 32.0
+    }
+  },
+  "health_before": {
+    "battery": {
+      "percent": 50.00000000000006,
+      "volts": 7.4
+    },
+    "bus": {
+      "consecutive_errors": 0,
+      "startup_failures": 0
+    },
+    "control_loop": {
+      "achieved_hz": 49.980414635520596,
+      "last_tick_age_ms": 14,
+      "missed": 0,
+      "target_hz": 50.0,
+      "ticks": 879
+    },
+    "cpu_temp_c": 41.75,
+    "healthy": true,
+    "imu": {
+      "consecutive_stale_blocks": 0,
+      "ready": true,
+      "stale_blocks": 0
+    },
+    "motors": {
+      "hottest": "left_hip_yaw",
+      "max_c": 32.0,
+      "mean_c": 32.0
+    }
+  },
+  "hostname": "jetsonthor01",
+  "initial_heading_spread_rad": 0.0018159067151028024,
+  "initial_poses": [
+    {
+      "heading_rad": 0.11865028354447055,
+      "trunk_quaternion_wxyz": [
+        0.9982368257278437,
+        0.00042846604294012895,
+        0.002816985211561549,
+        0.05928845395155681
+      ],
+      "trunk_z": 0.11589904816640867
+    },
+    {
+      "heading_rad": 0.11911978733187417,
+      "trunk_quaternion_wxyz": [
+        0.9982228769376612,
+        0.000421889282524094,
+        0.0028188014974963775,
+        0.05952280509057308
+      ],
+      "trunk_z": 0.11589901786651158
+    },
+    {
+      "heading_rad": 0.11956102230543851,
+      "trunk_quaternion_wxyz": [
+        0.9982097461135239,
+        0.00044158899571278867,
+        0.002807795503193951,
+        0.05974298324946407
+      ],
+      "trunk_z": 0.11589773479617287
+    },
+    {
+      "heading_rad": 0.12001547989694454,
+      "trunk_quaternion_wxyz": [
+        0.9981961562663283,
+        0.0004370274715164247,
+        0.0028042028740855734,
+        0.05996981797835276
+      ],
+      "trunk_z": 0.11589778477697345
+    },
+    {
+      "heading_rad": 0.12046619025957335,
+      "trunk_quaternion_wxyz": [
+        0.9981826379977651,
+        0.00046299721214149245,
+        0.002793683413796048,
+        0.06019470214551728
+      ],
+      "trunk_z": 0.11589405667788462
+    }
+  ],
+  "initial_trunk_z_spread_m": 4.9914885240504026e-06,
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "raw_artifact": {
+    "bytes": 90425,
+    "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-01/20260924T-p701-smoke-v2/scenario-frames.jsonl",
+    "record_count": 150,
+    "sha256": "4d2f6898e3464bdb41901d80017af5e9eb162ec0b5ce097f444932ceb7025499"
+  },
+  "result": "PASS",
+  "scenario_config_sha256": "089af4f05b5158579f7f335232793ffff5056fa3ea868d40cf0631fa0b33d804",
+  "scenario_manifest_sha256": "150afa5ee2ec5bf0e96917599a6edd74318e069358f53446c2e53e7e839f28de",
+  "schema_version": "p7-01-scenario-smoke-v1",
+  "scope": "read-only official simulator state plus synthetic camera pixels through frozen P4 perception; not a steering behavior trial",
+  "source_head": "2c283413fca03b6e46eb2acb3f2ab5aa64b5876e",
+  "started_utc": "2026-09-24T19:54:18Z",
+  "trial_count": 5
+}
