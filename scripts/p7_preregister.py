@@ -11,7 +11,7 @@ import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTROLLER_COMMIT = "c3914df14a7dab844667a4f1ee816f125b5199c6"
+CONTROLLER_COMMIT = "a7636c9aa06e1b0990a6a04cc0116d5273a91194"
 SEED = 7022401
 HASH_PATHS = {
     "scenario": "config/target_scenario_v1.json",
@@ -63,8 +63,8 @@ def generate() -> dict:
         for index, noise in enumerate(noises, 1)
     ]
     return {
-        "schema_version": "steering-experiment-v2",
-        "experiment_version": "p7-steering-v2",
+        "schema_version": "steering-experiment-v3",
+        "experiment_version": "p7-steering-v3",
         "controller_commit_before_preregistration": CONTROLLER_COMMIT,
         "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
         "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
@@ -78,7 +78,7 @@ def generate() -> dict:
             ["git", "-C", str(ROOT), "show", f"HEAD:{path}"])).hexdigest()
                           for name, path in HASH_PATHS.items()},
         "target_response": {
-            "heading_source": "read-only official MuJoCo body IMU quaternion via BodyReader",
+            "heading_source": "read-only official MuJoCo body IMU quaternion via BodyReader, timestamped immediately after body read",
             "direction_reference": "evaluator-only target bearing relative to robot heading at first response onset",
             "first_sustained_window_s": 0.2,
             "min_abs_heading_delta_rad": 0.02,
@@ -107,7 +107,9 @@ def generate() -> dict:
                                  "official simulator/robotd unavailable before stimulus",
                                  "camera fixture or scenario invariant failure",
                                  "missing post-command robot state or MuJoCo heading",
+                                 "MuJoCo heading sample more than 100 ms after associated command",
                                  "unhealthy official runtime, missed control deadline, or scheduler exception"],
+            "max_body_sample_delay_ms": 100.0,
             "wrong_turn_and_no_response_are_evaluated_failures": True,
             "replacement_policy": "none; report all invalid trials and fail the trial-count floor",
             "reset_policy": "require successful official duck-sim down then up before every trial; verify initial pose against frozen P7-01 reference; initialize controller/runtime afresh",
@@ -116,11 +118,11 @@ def generate() -> dict:
         "no_target_trial_count": len(no_targets),
         "target_trials": targets,
         "no_target_trials": no_targets,
-        "scope": "official Thor robotd/MuJoCo and full MaleCNS loop; development smoke and interrupted v1 batch excluded",
+        "scope": "official Thor robotd/MuJoCo and full MaleCNS loop; development smoke and interrupted v1/v2 batches excluded",
     }
 
 
 if __name__ == "__main__":
-    destination = ROOT / "config/steering_experiment_v2.json"
+    destination = ROOT / "config/steering_experiment_v3.json"
     destination.write_text(json.dumps(generate(), sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(destination)

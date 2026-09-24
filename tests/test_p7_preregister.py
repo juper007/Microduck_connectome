@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class P7PreregistrationTests(unittest.TestCase):
     def test_manifest_is_deterministic_balanced_and_unique(self):
-        frozen = json.loads((ROOT / "config/steering_experiment_v2.json").read_text())
+        frozen = json.loads((ROOT / "config/steering_experiment_v3.json").read_text())
         self.assertEqual(generate(), frozen)
         targets = frozen["target_trials"]
         controls = frozen["no_target_trials"]
@@ -27,7 +27,7 @@ class P7PreregistrationTests(unittest.TestCase):
                                    ("static", "slow_crossing"), ("clean", "moderate")):
             self.assertGreaterEqual(classes[combination], 4)
         self.assertTrue(all(not row["target_present"] for row in controls))
-        self.assertEqual(frozen["schema_version"], "steering-experiment-v2")
+        self.assertEqual(frozen["schema_version"], "steering-experiment-v3")
 
     def test_wilson_interval_includes_point_estimate(self):
         lower, upper = wilson_interval(90, 100)

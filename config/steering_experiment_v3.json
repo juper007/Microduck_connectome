@@ -1,0 +1,1330 @@
+{
+  "config_sha256": {
+    "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+    "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+    "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+    "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+    "scenario": "089af4f05b5158579f7f335232793ffff5056fa3ea868d40cf0631fa0b33d804",
+    "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+    "sensory_mapping_p6": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+    "steering_decoder_p7": "7f013fed3da8862976c740246a0fda39a93298486a8153ef00568d44adb4e907",
+    "target_drive": "eb932025a0b61a7d3f08e16ef7247a0a6a43a3755aaf22045ee4e2007a3355ea",
+    "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+    "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+  },
+  "controller_commit_before_preregistration": "a7636c9aa06e1b0990a6a04cc0116d5273a91194",
+  "dataset": "male-cns:v1.0",
+  "experiment_version": "p7-steering-v3",
+  "graph_key": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "no_target_false_turn": {
+    "false_turn_rate_max": 0.05,
+    "min_abs_robot_facing_vyaw_radps": 0.1,
+    "min_sustained_duration_s": 0.2,
+    "warmup_excluded_s": 0.6
+  },
+  "no_target_trial_count": 40,
+  "no_target_trials": [
+    {
+      "seed": 1940371060,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-001",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3259853834,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-002",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4112668474,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-003",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2667098021,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-004",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1899160864,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-005",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2724680590,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-006",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4165396079,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-007",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3240037441,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-008",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3737213166,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-009",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4254935747,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-010",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1681728199,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-011",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1604599657,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-012",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3933164474,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-013",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2914886814,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-014",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3008892894,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-015",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1700738408,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-016",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2077513539,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-017",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2653103180,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-018",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2410447348,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-019",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 702256025,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-020",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3528169735,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-021",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4112839612,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-022",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3831055645,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-023",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 109643744,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-024",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2125296126,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-025",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1888870594,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-026",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 360256168,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-027",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 317128015,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-028",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2504922195,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-029",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 859709182,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-030",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1741073519,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-031",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 484762334,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-032",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 514949356,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-033",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 719728431,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-034",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 299755160,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-035",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4190929558,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-036",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 280792776,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-037",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1637186028,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-038",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1665838589,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-039",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 576768679,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "p7-no-target-040",
+      "visual_noise_level": "moderate"
+    }
+  ],
+  "reset_reference": {
+    "heading_rad": 0.11884765359676912,
+    "heading_tolerance_rad": 0.02,
+    "source": "docs/evidence/p7-01/scenario-smoke-first-v1.json initial_poses[0]",
+    "source_sha256": "3a0e88bb078b64c649d7b3c284ed7d228721bf4c9040141139ced879585ebaf6",
+    "trunk_z_m": 0.1158945287893718,
+    "trunk_z_tolerance_m": 0.01
+  },
+  "safety_limit_violations_max": 0,
+  "scenario_version": "target-scenario-v1",
+  "schema_version": "steering-experiment-v3",
+  "scope": "official Thor robotd/MuJoCo and full MaleCNS loop; development smoke and interrupted v1/v2 batches excluded",
+  "target_response": {
+    "center_tolerance_rad": 0.05,
+    "correct_direction_rate_min": 0.9,
+    "direction_reference": "evaluator-only target bearing relative to robot heading at first response onset",
+    "first_sustained_window_s": 0.2,
+    "heading_source": "read-only official MuJoCo body IMU quaternion via BodyReader, timestamped immediately after body read",
+    "min_abs_heading_delta_rad": 0.02,
+    "min_same_sign_increment_fraction": 0.8
+  },
+  "target_trial_count": 100,
+  "target_trials": [
+    {
+      "seed": 355241594,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-001",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2446359547,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-002",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1594489573,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-003",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3080997608,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-004",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1570284759,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-005",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2206018181,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-006",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3409218131,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-007",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3263200164,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-008",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 892380703,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-009",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 895484563,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-010",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3456046873,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-011",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1832561963,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-012",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2190375425,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-013",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1764397624,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-014",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3502962752,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-015",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3832117495,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-016",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2951535240,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-017",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4175705314,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-018",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4009993505,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-019",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1666545973,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-020",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2248423861,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-021",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 309499055,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-022",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1492740835,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-023",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2102737782,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-024",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1130248498,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-025",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2977899230,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-026",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 63310649,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-027",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2620807038,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-028",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3298471335,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-029",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 171367831,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-030",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 347354112,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-031",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 518820261,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-032",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2388929904,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-033",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2606975769,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-034",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1509076718,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-035",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 312979327,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-036",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1338813063,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-037",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3976304350,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-038",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2756710757,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-039",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 262182582,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-040",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3057652306,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-041",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1148286967,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-042",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1043516893,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-043",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2175903799,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-044",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3867633292,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-045",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1025873789,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-046",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2787062683,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-047",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1776311236,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-048",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 886871779,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-049",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 448845551,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-050",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1265844971,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-051",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2525099628,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-052",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 324664916,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-053",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3639716596,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-054",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2219762203,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-055",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3760749553,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-056",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1491726797,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-057",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4201912619,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-058",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 785324815,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-059",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1059900762,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-060",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1775331041,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-061",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 429151249,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-062",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2108627914,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-063",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 593004865,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-064",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 177060320,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-065",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 413865070,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-066",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 922409792,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-067",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 202523351,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-068",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 664820724,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-069",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4047387220,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-070",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1350858426,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-071",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2642611708,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-072",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1458205456,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-073",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1717094437,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-074",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2834499724,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-075",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3673258713,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-076",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2088821648,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-077",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 945459822,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-078",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3286555349,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-079",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 238629589,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-080",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2287582650,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-081",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2296611857,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-082",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2509496440,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-083",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4220596887,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-084",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3555584090,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-085",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3890380854,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-086",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3243435890,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-087",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2536878196,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-088",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3677336275,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-089",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1697961961,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-090",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2001311775,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-091",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2525871031,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-092",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2378320433,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-093",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2915082458,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-094",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2520994473,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-095",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3843614230,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-096",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2347729450,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-097",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2402315675,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-098",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2996152513,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "p7-target-099",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 119221962,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "p7-target-100",
+      "visual_noise_level": "moderate"
+    }
+  ],
+  "trial_order_randomization_seed": 7022401,
+  "validity": {
+    "invalid_only_for": [
+      "official simulator down/up reset failure",
+      "initial pose outside preregistered tolerance",
+      "official simulator/robotd unavailable before stimulus",
+      "camera fixture or scenario invariant failure",
+      "missing post-command robot state or MuJoCo heading",
+      "MuJoCo heading sample more than 100 ms after associated command",
+      "unhealthy official runtime, missed control deadline, or scheduler exception"
+    ],
+    "max_body_sample_delay_ms": 100.0,
+    "replacement_policy": "none; report all invalid trials and fail the trial-count floor",
+    "reset_policy": "require successful official duck-sim down then up before every trial; verify initial pose against frozen P7-01 reference; initialize controller/runtime afresh",
+    "wrong_turn_and_no_response_are_evaluated_failures": true
+  }
+}
