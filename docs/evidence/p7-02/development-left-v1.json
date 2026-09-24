@@ -1,0 +1,9 @@
+{
+  "trial_id": "p7-02-dev-left-medium-static-clean",
+  "seed": 70101,
+  "target_present": true,
+  "target_side": "left",
+  "target_eccentricity": "medium",
+  "target_motion": "static",
+  "visual_noise_level": "clean"
+}
