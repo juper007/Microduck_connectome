@@ -110,6 +110,22 @@ adopted. An independent safety concept review requires a new named, bounded,
 hash-pinned policy and full affected safety/behavior recertification rather
 than treating such amplification as equivalent to P6.
 
+The first from-scratch, provenance-pinned yaw-policy checkpoint (iteration 500,
+seed 70202) is a **rejected development candidate**. Its checkpoint SHA256 is
+`783ba4c78d52dd25b362c08f8ed201e871ddb1fcfab7ad02cfd3cb2c1b6ecbc9`;
+exported ONNX SHA256 is
+`1deaafc002a3c96885c963dd9e41aca45c0d849f7e08020f76cfdffb0c588e06`.
+Four fresh official robotd/MuJoCo runs used external ±0.5 rad/s yaw and zero
+vx. Positive-command net headings were −1.16087 and −1.14718 rad, both wrong
+direction; negative-command headings were −1.05123 and −1.20509 rad. Short
+positive-command 200 ms windows of +0.04510/+0.03465 rad were outweighed by
+opposite-sign windows of −0.11954/−0.11887 rad. Thus selecting a policy from
+one qualifying window alone would be misleading. The trial readback verified
+the loaded ONNX; there was no policy load or safety/clamp fault. Thor summary:
+`/tmp/p702-policy-evidence/plant-model-500/summary.json`, SHA256
+`e97ef1b1c10467d02a149ef48c091844cadad60bf75a1d38e059909a2e5345ca`.
+It is not G7 evidence and must not be used for v4 registration.
+
 ## Initial-pose validity
 
 Frozen v3 had four invalid target trials whose official reset exits succeeded

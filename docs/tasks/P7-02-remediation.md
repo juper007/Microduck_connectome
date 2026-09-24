@@ -49,7 +49,11 @@ experiment version. Development diagnostics are never substituted for G7 trials.
 
 The candidate policy must first pass repeated matched ±0.5 rad/s official
 robotd/MuJoCo body-response diagnostics at the unchanged 0.02 rad per 200 ms
-criterion. A selected ONNX artifact, training checkpoint, recipe, seed, source
+criterion. Candidate selection also requires the six-second net heading to have
+the commanded sign on repeated fresh resets; a fleeting correct 200 ms window
+inside an overall wrong turn is insufficient. This additional diagnostic does
+not change the frozen P7 scoring rule. A selected ONNX artifact, training
+checkpoint, recipe, seed, source
 commit, and exporter are then pinned by SHA256 in the v4 manifest. Until that
 evidence exists, the v4 manifest is not generated and no final batch starts.
 
