@@ -182,12 +182,29 @@ def main():
     steering_hash = hashlib.sha256(steering_path.read_bytes()).hexdigest()
     experiment = None
     experiment_hash = None
+    walking_policy_hash = None
+    temporal_hash = None
     if args.experiment is not None:
         from scripts.p7_preregister import HASH_PATHS
         experiment = json.loads(args.experiment.read_text(encoding="utf-8"))
-        if experiment["schema_version"] != "steering-experiment-v3":
+        schema = experiment["schema_version"]
+        if schema == "steering-experiment-v4":
+            from scripts.p7_preregister_v4 import HASH_PATHS_V4
+            hash_paths = HASH_PATHS_V4
+            policy = experiment["walking_policy"]
+            policy_path = Path(policy["artifact_path"])
+            if not policy_path.is_absolute():
+                raise ValueError("v4 walking policy path must be absolute")
+            walking_policy_hash = hashlib.sha256(policy_path.read_bytes()).hexdigest()
+            if walking_policy_hash != policy["sha256"]:
+                raise ValueError("preregistered walking policy hash mismatch")
+            temporal_hash = hashlib.sha256((args.root /
+                "config/steering_temporal_p7_v1.json").read_bytes()).hexdigest()
+        elif schema == "steering-experiment-v3":
+            hash_paths = HASH_PATHS
+        else:
             raise ValueError("unexpected experiment schema")
-        for name, relative in HASH_PATHS.items():
+        for name, relative in hash_paths.items():
             actual = hashlib.sha256((args.root / relative).read_bytes()).hexdigest()
             if actual != experiment["config_sha256"][name]:
                 raise ValueError(f"preregistered {name} hash mismatch")
@@ -199,6 +216,10 @@ def main():
         microduck_commit=git_head(args.microduck),
         microduck_rl_commit=git_head(args.microduck_rl), graph_identity=graph.root_key,
     )
+    if experiment is not None and experiment["schema_version"] == "steering-experiment-v4":
+        if identity["microduck_commit"] != experiment["microduck_commit"] or \
+                identity["microduck_rl_commit"] != experiment["microduck_rl_commit"]:
+            raise ValueError("v4 official runtime commit mismatch")
     telemetry = EndToEndTelemetry(args.root / "config/telemetry_v1.json", identity)
     command_client = RobotdClient(args.socket, timeout_s=2.0)
     command_client.connect()
@@ -366,6 +387,8 @@ def main():
         "experiment_sha256": experiment_hash,
         "target_drive_config_sha256": gain_hash,
         "steering_decoder_p7_sha256": steering_hash,
+        "steering_temporal_p7_sha256": temporal_hash,
+        "walking_policy_sha256": walking_policy_hash,
         "trial_spec_sha256": hashlib.sha256(args.trial_spec.read_bytes()).hexdigest(),
         "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "health_before": health_before, "health_after": health_after,
