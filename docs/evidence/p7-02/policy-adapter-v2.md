@@ -94,3 +94,29 @@ homing policy after robotd restart; the configured walk slot still read back
 the same ONNX, but moving under it after restart was not established. The v4
 batch therefore reloads and verifies the walk-policy bytes before **every**
 trial. This prerequisite PASS does not establish P7-02 or G7 PASS.
+
+## Full-chain development result: first response wrong on left
+
+Five non-final, fresh-reset P7 full-chain smokes used the exact adapter ONNX
+and development seeds only. Static left and slow-crossing left were
+`incorrect`; static right and slow-crossing right were `correct`; no-target
+was `no_target`. All trial processes completed with no invalid/safety fault,
+and each policy load readback matched the adapter SHA256. Thor summary
+`adapter-v2/p7-development-smoke-v2/summary.json` has SHA256
+`e9cdd34d61b9fc3044b0a6bd2d4c0cfb7a7e23eae02b8d5442e8c91c467d7273`;
+the diagnosis JSON SHA256 is
+`ff8e95b4d5868200f986b08edb2bc3efc0975186e1674953e401dca8da993499`.
+
+Both left trials eventually had positive net trunk heading (+0.242/+0.117
+rad), but the **first** qualifying 200–221 ms heading response was negative
+(−0.044/−0.051 rad) at about 0.46–0.47 s after target onset while the
+rendered target remained left. Throughout those response windows, DN-selected
+pre-safety yaw was +0.5, post-safety yaw ramped +0.089→+0.420, and robotd
+applied positive yaw. Fresh direct official plant trials on the same adapter
+also had a repeatable first ~0.2 s wrong-way positive-command heading delta
+of −0.042 to −0.052 rad, with initial wrong-way peaks near −0.10 rad; the
+heading crossed its starting value only after about 1.10 s. Negative-command
+startup headed negative. The first-response defect is therefore in the
+policy/plant startup dynamics after correct command application, not the DN
+side, yaw sign, IPC, or safety clamp. The final v4 target batch remains
+**blocked**; these development outcomes must not be counted or rescored as G7.
