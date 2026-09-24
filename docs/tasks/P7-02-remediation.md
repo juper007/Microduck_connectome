@@ -13,7 +13,7 @@ base:
 goal: >-
   Identify each measured loss of sustained, target-directed body rotation,
   repair it without changing P6 safety or P7 success criteria, and run a newly
-  preregistered full official-Thor batch before requesting P7-02 PASS.
+  preregistered full official-Thor target batch before requesting P7-02 PASS.
 read_first:
   - docs/evidence/p7-02/README.md#Result
   - docs/evidence/p6-03/README.md#bounded-motion-calibration-evidence
@@ -28,11 +28,13 @@ inputs:
 outputs:
   - versioned P7 temporal DN decoder and focused tests
   - traceable official locomotion-policy remedy if a safe one is demonstrated
-  - new preregistration, complete target/no-target Thor evidence, review record
+  - new preregistration with target and future no-target seeds
+  - complete target Thor evidence and exact-head review record
 acceptance:
   - root-cause evidence separates DN, safety, robotd applied command, and body response
   - no change to P6 yaw sign, SafetyClamp, TTL, watchdog, stop transport, or G7 thresholds
-  - at least 100 valid target and 40 no-target trials meet all frozen G7 metrics
+  - at least 100 valid target trials meet the frozen steering and safety metrics
+  - no-target final trials remain P7-03 scope after P7-02 PASS and merge
   - exact-head independent review passes before merge
 context_budget: <50K input tokens per specialist task
 reasoning_effort: high
