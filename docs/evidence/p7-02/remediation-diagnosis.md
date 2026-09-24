@@ -126,6 +126,36 @@ the loaded ONNX; there was no policy load or safety/clamp fault. Thor summary:
 `e97ef1b1c10467d02a149ef48c091844cadad60bf75a1d38e059909a2e5345ca`.
 It is not G7 evidence and must not be used for v4 registration.
 
+Iteration 750 is a **promising development candidate**, not yet selected for
+v4. Its checkpoint SHA256 is
+`bacdd77bfbb06e454e408278b800e13f99793abe5e3a9d34e60a17603cf5d84e`;
+ONNX SHA256 is
+`be5c5d1efa2ffdf2d5276cbc0350095faef52ec27b6d8aac451f85390c1e573d`.
+Five fresh official resets per sign at vx=0 and external yaw ±0.5 yielded
+positive-command net headings +1.1867 to +1.3511 rad (median +1.2189) and
+negative-command net headings −0.5440 to −0.3868 rad (median −0.3868).
+Every run had at least 19 command-sign 200–270 ms windows above 0.02 rad;
+the smallest per-run maximum was 0.0879 rad. There were no command limits,
+faults, or falls; walking was active on all 60 command samples per trial.
+The robotd policy readback confirmed the actual loaded ONNX. Thor summary:
+`/tmp/p702-policy-evidence/plant-model-750/summary.json`, SHA256
+`19790445a05c47ba3bfac03c69464f3392faedf16e879af8f4f3cab9d1cbf29d`.
+This candidate still requires policy selection and affected P6 safety/soak
+revalidation before v4 preregistration or a final target batch.
+
+Iteration 1000 was compared under the same official simulator protocol and
+regressed positive yaw: two +0.5 runs had net headings +0.0728 and −0.0097 rad,
+while two −0.5 runs had −1.5969 and −1.7776 rad. Its checkpoint SHA256 is
+`7f3170b1af39b838694ee5ea36c26556d9559060f3b24b29b3ef63a699c44348`;
+ONNX SHA256 is
+`a73c94a66e5b0bac01e2f39319de37bf3baaffad42881609bc44b66c5124f8ce`.
+No command limits or falls occurred. Thor summary
+`/tmp/p702-policy-evidence/plant-model-1000/summary.json` has SHA256
+`ea39667a03d04cebcb1f921c97163c7a9e6f66aeebaa5cd7f806b1e57d884c5`.
+Iteration 750 is therefore the preliminary policy choice for same-hash P6
+recertification. This selection used only development plant diagnostics,
+before any v4 target-trial seed was run.
+
 ## Initial-pose validity
 
 Frozen v3 had four invalid target trials whose official reset exits succeeded
