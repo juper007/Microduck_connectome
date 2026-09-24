@@ -156,6 +156,20 @@ Iteration 750 is therefore the preliminary policy choice for same-hash P6
 recertification. This selection used only development plant diagnostics,
 before any v4 target-trial seed was run.
 
+That preliminary choice **failed** the frozen P6-03 small-yaw sign calibration.
+Fresh official resets with the same loaded ONNX and external ±0.2 rad/s gave
+positive-command net headings +0.84109/+0.93381 rad, but negative-command net
+headings **+0.42130/+0.36012 rad**. Requested and robotd-applied commands
+reached the selected ±0.2 exactly, all 60 command samples used the walk policy,
+and no limits or falls occurred. The wrong-sign body response is downstream
+of command transport. The remaining P6 recertification and P7 batch were
+stopped. Thor affected-P6 summary:
+`/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/affected-p6-recert/summary.json`,
+SHA256 `ca40749af5d50cf9cb09e71575d0ade84f687bff158a10b0a6514a4de679f09c`.
+The unmodified iteration-750 ONNX is rejected; it must not be placed in a v4
+manifest. A new policy version requires its own identity and full affected P6
+revalidation.
+
 ## Initial-pose validity
 
 Frozen v3 had four invalid target trials whose official reset exits succeeded
