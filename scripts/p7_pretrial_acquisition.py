@@ -25,8 +25,8 @@ def validate_loaded_walk_policy(readback: dict, expected_path: Path,
     slot = slots[0]
     if slot["error"] is not None or slot["overridden"] is not True:
         raise ValueError("walk policy load failed or fell back")
-    # The official loader copies the candidate into its release directory;
-    # the readback path is expected to differ from the submitted source path.
+    # The official loader may report a resolved release path rather than the
+    # submitted source path. Verify the bytes of the path robotd actually uses.
     observed = Path(slot["path"]).resolve(strict=True)
     if not Path(slot["path"]).is_absolute() or slot["origin"] != "local":
         raise ValueError("walk policy is not an absolute local override")
