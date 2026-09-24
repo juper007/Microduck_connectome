@@ -24,7 +24,37 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def generate(*, policy: dict, controller_commit: str,
+def validate_selection_metrics(summary: dict, policy: dict) -> None:
+    if (summary["status"] != "interim_candidate_not_recertified"
+            or summary["isolated_sim_down_at_summary"] is not True
+            or summary["training_seed"] != 70202
+            or summary["training_num_envs"] != 4096
+            or summary["checkpoint_iteration"] != 750
+            or summary["source_commit"] != policy["training_source_commit"]
+            or summary["recipe_sha256"] != policy["training_recipe_sha256"]
+            or summary["checkpoint_sha256"] != policy["checkpoint_sha256"]
+            or summary["onnx_sha256"] != policy["sha256"]):
+        raise ValueError("candidate diagnostic provenance mismatch")
+    runs = {row["trial"]: row for row in summary["runs"]}
+    expected = {f"{side}05-vx0-r{index}" for side in ("plus", "minus")
+                for index in range(1, 6)}
+    if set(runs) != expected or len(summary["runs"]) != 10:
+        raise ValueError("candidate diagnostic requires five fresh runs per sign")
+    for name, row in runs.items():
+        sign = 1 if name.startswith("plus") else -1
+        slot = row["readback_walk_slot"]
+        if (sign * row["net_trunk_heading_rad"] <= 0
+                or row["max_command_sign_200_to_270ms_rad"] < .02
+                or row["qualifying_command_sign_windows_ge_0p02"] < 1
+                or row["command_limited_by"]
+                or row["walk_samples"] != 60
+                or row["readback_mode"] != "walk"
+                or slot["slot"] != "walk" or slot["origin"] != "local"
+                or slot["overridden"] is not True or slot["error"] is not None):
+            raise ValueError(f"candidate diagnostic failed: {name}")
+
+
+def generate(*, policy: dict, validation: dict, controller_commit: str,
              committed_hashes: dict[str, str]) -> dict:
     required = {"sha256", "training_source_commit", "training_recipe_sha256",
                 "checkpoint_sha256", "exporter_source_commit", "artifact_path"}
@@ -32,6 +62,9 @@ def generate(*, policy: dict, controller_commit: str,
         raise ValueError(f"missing policy provenance: {sorted(required - policy.keys())}")
     if set(committed_hashes) != set(HASH_PATHS_V4):
         raise ValueError("incomplete controller config hashes")
+    if set(validation) != {"selection_summary_path", "selection_summary_sha256",
+                           "affected_p6_summary_path", "affected_p6_summary_sha256"}:
+        raise ValueError("incomplete policy validation evidence")
     base = json.loads(V3_PATH.read_text(encoding="utf-8"))
     manifest = deepcopy(base)
     rng = random.Random(SEED)
@@ -62,6 +95,7 @@ def generate(*, policy: dict, controller_commit: str,
         "trial_order_randomization_seed": SEED,
         "config_sha256": committed_hashes,
         "walking_policy": policy,
+        "walking_policy_validation": validation,
         "target_trial_count": len(target_trials),
         "no_target_trial_count": len(no_target_trials),
         "target_trials": target_trials,
@@ -82,6 +116,8 @@ def generate(*, policy: dict, controller_commit: str,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--policy-metadata", type=Path, required=True)
+    parser.add_argument("--selection-summary", type=Path, required=True)
+    parser.add_argument("--affected-p6-summary", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ROOT / "config/steering_experiment_v4.json")
     args = parser.parse_args()
     if args.output.exists():
@@ -90,6 +126,26 @@ def main() -> None:
     policy_path = Path(policy["artifact_path"])
     if not policy_path.is_absolute() or sha256_file(policy_path) != policy["sha256"]:
         raise ValueError("policy path is not absolute or artifact hash differs")
+    selection = json.loads(args.selection_summary.read_text(encoding="utf-8"))
+    validate_selection_metrics(selection, policy)
+    policy.update({"training_seed": selection["training_seed"],
+                   "training_num_envs": selection["training_num_envs"],
+                   "checkpoint_iteration": selection["checkpoint_iteration"]})
+    for row in selection["runs"]:
+        for name in ("trace", "readback"):
+            original = Path(row[f"{name}_path"])
+            durable = args.selection_summary.parent / original.name
+            if sha256_file(durable) != row[f"{name}_sha256"]:
+                raise ValueError(f"candidate {name} artifact hash mismatch")
+    p6 = json.loads(args.affected_p6_summary.read_text(encoding="utf-8"))
+    if p6["result"] != "PASS" or p6["walking_policy_sha256"] != policy["sha256"]:
+        raise ValueError("affected P6 recertification has not passed for this policy")
+    validation = {
+        "selection_summary_path": str(args.selection_summary.resolve()),
+        "selection_summary_sha256": sha256_file(args.selection_summary),
+        "affected_p6_summary_path": str(args.affected_p6_summary.resolve()),
+        "affected_p6_summary_sha256": sha256_file(args.affected_p6_summary),
+    }
     if subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"],
                                text=True).strip():
         raise RuntimeError("preregistration requires clean source checkout")
@@ -98,7 +154,8 @@ def main() -> None:
     hashes = {name: hashlib.sha256(subprocess.check_output(
         ["git", "-C", str(ROOT), "show", f"HEAD:{path}"])).hexdigest()
               for name, path in HASH_PATHS_V4.items()}
-    args.output.write_text(json.dumps(generate(policy=policy, controller_commit=head,
+    args.output.write_text(json.dumps(generate(policy=policy, validation=validation,
+                                              controller_commit=head,
                                               committed_hashes=hashes),
                                       sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(args.output)

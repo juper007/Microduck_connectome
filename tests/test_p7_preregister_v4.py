@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 import unittest
 
-from scripts.p7_preregister_v4 import generate, HASH_PATHS_V4, V3_PATH
+from scripts.p7_preregister_v4 import (generate, HASH_PATHS_V4, V3_PATH,
+                                        validate_selection_metrics)
 
 
 class P7PreregistrationV4Tests(unittest.TestCase):
@@ -15,9 +16,14 @@ class P7PreregistrationV4Tests(unittest.TestCase):
         policy = {key: "pinned" for key in ("sha256", "training_source_commit",
                   "training_recipe_sha256", "checkpoint_sha256",
                   "exporter_source_commit", "artifact_path")}
+        validation = {key: "pinned" for key in
+                      ("selection_summary_path", "selection_summary_sha256",
+                       "affected_p6_summary_path", "affected_p6_summary_sha256")}
         hashes = {key: "hash" for key in HASH_PATHS_V4}
-        current = generate(policy=policy, controller_commit="source", committed_hashes=hashes)
-        self.assertEqual(current, generate(policy=policy, controller_commit="source",
+        current = generate(policy=policy, validation=validation,
+                           controller_commit="source", committed_hashes=hashes)
+        self.assertEqual(current, generate(policy=policy, validation=validation,
+                                           controller_commit="source",
                                            committed_hashes=hashes))
         self.assertEqual((len(current["target_trials"]), len(current["no_target_trials"])),
                          (120, 40))
@@ -37,6 +43,31 @@ class P7PreregistrationV4Tests(unittest.TestCase):
                       "safety_limit_violations_max"):
             self.assertEqual(current[field], old[field])
         self.assertEqual(current["validity"]["pretrial_pose_acquisition_max_attempts"], 3)
+
+    def test_policy_selection_requires_repeated_signed_net_heading(self):
+        policy = {"training_source_commit": "source", "training_recipe_sha256": "recipe",
+                  "checkpoint_sha256": "checkpoint", "sha256": "onnx"}
+        runs = [{"trial": f"{side}05-vx0-r{index}",
+                 "net_trunk_heading_rad": sign * .2,
+                 "max_command_sign_200_to_270ms_rad": .03,
+                 "qualifying_command_sign_windows_ge_0p02": 2,
+                 "command_limited_by": [], "walk_samples": 60,
+                 "readback_mode": "walk", "readback_walk_slot": {
+                     "slot": "walk", "origin": "local", "overridden": True,
+                     "error": None}}
+                for side, sign in (("plus", 1), ("minus", -1))
+                for index in range(1, 6)]
+        summary = {"status": "interim_candidate_not_recertified",
+                   "isolated_sim_down_at_summary": True,
+                   "training_seed": 70202, "training_num_envs": 4096,
+                   "checkpoint_iteration": 750,
+                   "source_commit": "source", "recipe_sha256": "recipe",
+                   "checkpoint_sha256": "checkpoint", "onnx_sha256": "onnx",
+                   "runs": runs}
+        validate_selection_metrics(summary, policy)
+        runs[0]["net_trunk_heading_rad"] = -.1
+        with self.assertRaisesRegex(ValueError, "candidate diagnostic failed"):
+            validate_selection_metrics(summary, policy)
 
 
 if __name__ == "__main__":
