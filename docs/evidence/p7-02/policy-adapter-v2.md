@@ -75,3 +75,22 @@ recipe, construction script, offline equivalence, 20 development traces, and
 affected-P6 PASS summary. Final official P7 target trials use new
 preregistered seeds, with unchanged response and safety thresholds. P7-03
 no-target final trials remain a later task after P7-02 PASS and merge.
+
+The affected-P6 simulation recertification subsequently **passed** on the
+exact adapter ONNX. Thor aggregate summary
+`adapter-v2/affected-p6-recert/summary.json` has SHA256
+`1dddbc2015bbc0103d4854235e890a8dd304593c4fd8da510598666e125033f6`.
+It covers fresh ±0.2 sign calibration, acknowledged stop, reconnect and
+robotd restart safe-stop, 23/23 fault injections, two bounded ramp/reversal/
+near-zero/max-vx probes, and a 605.1814 s closed-loop soak with 30,252
+telemetry records and zero verifier gaps/violations. An independent reviewer
+matched all 97 listed raw-file hashes, the actual ONNX file, logged config
+blobs, and official policy readbacks; the prerequisite decision was PASS at
+controller source `08aefe2476689fa450ea967b72ec604d48787605`.
+
+The 10-minute soak held zero yaw, so prolonged turning is supported by the
+separate motion probes rather than that soak. The restart trace used an active
+homing policy after robotd restart; the configured walk slot still read back
+the same ONNX, but moving under it after restart was not established. The v4
+batch therefore reloads and verifies the walk-policy bytes before **every**
+trial. This prerequisite PASS does not establish P7-02 or G7 PASS.
