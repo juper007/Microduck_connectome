@@ -81,7 +81,8 @@ class TargetChain(FullChain):
         return update
 
 
-def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02, duration_s=0.2):
+def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02,
+                               duration_s=0.2, same_sign_fraction=0.8):
     """Find the first 200 ms net heading change supported by consistent samples."""
     active = [row for row in records if row["timestamp_ns"] >= stimulus_ns]
     for start in range(len(active)):
@@ -95,7 +96,7 @@ def sustained_heading_response(records, *, stimulus_ns, threshold_rad=0.02, dura
                 increments = [wrap_angle(b["robot_state"]["heading_rad"] - a["robot_state"]["heading_rad"])
                               for a, b in zip(segment, segment[1:])]
                 consistent = sum(1 for item in increments if item * delta > 0)
-                if consistent >= math.ceil(0.8 * len(increments)):
+                if consistent >= math.ceil(same_sign_fraction * len(increments)):
                     return {
                         "start_timestamp_ns": segment[0]["timestamp_ns"],
                         "end_timestamp_ns": segment[-1]["timestamp_ns"],
@@ -118,6 +119,7 @@ def main():
     parser.add_argument("--microduck-rl", type=Path, required=True)
     parser.add_argument("--source-head", required=True)
     parser.add_argument("--trial-spec", type=Path, required=True)
+    parser.add_argument("--experiment", type=Path)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--artifact", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
@@ -126,11 +128,23 @@ def main():
         raise RuntimeError("behavior evidence requires Thor Python 3.12")
     config_path = args.root / "config/target_scenario_v1.json"
     config = load_target_scenario_config(config_path)
-    gain_path = args.root / "config/target_stimulus_drive_v2.json"
+    gain_path = args.root / "config/target_stimulus_drive_v3.json"
     gain_config = load_target_stimulus_drive(gain_path)
     gain_hash = hashlib.sha256(gain_path.read_bytes()).hexdigest()
     steering_path = args.root / "config/steering_decoder_p7_v1.json"
     steering_hash = hashlib.sha256(steering_path.read_bytes()).hexdigest()
+    experiment = None
+    experiment_hash = None
+    if args.experiment is not None:
+        from scripts.p7_preregister import HASH_PATHS
+        experiment = json.loads(args.experiment.read_text(encoding="utf-8"))
+        if experiment["schema_version"] != "steering-experiment-v1":
+            raise ValueError("unexpected experiment schema")
+        for name, relative in HASH_PATHS.items():
+            actual = hashlib.sha256((args.root / relative).read_bytes()).hexdigest()
+            if actual != experiment["config_sha256"][name]:
+                raise ValueError(f"preregistered {name} hash mismatch")
+        experiment_hash = hashlib.sha256(args.experiment.read_bytes()).hexdigest()
     spec = json.loads(args.trial_spec.read_text(encoding="utf-8"))
     graph = ConnectomeGraph.from_cache(args.graph_cache, args.graph_key)
     identity = build_run_identity(
@@ -196,7 +210,13 @@ def main():
         raise RuntimeError("no full-chain telemetry records")
     stimulus_ns = chain.started_ns + int(trial.stimulus_start_s * 1e9)
     active = [row for row in observed if row["timestamp_ns"] >= stimulus_ns]
-    response = sustained_heading_response(observed, stimulus_ns=stimulus_ns)
+    response_rules = experiment["target_response"] if experiment is not None else {}
+    response = sustained_heading_response(
+        observed, stimulus_ns=stimulus_ns,
+        threshold_rad=response_rules.get("min_abs_heading_delta_rad", 0.02),
+        duration_s=response_rules.get("first_sustained_window_s", 0.2),
+        same_sign_fraction=response_rules.get("min_same_sign_increment_fraction", 0.8),
+    )
     safety_violations = sum(
         not math.isfinite(row["robot_facing_vyaw"])
         or abs(row["robot_facing_vx"]) > 0.08 or row["robot_facing_vy"] != 0.0
@@ -208,7 +228,19 @@ def main():
     )
     if not trial.target_present:
         outcome = "no_target"
-    if not health_before["healthy"] or not health_after["healthy"] or not active:
+    perception_active_frames = sum(row["perception"]["target_area"] > 0 for row in active)
+    invalid_reasons = []
+    if not health_before["healthy"] or not health_after["healthy"]:
+        invalid_reasons.append("official_robotd_unhealthy")
+    if not active or scheduler_result["scheduler_exceptions"]:
+        invalid_reasons.append("missing_active_records_or_scheduler_exception")
+    if trial.target_present and perception_active_frames == 0:
+        invalid_reasons.append("camera_fixture_failed_to_show_target")
+    if not trial.target_present and perception_active_frames:
+        invalid_reasons.append("no_target_camera_fixture_contaminated")
+    if any(row["robot_state"]["sample_timestamp_ns"] < row["timestamp_ns"] for row in observed):
+        invalid_reasons.append("missing_post_command_state")
+    if invalid_reasons:
         outcome = "invalid"
     summary = {
         "schema_version": "p7-02-target-trial-v1",
@@ -217,6 +249,7 @@ def main():
         "ended_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "identity": identity, "trial": trial.metadata(),
         "scenario_config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        "experiment_sha256": experiment_hash,
         "target_drive_config_sha256": gain_hash,
         "steering_decoder_p7_sha256": steering_hash,
         "trial_spec_sha256": hashlib.sha256(args.trial_spec.read_bytes()).hexdigest(),
@@ -225,9 +258,9 @@ def main():
         "initial_body": initial_body, "final_body": final_body,
         "initial_heading_rad": initial_body["heading_rad"],
         "final_heading_delta_rad": wrap_angle(final_body["heading_rad"] - initial_body["heading_rad"]),
-        "response": response, "outcome": outcome,
+        "response": response, "outcome": outcome, "invalid_reasons": invalid_reasons,
         "safety_limit_violations": safety_violations,
-        "perception_active_frames": sum(row["perception"]["target_area"] > 0 for row in active),
+        "perception_active_frames": perception_active_frames,
         "max_abs_robot_facing_vyaw": max(abs(row["robot_facing_vyaw"]) for row in observed),
         "max_dn_steering_left": max(row["dn_activity"]["steering_left"] for row in observed),
         "max_dn_steering_right": max(row["dn_activity"]["steering_right"] for row in observed),

@@ -47,7 +47,7 @@ def load_target_stimulus_drive(path: str | Path) -> dict:
     if set(value) != {"schema_version", "target_gain", "max_channel_amplitude",
                       "lateral_deadzone_x", "source", "scope"}:
         raise ValueError("target drive fields mismatch")
-    if value["schema_version"] != "target-stimulus-drive-v2" or value["source"] != "phase-7-engineering-calibration":
+    if value["schema_version"] not in ("target-stimulus-drive-v2", "target-stimulus-drive-v3") or value["source"] != "phase-7-engineering-calibration":
         raise ValueError("target drive identity mismatch")
     gain, limit, deadzone = (value[name] for name in
                              ("target_gain", "max_channel_amplitude", "lateral_deadzone_x"))

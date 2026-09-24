@@ -58,6 +58,17 @@ class TargetStimulusGainTests(unittest.TestCase):
         self.assertEqual(mapper.build_external(self.frame(), now_ns=1_100_000_001), {})
         self.assertEqual(mapper.build_external(self.frame(target_area=0.0), now_ns=1_000_000_000), {})
 
+    def test_v3_drives_moderate_noise_target_at_bounded_amplitude(self):
+        sensory = load_sensory_mapping_config(ROOT / "config/sensory_mapping_v1.json")
+        drive = load_target_stimulus_drive(ROOT / "config/target_stimulus_drive_v3.json")
+        ids = tuple(sorted(body_id for spec in sensory["populations"].values()
+                           for body_id in spec["body_ids"]))
+        mapper = TargetDriveSensoryMapper(ids, sensory, drive)
+        channels = mapper.map_channels(
+            self.frame(target_x=0.75, target_area=0.028), now_ns=1_000_000_000,
+        )
+        self.assertEqual((channels["lc10a_left"], channels["lc10a_right"]), (0.0, 1.0))
+
 
 if __name__ == "__main__":
     unittest.main()

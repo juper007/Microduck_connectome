@@ -1,0 +1,8 @@
+{
+  "schema_version": "target-stimulus-drive-v3",
+  "target_gain": 50.0,
+  "max_channel_amplitude": 1.0,
+  "lateral_deadzone_x": 0.05,
+  "source": "phase-7-engineering-calibration",
+  "scope": "bounded LC10a side drive after P4 target detection, revised after moderate-noise development smoke; retain P4 TTL, P5 decoder, P6 safety limits, and no-target neutrality"
+}
