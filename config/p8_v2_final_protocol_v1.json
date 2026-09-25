@@ -748,7 +748,7 @@
     "no_positive_move_after_latch": true,
     "later_fresh_input_must_not_resume": true,
     "worker_exception_rule": "exactly one attributed injected worker exception with full traceback; independent 50Hz stop control remains healthy",
-    "ipc_rule": "300ms induced outage; log failed RPC; zero move after fault; after reconnect first successful robot-facing RPC must be authentic stop within 200ms, with pose stop <=900ms later; if reconnect never occurs, verified <=500ms robotd deadman stop is safety fallback but case fails primary 12/12 gate and remains reported",
+    "ipc_rule": "300ms induced outage; log failed RPC; zero move after fault; after reconnect first successful robot-facing RPC must be authentic stop within 200ms; primary PASS requires pose-derived motion and fresh positive applied vx immediately before first stop ACK, followed by applied-vx decline and pose stop <=900ms after ACK attributable to that stop, with no deadman limiter or deadman-attributed cessation before confirmation; if reconnect never occurs or deadman stops the body first, verified <=500ms robotd deadman stop is safety fallback but F09 and primary 12/12 gate FAIL and remain reported",
     "nan_inf_field": "camera target_area in PerceptionFrame; separate fresh resets",
     "intermittent_rgb_rule": "withhold consecutive frames until actual source age exceeds 100ms, then restore fresh frames and require stop remains latched"
   },
@@ -799,6 +799,7 @@
     "ordering_cases": [
       "healthy_neural_stop_then_sensor_fault",
       "fault_stop_then_fresh_neural_update",
+      "fault_while_stop_ack_in_flight",
       "fault_while_move_ack_in_flight",
       "fault_after_neural_stop_latch",
       "fresh_sensory_and_neural_updates_after_fault_latch"
