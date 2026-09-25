@@ -1,6 +1,6 @@
 ---
 name: neural-runtime-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome neural-runtime-engineer repository skill.
+description: Design, implement, test, and profile the MaleCNS-derived temporal neural runtime. Use for LIF/leaky dynamics, sparse graph execution, stimulation/readout timing, determinism, stability, or CPU/GPU profiling.
 ---
 
 # Qwen adapter: neural-runtime-engineer
