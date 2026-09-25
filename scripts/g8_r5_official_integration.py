@@ -25,7 +25,7 @@ from microduck_connectome.scheduler import ClosedLoopScheduler
 from microduck_connectome.telemetry import EndToEndTelemetry, build_run_identity
 from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p6_telemetry_runtime_fixture import (
-    FullChain, RobotStateSampler, compact_state, git_head,
+    FullChain, RobotStateSampler, git_head,
 )
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
@@ -117,6 +117,22 @@ def main():
                 state, received_ns = sampler.after(command_ns)
                 with pose_lock:
                     pose = pose_reader.read()
+                move = state["move"]
+                applied = list(move["applied"])
+                odom = state.get("odom") or {}
+                robot_state = {
+                    "sample_timestamp_ns": received_ns,
+                    "robot_t_ns": state.get("t_ns"),
+                    "policy": state["policy"],
+                    "requested_velocity": list(move["requested"]),
+                    "applied_velocity": applied,
+                    "velocity": [odom.get("vx", applied[0]), odom.get("vy", applied[1]),
+                                 odom.get("vyaw", applied[2])],
+                    "heading_rad": pose["heading_rad"],
+                    "trunk_x_m": pose["x_m"], "trunk_y_m": pose["y_m"],
+                    "trunk_z": pose["trunk_z_m"],
+                    "limited_by": list(move.get("limited_by", [])),
+                }
                 trace = copy.deepcopy(update.trace)
                 trace["male_cns"].pop("scenario_fixture", None)
                 telemetry.append(
@@ -124,10 +140,7 @@ def main():
                     sequence=output["intent"]["sequence"], trace=trace,
                     watchdog_output=output, robotd_transport_result=result,
                     robotd_connected=robot.status.connected,
-                    robot_state=compact_state(state, received_ns, {
-                        "heading_rad": pose["heading_rad"], "trunk_quaternion_wxyz": [1, 0, 0, 0],
-                        "trunk_z": pose["trunk_z_m"],
-                    }),
+                    robot_state=robot_state,
                 )
             except BaseException as error:
                 errors.append(repr(error))
