@@ -1,0 +1,62 @@
+{
+  "schema_version": "p8-r2-official-development-summary-v1",
+  "task_id": "P8-R2",
+  "status": "FAIL",
+  "evidence_role": "development_only_not_p8_final",
+  "base_origin_main": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "dataset": "male-cns:v1.0",
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "boundary_m": 0.25,
+  "stop_transport": "robot.stop",
+  "p8_r1_code_dependency": {
+    "status": "draft_failed_unmerged",
+    "pr": 67,
+    "source_commit": "d07b8b45a742ae7f4dc373e9557263459d104eb9"
+  },
+  "versioned_official_batches": [
+    {
+      "version": 2,
+      "source_commit": "72330fb336b9494b65bffa24a9ca2946c3881686",
+      "protocol_sha256": "43bf56843f10d2867b65a1a44232eeb7e99745bb15d2ed90b03e9ca1e8ca09ad",
+      "result": "FAIL",
+      "planned": 6,
+      "started": 6,
+      "completed_with_summary": 3,
+      "candidate_primary_passes": 0,
+      "candidate_evaluable": 2,
+      "failure": "trial parser rejected indices 3-5 before neural arm; completed rows had no early healthy neural stop",
+      "batch_summary_sha256": "de024fe3e1a0ba883cada6adae39a985836ec28915f6d58a8c6fd043d614c2c1",
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r2-rgb-resolution/official-72330fb-20260925-1/",
+      "raw_manifest_sha256": "8630989092dedabb59014cb4387504d6a75dd076bf15a174ab97566e65a8c68d",
+      "indexed_files_hash_size_record_verified": 47,
+      "final_simulator_down_exit": 0
+    },
+    {
+      "version": 3,
+      "source_commit": "bda1a751c131ef959c521b0c740b68ba4dd42deb",
+      "protocol_sha256": "75a2b6f771decf6704c6f911ca44622f7875ec151e51a761eb854ab47e89ae2c",
+      "result": "FAIL",
+      "planned": 6,
+      "started": 6,
+      "completed_with_summary": 6,
+      "candidate_primary_passes": 0,
+      "candidate_planned": 3,
+      "all_prearm_movement_established": true,
+      "candidate_peak_dn_escape": [0.0, 0.2, 0.4],
+      "baseline_peak_dn_escape": [0.0, 0.2, 0.2],
+      "healthy_neural_stop_count": 0,
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": null,
+      "scheduler_exception_interpretation": "no-stop fixture deadlines prevented normal scheduler completion; null is not a clean zero",
+      "batch_summary_sha256": "f701608c338d39c54028f7f69c3440d96b457275641d67b91a7111de9404f1b6",
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r2-rgb-resolution/official-bda1a75-20260925-1/",
+      "raw_manifest_sha256": "75e5b035a2eb717551af84c4ea013926e494739565b77833f5bf80adfe233663",
+      "indexed_files_hash_size_record_verified": 62,
+      "final_simulator_down_exit": 0
+    }
+  ],
+  "final_benchmark_started": false,
+  "required_next_remediation": "new_versioned_sensory_encoding_hypothesis"
+}
