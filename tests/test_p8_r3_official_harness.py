@@ -99,8 +99,11 @@ class OfficialSelectionTests(unittest.TestCase):
 
     def test_v22_draft_blocks_execution_and_freeze_requires_20hz_ttl_margin(self):
         protocol = json.loads((ROOT / "config/p8_r3_v22_official_v1.json").read_text())
+        draft = copy.deepcopy(protocol)
+        draft["official_freeze_status"] = "DRAFT"
+        draft["internal_gate_status"] = "PENDING"
         with self.assertRaisesRegex(RuntimeError, "internal neural gate"):
-            validate_frozen_selection(protocol)
+            validate_frozen_selection(draft)
         frozen = copy.deepcopy(protocol)
         frozen["internal_gate_status"] = "PASS"
         frozen["official_freeze_status"] = "FROZEN"
