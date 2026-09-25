@@ -126,6 +126,7 @@ class FullChain:
         self.steering = SteeringDecoder(load_steering_decoder_config(root / "config" / "steering_decoder_v1.json"))
         self.escape = EscapeDecoder(load_escape_decoder_config(root / "config" / "escape_decoder_v1.json"))
         self.safety = SafetyClamp(load_safety_envelope(root / "config" / "safety_envelope_v1.json"))
+        self.neural_stop_latch = None
         self.frame_id = 0
         self.neural_sequence = 0
         self.scenario = "neutral"
@@ -180,8 +181,16 @@ class FullChain:
             sequence=self.neural_sequence,
             runtime_healthy=snapshot["healthy"],
         )
-        pre = self.escape.apply(readout, self.steering.decode(readout))
-        safe = self.safety.apply(pre, now_ns=now_ns, fallback_sequence=self.neural_sequence)
+        raw_pre = self.escape.apply(readout, self.steering.decode(readout))
+        if self.neural_stop_latch is None:
+            pre = raw_pre
+            safe = self.safety.apply(pre, now_ns=now_ns, fallback_sequence=self.neural_sequence)
+            held_nonstop = False
+        else:
+            pre, safe, held_nonstop = self.neural_stop_latch.apply(
+                readout=readout, decoded_intent=raw_pre, safety=self.safety,
+                now_ns=now_ns, graph_runtime_step=self.neural_sequence,
+            )
         trace = {
             "camera_frame_id": frame["frame_id"],
             "tof_frame_id": frame["frame_id"],
@@ -198,6 +207,19 @@ class FullChain:
             "safety_result": safe,
             "scenario": self.scenario,
         }
+        if self.neural_stop_latch is not None:
+            record = self.neural_stop_latch.snapshot()
+            trace["raw_decoded_intent"] = raw_pre
+            trace["neural_stop_latch"] = {
+                "source": record.source if record else None,
+                "cause": record.cause if record else None,
+                "origin_runtime_step": record.graph_runtime_step if record else None,
+                "origin_neural_sequence": record.neural_sequence if record else None,
+                "origin_timestamp_ns": record.neural_timestamp_ns if record else None,
+                "detected_ns": record.detected_ns if record else None,
+                "held_nonstop_decoder_output": held_nonstop,
+                "confirmed_ack_ns": record.first_healthy_stop_ack_ns if record else None,
+            }
         # Scenario is transport metadata, not a neural input; remove it from the
         # schema-bound trace and carry it alongside for the fixture observer.
         scenario = trace.pop("scenario")
