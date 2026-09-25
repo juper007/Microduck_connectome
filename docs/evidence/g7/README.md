@@ -175,9 +175,10 @@ SHA; preregistration timing, seeds, order and failed-trial retention;
 all three raw summaries/journals and representative left/right actual
 heading traces; selected ONNX and exact-policy P6 recertification;
 280 trials, 42,280 telemetry rows, safety bounds/watchdog/`robotd`
-ownership; and **39 source tests passed**. This G7 record itself is
-a later documentation-only commit and awaits its own final exact-head
-independent review before PR or merge.
+ownership; and **39 source tests passed**. This G7 record passed independent
+exact-head review at `8f353df81ae377b210b1fb67f83704d746e80141`
+and was merged through [PR #52](https://github.com/juper007/Microduck_connectome/pull/52)
+as `461f89e0c6b9058bac9db66daa9686b83c22d1a7`.
 
 This evidence supports [H1 target-following steering](../../preflight/EXPERIMENT_PROTOCOL.md)
 within the pinned official simulation and tested scenarios. It does
