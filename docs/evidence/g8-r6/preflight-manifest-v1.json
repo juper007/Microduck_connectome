@@ -1,0 +1,82 @@
+{
+  "file_count": 12,
+  "files": [
+    {
+      "bytes": 17,
+      "path": "target/g8-r6-target-001/pretrial-01/down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 1705,
+      "path": "target/g8-r6-target-001/pretrial-01/policy_list.log",
+      "record_count": 1,
+      "sha256": "d59d2819da704bec2278f2eae4fb35a8366afa50d35afb3e707682ccd9ae6b18"
+    },
+    {
+      "bytes": 235,
+      "path": "target/g8-r6-target-001/pretrial-01/policy_load.log",
+      "record_count": 2,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 447,
+      "path": "target/g8-r6-target-001/pretrial-01/pose.json",
+      "record_count": null,
+      "sha256": "f52e15675646aa8f700ac0f1bd3254ecaf4517a542b676764dcb1f9e912255d2"
+    },
+    {
+      "bytes": 103,
+      "path": "target/g8-r6-target-001/pretrial-01/pose.log",
+      "record_count": 1,
+      "sha256": "c26071d2366f8e7bd73fbbe27ae0a0027060c566e0261757da63e591ab4c9406"
+    },
+    {
+      "bytes": 1169,
+      "path": "target/g8-r6-target-001/pretrial-01/up.log",
+      "record_count": 26,
+      "sha256": "d3d9214945dff52f8b5687e3460b2bbf92c7d4909cbfbbbd3e6529ec4da3b801"
+    },
+    {
+      "bytes": 17,
+      "path": "target/g8-r6-target-001/pretrial-02/down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 1071,
+      "path": "target/g8-r6-target-001/pretrial-02/up.log",
+      "record_count": 24,
+      "sha256": "c6400e8dcb79435d15e0b3ee950ab249fdf226b4025bc4eddc489c0f81ee6e91"
+    },
+    {
+      "bytes": 211,
+      "path": "target/g8-r6-target-001/trial-spec.json",
+      "record_count": null,
+      "sha256": "5cd63507c070dd0c43e495787e5fcba486d43ddf5e19fc5db0300aa51c4951ea"
+    },
+    {
+      "bytes": 0,
+      "path": "target/trial-results.jsonl",
+      "record_count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 298,
+      "path": "target-run.log",
+      "record_count": 4,
+      "sha256": "3f962fcbf800924ed1b6b7fa59e6ca9a25a6fbb39f7e090ca1d8aa10d5e453d3"
+    },
+    {
+      "bytes": 0,
+      "path": "target-run2.log",
+      "record_count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "journal_records": 0,
+  "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/g8-r6/final-1488ca3-20260925-1",
+  "schema_version": "g8-r6-preflight-manifest-v1",
+  "scored_trials_started": 0,
+  "status": "superseded before first scored trial; retained"
+}

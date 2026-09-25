@@ -1,0 +1,90 @@
+{
+  "attempted_trials": 120,
+  "breakdown": {
+    "target_eccentricity": {
+      "far": {
+        "correct": 40,
+        "correct_direction_rate": 1.0,
+        "evaluated": 40
+      },
+      "medium": {
+        "correct": 38,
+        "correct_direction_rate": 0.95,
+        "evaluated": 40
+      },
+      "near_center": {
+        "correct": 30,
+        "correct_direction_rate": 0.75,
+        "evaluated": 40
+      }
+    },
+    "target_motion": {
+      "slow_crossing": {
+        "correct": 49,
+        "correct_direction_rate": 0.8166666666666667,
+        "evaluated": 60
+      },
+      "static": {
+        "correct": 59,
+        "correct_direction_rate": 0.9833333333333333,
+        "evaluated": 60
+      }
+    },
+    "target_side": {
+      "left": {
+        "correct": 48,
+        "correct_direction_rate": 0.8,
+        "evaluated": 60
+      },
+      "right": {
+        "correct": 60,
+        "correct_direction_rate": 1.0,
+        "evaluated": 60
+      }
+    },
+    "visual_noise_level": {
+      "clean": {
+        "correct": 54,
+        "correct_direction_rate": 0.9,
+        "evaluated": 60
+      },
+      "moderate": {
+        "correct": 54,
+        "correct_direction_rate": 0.9,
+        "evaluated": 60
+      }
+    }
+  },
+  "correct_direction_95pct_wilson_ci": [
+    0.833318258891048,
+    0.9418664079739892
+  ],
+  "correct_direction_rate": 0.9,
+  "counts": {
+    "correct": 108,
+    "incorrect": 11,
+    "no_response": 1
+  },
+  "ended_utc": "2026-09-25T19:12:24Z",
+  "evaluated_valid_target_trials": 120,
+  "execution_target": "Thor",
+  "expected_target_trials": 120,
+  "experiment_sha256": "4a5c11546984dd949d2c96a23c6c39c6c0d5b75214448f2de7306c0ef69bcc7e",
+  "final_sim_down_error": null,
+  "final_sim_down_exit": 0,
+  "final_sim_down_sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c",
+  "hostname": "jetsonthor01",
+  "invalid_trial_ids": [],
+  "max_heading_sample_delay_ms": 25.24873,
+  "raw_journal_bytes": 151624,
+  "raw_journal_sha256": "6c4ceb620e6c0717e6525fd615113ea0520e94261fa60e3f36ca2ea8afdc890d",
+  "response_latency_median_s": 0.767178445,
+  "response_latency_p95_s": 0.8267785156999999,
+  "result": "PASS",
+  "safety_limit_violations": 0,
+  "schema_version": "p7-02-target-batch-v4",
+  "source_head": "8e44fa387feab711c79cebfc2e9a276ed314cc76",
+  "started_trial_failures": [],
+  "started_utc": "2026-09-25T18:41:12Z",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
+}

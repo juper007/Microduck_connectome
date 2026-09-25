@@ -1,0 +1,40 @@
+{
+  "attempted_trials": 40,
+  "counts": {
+    "no_target": 40
+  },
+  "ended_utc": "2026-09-25T19:23:40Z",
+  "evaluated_valid_no_target_trials": 40,
+  "execution_target": "Thor",
+  "expected_no_target_trials": 40,
+  "experiment_sha256": "4a5c11546984dd949d2c96a23c6c39c6c0d5b75214448f2de7306c0ef69bcc7e",
+  "false_turn_95pct_wilson_ci": [
+    0.0,
+    0.08762160119728664
+  ],
+  "false_turn_count": 0,
+  "false_turn_rate": 0.0,
+  "false_turn_rule": {
+    "false_turn_rate_max": 0.05,
+    "min_abs_robot_facing_vyaw_radps": 0.1,
+    "min_sustained_duration_s": 0.2,
+    "warmup_excluded_s": 0.6
+  },
+  "false_turn_rule_sha256": "f43d4ce5cbd11d8a7ef944ebd14148191854bc0bbb1414ad58350152d147d836",
+  "false_turn_trial_ids": [],
+  "final_sim_down_error": null,
+  "final_sim_down_exit": 0,
+  "final_sim_down_sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c",
+  "fixture_sha256": "27623776dec21ee777cc376c69aa34741eb7b3a0611c646daec685ea61e6c54b",
+  "hostname": "jetsonthor01",
+  "invalid_trial_ids": [],
+  "raw_journal_bytes": 59291,
+  "raw_journal_sha256": "4cf9203900ae7dda3868841ab21a40907835d83ab7bc713a8719c12c49635f6a",
+  "result": "PASS",
+  "safety_limit_violations": 0,
+  "schema_version": "p7-02-no-target-batch-v4",
+  "source_head": "8e44fa387feab711c79cebfc2e9a276ed314cc76",
+  "started_trial_failures": [],
+  "started_utc": "2026-09-25T19:13:08Z",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
+}
