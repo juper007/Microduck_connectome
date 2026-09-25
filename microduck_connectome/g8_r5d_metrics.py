@@ -30,6 +30,20 @@ def stop_refresh_cadence(acks, *, maximum_gap_ms, deadman_timeout_ms,
             "tail_to_stopped_ms": tail, "ack_timestamps_ns": stamps}
 
 
+def deadman_limiter_seen_before_stopped(state_samples, stopped_confirmed_ns):
+    """Audit every official state sample in the decision-bearing stop interval."""
+    if type(stopped_confirmed_ns) is not int:
+        return None
+    for row in state_samples:
+        at_ns = row.get("state_sample_timestamp_ns")
+        if type(at_ns) is not int:
+            raise ValueError("state sample missing monotonic timestamp")
+        if at_ns <= stopped_confirmed_ns and any(
+                "deadman" in str(reason).lower() for reason in row.get("limited_by", [])):
+            return True
+    return False
+
+
 def material_pre_stop_applied(vx, minimum_vx):
     """Exclude a nearly stopped baseline from apparent robot.stop deceleration."""
     return (type(vx) in (int, float) and type(minimum_vx) in (int, float)

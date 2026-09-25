@@ -16,7 +16,8 @@ import time
 import tomllib
 
 from microduck_connectome.g8_r5d_metrics import (
-    bounded_neural_lineage, causal_timeline_ok, deadman_timing, first_sustained, is_healthy_neural_stop,
+    bounded_neural_lineage, causal_timeline_ok, deadman_limiter_seen_before_stopped,
+    deadman_timing, first_sustained, is_healthy_neural_stop,
     material_pre_stop_applied, neural_input_ended_by_ack, pose_speeds,
     safe_observation_horizon, stop_refresh_cadence, valid_state_path,
 )
@@ -551,6 +552,9 @@ def run(args):
         if not lineage_now["valid"]:
             raise RuntimeError(f"first stop lacks complete bounded neural lineage: {lineage_now['reason']}")
         stop_ack = first_record["robot_state"]["publish_ack_returned_ns"]
+        if any("deadman" in str(reason).lower()
+               for reason in first_record["robot_state"]["limited_by"]):
+            raise RuntimeError("deadman limiter in first post-stop robot.state sample")
         preceding_state = first_stop.get("state_before")
         preceding_state_ns = first_stop.get("state_before_received_ns")
         stop_call = first_record["robot_state"]["publish_call_started_ns"]
@@ -776,9 +780,14 @@ def run(args):
                          and first_actual_stop_event is not None
                          and e["timestamp_ns"] > first_actual_stop_event["timestamp_ns"]
                          and e["transport_action"] != SUPPRESSED_NEUTRAL]
+    state_samples_for_audit = [e["robot_state"] for e in events
+                               if e["kind"] in ("control_publish", "post_ack_read_only_sample")
+                               and e.get("robot_state") is not None]
+    deadman_before_stopped = deadman_limiter_seen_before_stopped(
+        state_samples_for_audit, stopped_confirmed_ns)
     cadence = stop_refresh_cadence(
         [row for row in stop_refreshes if stopped_confirmed_ns is None
-         or row["sent_at_ns"] <= stopped_confirmed_ns],
+         or row["ack_at_ns"] <= stopped_confirmed_ns],
         maximum_gap_ms=protocol["maximum_stop_refresh_gap_ms"],
         deadman_timeout_ms=protocol["deadman_timeout_ms"],
         stopped_confirmed_ns=stopped_confirmed_ns)
@@ -805,7 +814,7 @@ def run(args):
                                 protocol["minimum_fresh_pre_stop_applied_vx_mps"])
                             and first_applied_reduction_ns is not None
                             and first_applied_near_zero_ns is not None
-                            and not later_deadman_events
+                            and deadman_before_stopped is False
                             and not any("deadman" in str(reason).lower()
                                         for reason in pre_stop_limited_by),
         "production_stop_refresh_cadence": cadence["valid"],
@@ -860,7 +869,7 @@ def run(args):
         "last_precondition_move_ack_at_ns": last_motion.get("ack_ns"),
         "last_precondition_move_result": last_motion.get("result"),
         "deadman_timeout_ms": protocol["deadman_timeout_ms"],
-        "deadman_limiter_seen_before_stopped": bool(later_deadman_events),
+        "deadman_limiter_seen_before_stopped": deadman_before_stopped,
         "stop_refresh_count": cadence["count"],
         "stop_refresh_ack_timestamps_ns": cadence["ack_timestamps_ns"],
         "stop_refresh_requests": stop_refreshes,

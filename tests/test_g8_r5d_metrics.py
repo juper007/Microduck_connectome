@@ -2,7 +2,8 @@ import math
 import unittest
 
 from microduck_connectome.g8_r5d_metrics import (
-    bounded_neural_lineage, causal_timeline_ok, deadman_timing, first_sustained, is_healthy_neural_stop,
+    bounded_neural_lineage, causal_timeline_ok, deadman_limiter_seen_before_stopped,
+    deadman_timing, first_sustained, is_healthy_neural_stop,
     material_pre_stop_applied, neural_input_ended_by_ack, pose_speeds,
     safe_observation_horizon, stop_onset_before_deadman, stop_refresh_cadence, valid_state_path,
 )
@@ -168,6 +169,14 @@ class StopRefreshCadenceTests(unittest.TestCase):
         self.assertFalse(stop_refresh_cadence(rows[:1], maximum_gap_ms=100,
                                               deadman_timeout_ms=500,
                                               stopped_confirmed_ns=61_000_000)["valid"])
+
+    def test_deadman_audits_all_pre_confirmation_states(self):
+        rows = [{"state_sample_timestamp_ns": 1, "limited_by": []},
+                {"state_sample_timestamp_ns": 2, "limited_by": ["deadman"]},
+                {"state_sample_timestamp_ns": 4, "limited_by": []}]
+        self.assertTrue(deadman_limiter_seen_before_stopped(rows, 3))
+        self.assertFalse(deadman_limiter_seen_before_stopped(rows[:1] + rows[2:], 3))
+        self.assertIsNone(deadman_limiter_seen_before_stopped(rows, None))
 
 
 if __name__ == "__main__":
