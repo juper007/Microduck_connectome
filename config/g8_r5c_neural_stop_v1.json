@@ -80,6 +80,7 @@
   "maximum_post_ack_stop_observation_ms": 900,
   "post_ack_visual_fixture": "terminate visual scenario at first robot.stop ACK; hold world center for evaluation-only clearance; no controller input",
   "applied_stop_threshold_mps": 0.008,
+  "minimum_fresh_pre_stop_applied_vx_mps": 0.04,
   "applied_stop_deadline_basis": "first robot.stop RPC call start + robotd deadman_timeout_ms; conservative before robotd receipt",
   "minimum_applied_vx_reduction_fraction_before_old_deadline": 0.2,
   "maximum_visual_lineage_age_ms": 100,

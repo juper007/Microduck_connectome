@@ -8,6 +8,31 @@ STATE_PATH = ("SETUP", "MOTION_PRECONDITION", "MOTION_CONFIRMED",
               "ROBOT_STOP_SENT", "ROBOT_STOP_ACK", "MOTION_STOPPED", "COMPLETE")
 
 
+def material_pre_stop_applied(vx, minimum_vx):
+    """Exclude a nearly stopped baseline from apparent robot.stop deceleration."""
+    return (type(vx) in (int, float) and type(minimum_vx) in (int, float)
+            and math.isfinite(vx) and math.isfinite(minimum_vx)
+            and minimum_vx > 0 and vx >= minimum_vx)
+
+
+def stop_onset_before_deadman(first_stopped_ns, refreshed_deadline_ns, deadman_events):
+    """Require actual pose-stop onset before refreshed robotd deadman can intervene."""
+    return (type(first_stopped_ns) is int and type(refreshed_deadline_ns) is int
+            and first_stopped_ns < refreshed_deadline_ns
+            and not any(type(event.get("timestamp_ns")) is not int
+                        or event["timestamp_ns"] <= first_stopped_ns
+                        for event in deadman_events))
+
+
+def neural_input_ended_by_ack(ledger, stop_ack_ns):
+    """Conservative gate for every completed graph invocation in the raw ledger."""
+    return (type(stop_ack_ns) is int and all(
+        type(row.get("neural_call_started_ns")) is int
+        and type(row.get("neural_call_returned_ns")) is int
+        and row["neural_call_started_ns"] <= row["neural_call_returned_ns"] < stop_ack_ns
+        for row in ledger))
+
+
 def deadman_timing(last_move_call_ns, last_move_ack_ns, stop_ack_ns, *,
                    timeout_ms, minimum_margin_ms):
     """Conservative receipt-age bound: move call starts before robotd receives it."""

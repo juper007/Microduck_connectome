@@ -10,7 +10,7 @@ from microduck_connectome.g8_r5c_fixture import (
 )
 from microduck_connectome.scheduler import NeuralUpdate, SchedulerWorkerError
 from microduck_connectome.watchdog import ControllerWatchdog
-from scripts.g8_r5c_trial import acknowledged_precondition_move
+from scripts.g8_r5c_trial import LoomingChain, acknowledged_precondition_move
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,6 +128,17 @@ class G8R5cFixtureTests(unittest.TestCase):
         with self.assertRaisesRegex(SchedulerWorkerError, "perception worker failed: boom"):
             scheduler.run(.5)
         self.assertEqual(scheduler.summary()["scheduler_exceptions"], 1)
+
+    def test_ack_gate_discards_visual_and_neural_input(self):
+        # The gate runs before any scenario, perception, or graph dependency.
+        chain = object.__new__(LoomingChain)
+        chain.handoff_ack_ns = time.monotonic_ns()
+        chain.discarded_visual_after_ack = []
+        self.assertIsNone(chain.perception(chain.handoff_ack_ns + 1))
+        self.assertIsNone(chain.neural({"timestamp_ns": chain.handoff_ack_ns + 1},
+                                       chain.handoff_ack_ns + 1))
+        self.assertEqual([event["kind"] for event in chain.discarded_visual_after_ack],
+                         ["perception_skipped_after_ack", "neural_input_discarded_after_ack"])
 
 
 if __name__ == "__main__":

@@ -19,6 +19,26 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def exception_label(error: Exception) -> str:
+    """Keep a compact failure in the batch manifest without discarding raw files."""
+    return f"{type(error).__name__}: {error}"
+
+
+def validate_trial_artifacts(summary: dict, folder: Path) -> None:
+    """A PASS summary must name the retained, hashed raw evidence in this trial."""
+    for key in ("trace_artifact", "events_artifact", "neural_ledger_artifact"):
+        artifact = summary.get(key)
+        if not isinstance(artifact, dict):
+            raise ValueError(f"missing {key}")
+        path = Path(artifact["path"]).resolve()
+        if path.parent != folder.resolve() or not path.is_file():
+            raise ValueError(f"{key} is not retained in trial folder")
+        if artifact.get("sha256") != sha(path):
+            raise ValueError(f"{key} SHA256 mismatch")
+        if type(artifact.get("record_count")) is not int or artifact["record_count"] < 1:
+            raise ValueError(f"{key} has no records")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
@@ -55,76 +75,103 @@ def main():
     started_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     rows = []
     final_down = {}
+    batch_error = None
     try:
         seeds = protocol["scenario_seeds"][:1] if a.development_probe else protocol["scenario_seeds"]
         for index, seed in enumerate(seeds):
             folder = a.output / f"trial-{index + 1:02d}-{seed}"
-            folder.mkdir()
             row = {"trial_index": index, "seed": seed, "trial_started": False,
                    "pretrial_logs": {}}
-            for name, command in (
-                ("down", [str(sim), "down"]),
-                ("up", [str(sim), "up"]),
-                ("policy_load", [str(sim), "ctl", "policy", "load", "walk",
-                                 protocol["walking_policy_path"]]),
-                ("policy_readback", [str(sim), "ctl", "policy", "list", "--json"]),
-            ):
-                log = folder / ("policy-readback.json" if name == "policy_readback" else name + ".log")
-                exit_code = run_logged(command, log, env=env)
-                row["pretrial_logs"][name] = {"exit": exit_code, "sha256": sha(log),
-                                               "bytes": log.stat().st_size}
-                if exit_code != 0:
-                    row["failure"] = f"official_{name}_failed"
-                    break
-                if name == "policy_readback":
-                    try:
-                        validate_loaded_walk_policy(json.loads(log.read_text()),
-                                                    Path(protocol["walking_policy_path"]),
-                                                    protocol["walking_policy_sha256"])
-                    except (ValueError, KeyError, TypeError, OSError) as error:
-                        row["failure"] = f"policy_readback_mismatch: {error}"
-                        break
-            if "failure" in row:
-                rows.append(row)
-                break
-            time.sleep(1.0)
-            row["trial_started"] = True
-            command = [
-                sys.executable, str(root / "scripts/g8_r5c_trial.py"),
-                "--root", str(root), "--trial-index", str(index),
-                "--socket", str(a.sim_state / "duck-a.sock"),
-                "--body-port", str(a.body_port),
-                "--microduck", str(a.microduck), "--microduck-rl", str(a.microduck_rl),
-                "--source-head", head,
-                "--policy-readback", str(folder / "policy-readback.json"),
-                "--raw", str(folder / "trace.jsonl"),
-                "--events", str(folder / "events.jsonl"),
-                "--ledger", str(folder / "neural-ledger.jsonl"),
-                "--summary", str(folder / "summary.json"),
-            ]
-            if a.development_probe:
-                command.append("--development-probe")
-            row["trial_exit"] = run_logged(command, folder / "trial.log", env=env, cwd=root)
-            row["trial_log_sha256"] = sha(folder / "trial.log")
-            if (folder / "summary.json").exists():
-                row["summary_sha256"] = sha(folder / "summary.json")
-                row["summary"] = json.loads((folder / "summary.json").read_text())
-            else:
-                row["failure"] = "trial_exited_without_summary"
             rows.append(row)
-            if row["trial_exit"] != 0 or row.get("summary", {}).get("result") != "PASS":
+            try:
+                folder.mkdir()
+                for name, command in (
+                    ("down", [str(sim), "down"]),
+                    ("up", [str(sim), "up"]),
+                    ("policy_load", [str(sim), "ctl", "policy", "load", "walk",
+                                     protocol["walking_policy_path"]]),
+                    ("policy_readback", [str(sim), "ctl", "policy", "list", "--json"]),
+                ):
+                    log = folder / ("policy-readback.json" if name == "policy_readback" else name + ".log")
+                    exit_code = run_logged(command, log, env=env)
+                    row["pretrial_logs"][name] = {"exit": exit_code, "sha256": sha(log),
+                                                   "bytes": log.stat().st_size}
+                    if exit_code != 0:
+                        row["failure"] = f"official_{name}_failed"
+                        break
+                    if name == "policy_readback":
+                        try:
+                            validate_loaded_walk_policy(json.loads(log.read_text()),
+                                                        Path(protocol["walking_policy_path"]),
+                                                        protocol["walking_policy_sha256"])
+                        except (ValueError, KeyError, TypeError, OSError) as error:
+                            row["failure"] = f"policy_readback_mismatch: {error}"
+                            break
+                if "failure" in row:
+                    break
+                time.sleep(1.0)
+                row["trial_started"] = True
+                command = [
+                    sys.executable, str(root / "scripts/g8_r5c_trial.py"),
+                    "--root", str(root), "--trial-index", str(index),
+                    "--socket", str(a.sim_state / "duck-a.sock"),
+                    "--body-port", str(a.body_port),
+                    "--microduck", str(a.microduck), "--microduck-rl", str(a.microduck_rl),
+                    "--source-head", head,
+                    "--policy-readback", str(folder / "policy-readback.json"),
+                    "--raw", str(folder / "trace.jsonl"),
+                    "--events", str(folder / "events.jsonl"),
+                    "--ledger", str(folder / "neural-ledger.jsonl"),
+                    "--summary", str(folder / "summary.json"),
+                ]
+                if a.development_probe:
+                    command.append("--development-probe")
+                row["trial_exit"] = run_logged(command, folder / "trial.log", env=env, cwd=root)
+                row["trial_log_sha256"] = sha(folder / "trial.log")
+                if (folder / "summary.json").exists():
+                    row["summary_sha256"] = sha(folder / "summary.json")
+                    row["summary"] = json.loads((folder / "summary.json").read_text())
+                    if not isinstance(row["summary"], dict):
+                        raise ValueError("trial summary is not an object")
+                    if row["summary"].get("result") == "PASS":
+                        validate_trial_artifacts(row["summary"], folder)
+                else:
+                    row["failure"] = "trial_exited_without_summary"
+            except Exception as error:
+                row["failure"] = f"trial_exception: {exception_label(error)}"
+            if row.get("trial_exit") != 0 or row.get("summary", {}).get("result") != "PASS" or "failure" in row:
                 break
+    except Exception as error:
+        batch_error = f"batch_exception: {exception_label(error)}"
     finally:
         log = a.output / "final-down.log"
-        final_down["exit"] = run_logged([str(sim), "down"], log, env=env)
-        final_down["sha256"] = sha(log)
+        try:
+            final_down["exit"] = run_logged([str(sim), "down"], log, env=env)
+            final_down["sha256"] = sha(log)
+        except Exception as error:
+            final_down["failure"] = f"final_down_exception: {exception_label(error)}"
+            if log.exists():
+                try:
+                    final_down["sha256"] = sha(log)
+                except OSError as hash_error:
+                    final_down["hash_failure"] = exception_label(hash_error)
     if a.development_probe:
-        result = "DEVELOPMENT_PROBE" if (len(rows) == 1 and "summary" in rows[0]
-                                         and final_down["exit"] == 0) else "PROBE_ERROR"
+        result = "DEVELOPMENT_PROBE" if (batch_error is None and len(rows) == 1
+                                         and rows[0].get("trial_exit") == 0
+                                         and "failure" not in rows[0]
+                                         and rows[0].get("summary", {}).get("result") == "PASS"
+                                         and final_down.get("exit") == 0
+                                         and "failure" not in final_down
+                                         and "sha256" in final_down) else "PROBE_ERROR"
     else:
-        result = "PASS" if (len(rows) == protocol["required_successful_independent_trials"]
-                            and all(row.get("summary", {}).get("result") == "PASS" for row in rows)
-                            and final_down["exit"] == 0) else "FAIL"
+        result = "PASS" if (batch_error is None
+                            and len(rows) == protocol["required_successful_independent_trials"]
+                            and all(row.get("trial_exit") == 0 and "failure" not in row
+                                    and row.get("summary", {}).get("result") == "PASS"
+                                    for row in rows)
+                            and final_down.get("exit") == 0
+                            and "failure" not in final_down
+                            and "sha256" in final_down) else "FAIL"
     report = {
         "schema_version": "g8-r5c-moving-neural-stop-batch-v1",
         "evidence_role": "development_probe" if a.development_probe else "final_batch",
@@ -133,6 +180,7 @@ def main():
         "started_utc": started_utc, "ended_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_trials": 1 if a.development_probe else protocol["required_successful_independent_trials"],
         "completed_trials": len(rows), "trials": rows, "final_sim_down": final_down,
+        "batch_error": batch_error,
         "historical_failed_pr_60_untouched": True,
         "historical_failed_pr_61_untouched": True,
     }

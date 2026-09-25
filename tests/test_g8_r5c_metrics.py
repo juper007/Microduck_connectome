@@ -3,7 +3,8 @@ import unittest
 
 from microduck_connectome.g8_r5c_metrics import (
     bounded_neural_lineage, causal_timeline_ok, deadman_timing, first_sustained, is_healthy_neural_stop,
-    pose_speeds, safe_observation_horizon, valid_state_path,
+    material_pre_stop_applied, neural_input_ended_by_ack, pose_speeds,
+    safe_observation_horizon, stop_onset_before_deadman, valid_state_path,
 )
 
 
@@ -81,6 +82,23 @@ class G8R5cMetricsTests(unittest.TestCase):
                                         minimum_margin_ms=100)["valid"])
         self.assertFalse(deadman_timing(2, 1, 3, timeout_ms=500,
                                         minimum_margin_ms=100)["valid"])
+
+    def test_material_applied_baseline_rejects_near_zero(self):
+        self.assertFalse(material_pre_stop_applied(.007, .04))
+        self.assertTrue(material_pre_stop_applied(.07, .04))
+        self.assertFalse(material_pre_stop_applied(math.nan, .04))
+
+    def test_actual_stop_onset_must_precede_refreshed_deadman(self):
+        self.assertTrue(stop_onset_before_deadman(499, 500, []))
+        self.assertFalse(stop_onset_before_deadman(500, 500, []))
+        self.assertFalse(stop_onset_before_deadman(490, 500, [{"timestamp_ns": 489}]))
+        self.assertTrue(stop_onset_before_deadman(490, 500, [{"timestamp_ns": 501}]))
+
+    def test_no_neural_graph_call_can_finish_after_stop_ack(self):
+        ledger = [{"neural_call_started_ns": 10, "neural_call_returned_ns": 20}]
+        self.assertTrue(neural_input_ended_by_ack(ledger, 21))
+        self.assertFalse(neural_input_ended_by_ack(ledger, 20))
+        self.assertFalse(neural_input_ended_by_ack([{"neural_call_started_ns": 10}], 21))
 
     def test_geometry_requires_strict_sphere_entry_margin(self):
         safe = safe_observation_horizon(.34, .07, .2, .03,

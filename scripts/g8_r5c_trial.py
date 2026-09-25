@@ -17,7 +17,8 @@ import tomllib
 
 from microduck_connectome.g8_r5c_metrics import (
     bounded_neural_lineage, causal_timeline_ok, deadman_timing, first_sustained, is_healthy_neural_stop,
-    pose_speeds, safe_observation_horizon, valid_state_path,
+    material_pre_stop_applied, neural_input_ended_by_ack, pose_speeds,
+    safe_observation_horizon, stop_onset_before_deadman, valid_state_path,
 )
 from microduck_connectome.g8_r5c_fixture import (
     CompletionScheduler, IsolatedStopPublisher, SUPPRESSED_NEUTRAL,
@@ -79,8 +80,14 @@ class LoomingChain(FullChain):
         self.scenario = "stop"
         self.neural_ledger = []
         self.graph_identity = graph.root_key
+        self.handoff_ack_ns = None
+        self.discarded_visual_after_ack = []
 
     def perception(self, now_ns):
+        if self.handoff_ack_ns is not None:
+            self.discarded_visual_after_ack.append({"kind": "perception_skipped_after_ack",
+                                                    "timestamp_ns": time.monotonic_ns()})
+            return None
         if self.trial is None:
             raise RuntimeError("looming cannot start before motion confirmation")
         if self.started_ns is None:
@@ -91,16 +98,31 @@ class LoomingChain(FullChain):
             pose = self.pose_reader.read()
         pixels = render_pixels(self.scenario_config, self.trial, pose=pose, elapsed_s=elapsed)
         tof = self.scenario_config["tof_mm"]
-        return self.pipeline.process(
+        frame = self.pipeline.process(
             pixels, camera_timestamp_ns=now_ns, camera_frame_id=self.frame_id,
             tof_left_mm=tof, tof_center_mm=tof, tof_right_mm=tof,
             tof_timestamp_ns=now_ns, tof_frame_id=self.frame_id, now_ns=now_ns,
         )
+        if self.handoff_ack_ns is not None:
+            self.discarded_visual_after_ack.append({"kind": "rendered_frame_discarded_after_ack",
+                                                    "timestamp_ns": time.monotonic_ns(),
+                                                    "frame_id": self.frame_id})
+            return None
+        return frame
 
     def neural(self, frame, now_ns):
+        call_started_ns = time.monotonic_ns()
+        if self.handoff_ack_ns is not None:
+            self.discarded_visual_after_ack.append({"kind": "neural_input_discarded_after_ack",
+                                                    "timestamp_ns": call_started_ns,
+                                                    "input_none": frame is None})
+            return None
         update = super().neural(frame, now_ns)
+        call_returned_ns = time.monotonic_ns()
         if update is None or update.trace is None:
             self.neural_ledger.append({"neural_call_timestamp_ns": now_ns,
+                                       "neural_call_started_ns": call_started_ns,
+                                       "neural_call_returned_ns": call_returned_ns,
                                        "result_none": True, "input_none": frame is None})
             return update
         trace = update.trace
@@ -109,6 +131,8 @@ class LoomingChain(FullChain):
         readout = trace["dn_readout"]
         self.neural_ledger.append({
             "neural_call_timestamp_ns": now_ns,
+            "neural_call_started_ns": call_started_ns,
+            "neural_call_returned_ns": call_returned_ns,
             "graph_identity": self.graph_identity,
             "result_none": False, "input_none": frame is None,
             "runtime_step": trace["male_cns"]["runtime_step"],
@@ -363,6 +387,8 @@ def run(args):
         call_ns = time.monotonic_ns()
         result = isolated_publisher.send(output)
         ack_ns = time.monotonic_ns()
+        if result == "robot_stop_refreshed" and chain.handoff_ack_ns is None:
+            chain.handoff_ack_ns = ack_ns
         publish_time[output["intent"]["sequence"]] = (call_ns, ack_ns)
         return result
 
@@ -399,6 +425,7 @@ def run(args):
     runtime_finished_ns = None
     first_applied_reduction_ns = None
     first_applied_near_zero_ns = None
+    first_stopped_observed_ns = None
     later_deadman_events = []
     try:
         transition("MOTION_PRECONDITION", time.monotonic_ns())
@@ -503,7 +530,9 @@ def run(args):
         if (preceding_state is None or type(preceding_state_ns) is not int
                 or not 0 <= stop_call - preceding_state_ns
                 <= metric["maximum_gap_before_neural_stop_ms"] * 1_000_000
-                or preceding_state["move"]["applied"][0] <= 0
+                or not material_pre_stop_applied(
+                    preceding_state["move"]["applied"][0],
+                    protocol["minimum_fresh_pre_stop_applied_vx_mps"])
                 or any("deadman" in str(reason).lower()
                        for reason in preceding_state["move"].get("limited_by", []))):
             raise RuntimeError("fresh pre-stop robot.state does not exclude deadman")
@@ -568,6 +597,14 @@ def run(args):
                     raise RuntimeError("applied vx was not near zero before refreshed deadman deadline")
             measured = pose_speeds(pose_rows, window_ms=metric["speed_window_ms"],
                                    max_window_ms=metric["speed_window_max_ms"])
+            newest_speed = measured[-1]["pose_speed_mps"]
+            if (first_stopped_observed_ns is None and pose_ns >= stop_ack
+                    and newest_speed is not None
+                    and newest_speed <= stopped_rule["stopped_threshold_mps"]):
+                first_stopped_observed_ns = pose_ns
+                if not stop_onset_before_deadman(
+                        first_stopped_observed_ns, new_deadline_ns, later_deadman_events):
+                    raise RuntimeError("first actual pose-stop sample followed refreshed deadman deadline")
             confirmed = first_sustained(
                 measured, threshold_mps=stopped_rule["stopped_threshold_mps"],
                 duration_ms=stopped_rule["stop_confirmation_ms"],
@@ -605,6 +642,7 @@ def run(args):
         robot.close()
 
     records = telemetry.records()
+    events.extend(chain.discarded_visual_after_ack)
     args.raw.parent.mkdir(parents=True, exist_ok=True)
     trace_artifact = telemetry.write(args.raw) if records else None
     args.ledger.parent.mkdir(parents=True, exist_ok=True)
@@ -648,9 +686,7 @@ def run(args):
                         and row["timestamp_ns"] >= stop_ack_ns]
     confirmed_sample = next((row for row in post_stop_speeds
                              if row["timestamp_ns"] == stopped_confirmed_ns), None)
-    first_stopped_ns = next((row["timestamp_ns"] for row in post_stop_speeds
-                             if row["pose_speed_mps"] is not None
-                             and row["pose_speed_mps"] <= stopped_rule["stopped_threshold_mps"]), None)
+    first_stopped_ns = first_stopped_observed_ns
     last_nonzero_ns = next((row["timestamp_ns"] for row in reversed(post_stop_speeds)
                             if row["pose_speed_mps"] is not None
                             and row["pose_speed_mps"] > stopped_rule["stopped_threshold_mps"]), None)
@@ -736,8 +772,9 @@ def run(args):
         "deadman_excluded": deadman["valid"] and last_move_ack_to_stop_ack_ms is not None
                             and last_move_ack_to_stop_ack_ms <= protocol["maximum_last_motion_ack_to_stop_ack_ms"]
                             and fresh_state_before_stop
-                            and type(pre_stop_applied_vx) in (int, float)
-                            and pre_stop_applied_vx > 0
+                            and material_pre_stop_applied(
+                                pre_stop_applied_vx,
+                                protocol["minimum_fresh_pre_stop_applied_vx_mps"])
                             and first_applied_reduction_ns is not None
                             and deadline_ns is not None
                             and first_applied_reduction_ns < deadline_ns
@@ -746,6 +783,10 @@ def run(args):
                             and first_applied_near_zero_ns < refreshed_deadline_ns
                             and not any("deadman" in str(reason).lower()
                                         for reason in pre_stop_limited_by),
+        "actual_stop_onset_before_refreshed_deadman": stop_onset_before_deadman(
+            first_stopped_ns, refreshed_deadline_ns, later_deadman_events),
+        "no_neural_input_after_stop_ack": neural_input_ended_by_ack(
+            chain.neural_ledger, stop_ack_ns),
         "neutral_only_suppression": isolated_publisher.nonzero_count == 0,
         "sphere_horizon_safe": bool(sphere_bound and sphere_bound["safe"]),
         "sphere_clearance_and_body_displacement": bool(geometry_rows and all(
@@ -839,6 +880,7 @@ def run(args):
         "neutral_publish_suppressed_count": isolated_publisher.suppressed_count,
         "unexpected_nonzero_publish_count": isolated_publisher.nonzero_count,
         "post_ack_robot_facing_command_count_before_complete": len(post_ack_commands),
+        "discarded_visual_after_ack": chain.discarded_visual_after_ack,
         "sphere_entry_bound": sphere_bound,
         "post_ack_virtual_center": post_ack_virtual_center or None,
         "geometry_min_surface_clearance_m": min(
