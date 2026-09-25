@@ -5,6 +5,7 @@ Set G8_R1_BUILD_DIR to one completed rebuild directory to run this test.
 
 import json
 import os
+from collections import Counter
 from pathlib import Path
 from unittest import TestCase, skipUnless
 
@@ -49,3 +50,26 @@ class GraphV2ArtifactTests(TestCase):
         self.assertEqual(direct, expected)
         self.assertEqual(len(direct), 185)
         self.assertEqual(sum(direct.values()), 4862)
+
+        first_hops = Counter(
+            edge["target_body_id"] for edge in graph["edges"]
+            if edge["source_body_id"] in lplc2
+        )
+        second_hops = Counter(
+            edge["source_body_id"] for edge in graph["edges"]
+            if edge["target_body_id"] in dnp01
+        )
+        selected_intermediates = report["paths"]["LPLC2->DNp01"]["two_edge_intermediate_body_ids"]
+        selected_paths = sum(
+            first_hops[middle] * second_hops[middle]
+            for middle in selected_intermediates
+        )
+        self.assertEqual(
+            selected_paths,
+            report["paths"]["LPLC2->DNp01"]["selected_two_edge_path_count"],
+        )
+        self.assertEqual(selected_paths, 8562)
+        self.assertGreater(
+            report["paths"]["LPLC2->DNp01"]["source_two_edge_path_count"],
+            selected_paths,
+        )
