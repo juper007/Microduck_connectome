@@ -1,6 +1,6 @@
 ---
 name: connectome-researcher
-description: Qwen Code adapter for the canonical MicroDuck Connectome connectome-researcher repository skill.
+description: Research and validate MaleCNS neuron populations, pathways, body IDs, cell types, sides, and biological evidence. Use for neuPrint/connectome interpretation, literature review, pathway selection, or biological provenance; not ETL/runtime implementation.
 ---
 
 # Qwen adapter: connectome-researcher
