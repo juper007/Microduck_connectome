@@ -92,6 +92,7 @@ def generate(*, policy: dict, validation: dict, controller_commit: str,
         raise ValueError("incomplete controller config hashes")
     if set(validation) != {"selection_summary_path", "selection_summary_sha256",
                            "development_smoke_summary_path", "development_smoke_summary_sha256",
+                           "policy_metadata_path", "policy_metadata_sha256",
                            "affected_p6_summary_path", "affected_p6_summary_sha256"}:
         raise ValueError("incomplete policy validation evidence")
     base = json.loads(V3_PATH.read_text(encoding="utf-8"))
@@ -193,6 +194,8 @@ def main() -> None:
     if p6["result"] != "PASS" or p6["walking_policy_sha256"] != policy["sha256"]:
         raise ValueError("affected P6 recertification has not passed for this policy")
     validation = {
+        "policy_metadata_path": str(args.policy_metadata.resolve()),
+        "policy_metadata_sha256": sha256_file(args.policy_metadata),
         "selection_summary_path": str(args.selection_summary.resolve()),
         "selection_summary_sha256": sha256_file(args.selection_summary),
         "development_smoke_summary_path": str(args.development_smoke_summary.resolve()),

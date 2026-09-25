@@ -25,7 +25,8 @@ class P7PreregistrationV4Tests(unittest.TestCase):
         policy.update({"training_seed": 70202, "training_num_envs": 4096,
                        "checkpoint_iteration": 1250})
         validation = {key: "pinned" for key in
-                      ("selection_summary_path", "selection_summary_sha256",
+                      ("policy_metadata_path", "policy_metadata_sha256",
+                       "selection_summary_path", "selection_summary_sha256",
                        "development_smoke_summary_path",
                        "development_smoke_summary_sha256",
                        "affected_p6_summary_path", "affected_p6_summary_sha256")}
