@@ -34,6 +34,7 @@ from microduck_connectome.fractional_rgb_v21 import (
     FractionalRedTargetDetector, render_fractional_pixels,
 )
 from microduck_connectome.perception_compositor import PerceptionPipeline
+from microduck_connectome.scheduler import NeuralUpdate
 from microduck_connectome.graph import ConnectomeGraph
 from microduck_connectome.looming_scenario import load_config, make_trial, render_pixels, pixels_sha256
 from microduck_connectome.motion_adapter import RobotMotionAdapter
@@ -208,9 +209,55 @@ class LoomingChain(FullChain):
                                    "perception_looming": frame["looming"]})
         return frame
 
+    def _compute_neural(self, frame, now_ns):
+        """Run the ordinary decoder once, then apply the stop latch and safety once."""
+        self.neural_sequence += 1
+        if frame is None:
+            return None
+        channels = self.mapper.map_channels(frame, now_ns=now_ns)
+        mapped = self.mapper.build_external(frame, now_ns=now_ns)
+        external = {body_id: value for body_id, value in mapped.items()
+                    if body_id in self.runtime_index}
+        snapshot = self.runtime.step(external)
+        projected_spikes = tuple(
+            snapshot["spikes"][self.runtime_index[body_id]]
+            if body_id in self.runtime_index else False for body_id in self.dn_ids)
+        readout = self.aggregator.update(
+            projected_spikes, timestamp_ns=now_ns,
+            sequence=self.neural_sequence, runtime_healthy=snapshot["healthy"])
+        raw_decoded = self.escape.apply(readout, self.steering.decode(readout))
+        selected, safe, held_nonstop = self.neural_stop_latch.apply(
+            readout=readout, decoded_intent=raw_decoded, safety=self.safety,
+            now_ns=now_ns, graph_runtime_step=self.neural_sequence)
+        latched = self.neural_stop_latch.snapshot()
+        trace = {
+            "camera_frame_id": frame["frame_id"],
+            "tof_frame_id": frame["frame_id"],
+            "perception_frame": dict(frame),
+            "stimulus_channels": channels,
+            "male_cns": {
+                "runtime_step": self.neural_sequence,
+                "healthy": snapshot["healthy"],
+                "spike_count": sum(bool(value) for value in snapshot["spikes"]),
+                "external_input_count": len(external),
+                "scenario_fixture": self.scenario,
+            },
+            "dn_readout": readout,
+            "raw_decoded_intent": raw_decoded,
+            "pre_safety_intent": selected,
+            "safety_result": safe,
+            "neural_stop_latch": {
+                "source": latched.source if latched is not None else None,
+                "held_nonstop_decoder_output": held_nonstop,
+                "first_healthy_stop_ack_ns": (
+                    latched.first_healthy_stop_ack_ns if latched is not None else None),
+            },
+        }
+        return NeuralUpdate(readout, safe["intent"], trace)
+
     def neural(self, frame, now_ns):
         call_started_ns = time.monotonic_ns()
-        update = self.arbiter.neural_step(lambda: super(LoomingChain, self).neural(frame, now_ns))
+        update = self.arbiter.neural_step(lambda: self._compute_neural(frame, now_ns))
         call_returned_ns = time.monotonic_ns()
         if update is None or update.trace is None:
             self.neural_ledger.append({"neural_call_timestamp_ns": now_ns,
