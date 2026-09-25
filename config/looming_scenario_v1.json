@@ -1,0 +1,30 @@
+{
+  "schema_version": "looming-scenario-v1",
+  "representation": "virtual/synthetic visual obstacle; no MuJoCo obstacle contact",
+  "image_width_px": 65,
+  "image_height_px": 33,
+  "horizontal_fov_half_angle_rad": 0.8,
+  "virtual_sphere_radius_m": 0.07,
+  "nominal_robot_planar_extent_m": 0.11623916449620342,
+  "robot_extent_allowance_m": 0.00376083550379658,
+  "additional_boundary_margin_m": 0.06,
+  "safety_boundary_center_distance_m": 0.25,
+  "initial_center_distance_m": 0.85,
+  "approach_speed_m_s": 0.2,
+  "warmup_duration_s": 0.5,
+  "trial_duration_s": 4,
+  "frame_period_s": 0.1,
+  "tof_mm": 2000,
+  "initial_pose_tolerance": {
+    "x_m": 0.03,
+    "y_m": 0.03,
+    "heading_rad": 0.08,
+    "trunk_z_m": 0.025
+  },
+  "geometry_provenance": {
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "scene": "src/mjlab_microduck/robot/microduck/scene.xml",
+    "method": "MjModel STAND keyframe; max planar norm(geom_xpos-trunk_xy)+geom_rbound for non-world geoms",
+    "limitation": "nominal STAND only; virtual boundary is not a collision or dynamic swept-volume test"
+  }
+}
