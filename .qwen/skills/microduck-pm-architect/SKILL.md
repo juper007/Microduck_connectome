@@ -1,6 +1,6 @@
 ---
 name: microduck-pm-architect
-description: Qwen Code adapter for the canonical MicroDuck Connectome microduck-pm-architect repository skill.
+description: Plan, decompose, route, and gate work for the MicroDuck Connectome project. Use for roadmap, architecture, task sequencing, cross-role handoffs, risk triage, interface decisions, or phase go/no-go decisions; do not use for specialized implementation when another project skill is a better fit.
 ---
 
 # Qwen adapter: microduck-pm-architect
