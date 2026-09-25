@@ -25,6 +25,7 @@ class NeuralStopMotionArbiter:
         self.latch_at_ns = None
         self.first_stop_ack_ns = None
         self.move_transactions = []
+        self.watchdog_stop_reason = None
 
     def neural_step(self, compute):
         with self.lock:
@@ -63,7 +64,15 @@ class NeuralStopMotionArbiter:
             raise TypeError("motion arbiter requires authentic WatchdogOutput")
         if output["intent"]["stop"]:
             with self.lock:
-                self.latch("watchdog_stop" if self.latch_reason is None else self.latch_reason)
+                if (output["watchdog_state"] == "safe_stop"
+                        and self.watchdog_stop_reason is None):
+                    self.watchdog_stop_reason = output["stale_reason"]
+                if output["watchdog_state"] == "safe_stop":
+                    reason = output["stale_reason"]
+                    if not (self.latch_reason or "").startswith(("fault_", "scheduler_")):
+                        self.latch(reason if reason.startswith("fault_") else "fault_" + reason)
+                else:
+                    self.latch("watchdog_stop" if self.latch_reason is None else self.latch_reason)
                 result = send(output)
                 if result == "robot_stop_refreshed" and self.first_stop_ack_ns is None:
                     self.first_stop_ack_ns = time.monotonic_ns()

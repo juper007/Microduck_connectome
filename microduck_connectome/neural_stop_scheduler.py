@@ -35,6 +35,12 @@ class NeuralStopRefreshScheduler(FaultStopRefreshScheduler):
                 self.watchdog.latch_fault(fault.reason)
                 self.motion_arbiter.latch("fault_" + fault.reason)
             with self.motion_arbiter.lock:
+                # A watchdog safe-stop is terminal for this trial.  Fresh input
+                # on a later tick must not turn the next authentic output back
+                # into a move and end the 50 Hz stop-refresh worker.
+                if (fault is None
+                        and self.motion_arbiter.watchdog_stop_reason is not None):
+                    self.watchdog.latch_fault(self.motion_arbiter.watchdog_stop_reason)
                 ClosedLoopScheduler._control_tick(self, now_ns)
 
     def _fail(self, worker, error):

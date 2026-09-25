@@ -97,6 +97,28 @@ class OfficialSelectionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "10 Hz"):
             validate_frozen_selection(protocol)
 
+    def test_v22_draft_blocks_execution_and_freeze_requires_20hz_ttl_margin(self):
+        protocol = json.loads((ROOT / "config/p8_r3_v22_official_v1.json").read_text())
+        with self.assertRaisesRegex(RuntimeError, "internal neural gate"):
+            validate_frozen_selection(protocol)
+        frozen = copy.deepcopy(protocol)
+        frozen["internal_gate_status"] = "PASS"
+        frozen["official_freeze_status"] = "FROZEN"
+        frozen["fault_gate_status"] = "PASS"
+        selected, hz = validate_frozen_selection(frozen)
+        self.assertEqual((selected.method, hz), ("log_area", 20))
+        self.assertEqual([r["seed"] for r in frozen["ordered_official_runs"]],
+                         [885521, 885522, 885523])
+        for field, value in (("visual_hz", 10), ("selected_visual_period_ms", 100),
+                             ("maximum_official_visual_frame_gap_ms", 150),
+                             ("maximum_visual_lineage_age_ms", 150),
+                             ("deadman_timeout_ms", 600)):
+            with self.subTest(field=field):
+                drift = copy.deepcopy(frozen)
+                drift[field] = value
+                with self.assertRaisesRegex(RuntimeError, "V2.2"):
+                    validate_frozen_selection(drift)
+
     def test_v21_selected_material_and_hashes_match_repository(self):
         protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
         self.assertEqual(protocol["internal_gate_status"], "PASS")
