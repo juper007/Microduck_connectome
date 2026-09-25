@@ -1,6 +1,6 @@
 ---
 name: microduck-integration-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome microduck-integration-engineer repository skill.
+description: Integrate with the official MicroDuck simulator/runtime through supported high-level interfaces. Use for robotd IPC/JSON-RPC, MuJoCo, 50 Hz scheduling, telemetry, lifecycle, or simulator-to-hardware compatibility.
 ---
 
 # Qwen adapter: microduck-integration-engineer
