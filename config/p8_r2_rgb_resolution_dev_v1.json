@@ -1,14 +1,24 @@
 {
   "schema_version": "p8-r2-rgb-resolution-development-v1",
-  "status": "PRE_SOURCE_FREEZE_DO_NOT_RUN",
+  "status": "FROZEN_DEVELOPMENT_ONLY",
   "evidence_role": "development_comparison_only_not_p8_final",
   "base_origin_main": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
-  "implementation_commit": null,
+  "implementation_commit": "e82ed01dfb1dfa41a540a8c773e246f86b884e67",
   "execution_target": "Thor official duck-sim, robotd and MuJoCo; fresh simulator reset per row",
   "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
   "dataset": "male-cns:v1.0",
   "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
   "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "config_sha256": {
+    "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+    "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+    "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+    "escape_decoder": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+    "safety_envelope": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+    "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10",
+    "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+    "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16"
+  },
   "scenario_baseline": {
     "path": "config/looming_scenario_v1.json",
     "schema_version": "looming-scenario-v1",
@@ -42,8 +52,21 @@
     {"seed": 884202, "arm_elapsed_s": 2.6, "maximum_neural_observation_ms": 750, "run_order": ["candidate", "baseline"]},
     {"seed": 884203, "arm_elapsed_s": 3.0, "maximum_neural_observation_ms": 550, "run_order": ["baseline", "candidate"]}
   ],
+  "ordered_official_runs": [
+    {"run_id": "01-884201-baseline", "seed": 884201, "arm_elapsed_s": 2.0, "representation": "baseline"},
+    {"run_id": "02-884201-candidate", "seed": 884201, "arm_elapsed_s": 2.0, "representation": "candidate"},
+    {"run_id": "03-884202-candidate", "seed": 884202, "arm_elapsed_s": 2.6, "representation": "candidate"},
+    {"run_id": "04-884202-baseline", "seed": 884202, "arm_elapsed_s": 2.6, "representation": "baseline"},
+    {"run_id": "05-884203-baseline", "seed": 884203, "arm_elapsed_s": 3.0, "representation": "baseline"},
+    {"run_id": "06-884203-candidate", "seed": 884203, "arm_elapsed_s": 3.0, "representation": "candidate"}
+  ],
+  "seed_disjointness": "The six official rows use 884201..884203; offline controls 884204..884205. All are outside historical P8-R0 880901..880906 and draft P8-v2 final ranges 880000..880119, 881000..881023, 882000..882023, 883000..883009.",
   "negative_control_seeds_offline_only": {"static": 884204, "receding": 884205},
   "trial_start_rule": "Each of six official rows must have a fresh official reset and a moving pose-derived body plus fresh applied vx >=0.04 m/s before neural observation; all starts remain in the denominator and raw artifact manifest.",
+  "exogenous_validity_at_neural_arm": "Valid only if official reset/upstream identity and policy readback are correct, initial MuJoCo trunk pose and initial virtual obstacle geometry are finite, fresh pose-derived movement >=0.015 m/s is established for 200 ms, fresh robot.state applied vx >=0.04 m/s, and the fixed representation/seed/arm identity is correct. These conditions are determined before neural observation. A post-arm no-response, late trigger, deadman, fault stop, transport failure, scheduler exception, or renderer failure is an evaluated failure, never excluded or replaced.",
+  "matched_pair_baseline_tolerance": {"initial_pose_x_m": 0.03, "initial_pose_y_m": 0.03, "initial_heading_rad": 0.08, "initial_trunk_z_m": 0.025, "initial_center_distance_m": 0.03, "pre_neural_pose_speed_mps": 0.05, "pre_neural_applied_vx_mps": 0.01, "clock_domain": "same host monotonic nanoseconds; compare elapsed durations, not absolute timestamps"},
+  "matched_pair_reporting_rule": "Log actual reset pose, pre-arm pose speed, applied vx and sample timestamp, scenario anchor/center distance, arm timestamp, and raw frame clocks for each row. A tolerance mismatch does not justify deleting a started row; classify pair comparability failure and retain both raws.",
+  "raw_manifest_schema": {"per_run": ["run_id", "seed", "representation", "trial_started", "source_commit", "protocol_sha256", "scenario_sha256", "graph_sha256", "upstream_shas", "initial_pose", "pre_arm_motion", "outcome", "failure_source", "artifacts"], "per_artifact": ["path", "bytes", "record_count", "sha256"], "ordered_rows": 6, "include_unstarted": true, "include_infrastructure_failures": true},
   "primary_screen": "All three candidate rows must have first healthy graph-v2 DNp01/EscapeDecoder stop preserved by SafetyClamp and healthy Watchdog while pose-derived motion persists and evaluator center distance is strictly greater than 0.25 m, before any deadman/fault/scripted/zero stop; report all baseline outcomes but do not infer final P8 rate.",
   "secondary_comparison": "For each matched row, report actual RGB frame spacing, pixel-area plateaus, positive looming frames and amplitudes, positive LPLC2 neural steps, DNp01 readout by step, first stop source and event-time evaluator margin; no seed replacement or post-result parameter change.",
   "failure_rule": "Retain every started row and failed/infrastructure raw file with SHA256, bytes and record count; if candidate fails primary screen, open a separately versioned encoding hypothesis instead of changing resolution, gain, filter, graph, decoder, threshold or boundary in this protocol.",

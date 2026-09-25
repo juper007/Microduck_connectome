@@ -1,6 +1,7 @@
 """P8-R2 visual representation checks, independent of final benchmark seeds."""
 
 import copy
+import json
 from pathlib import Path
 import unittest
 
@@ -19,6 +20,24 @@ POSE = {"x_m": 0.0, "y_m": 0.0, "heading_rad": 0.0, "trunk_z_m": 0.125}
 
 
 class P8R2RGBTests(unittest.TestCase):
+    def test_development_matrix_is_ordered_and_outside_final_seed_ranges(self):
+        protocol = json.loads((ROOT / "config/p8_r2_rgb_resolution_dev_v1.json").read_text())
+        actual = [
+            (row["seed"], row["arm_elapsed_s"], row["representation"])
+            for row in protocol["ordered_official_runs"]
+        ]
+        expected = [
+            (pair["seed"], pair["arm_elapsed_s"], label)
+            for pair in protocol["matched_pair_order"] for label in pair["run_order"]
+        ]
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(actual), 6)
+        reserved = (set(range(880000, 880120)) | set(range(881000, 881024))
+                    | set(range(882000, 882024)) | set(range(883000, 883010))
+                    | set(range(880901, 880907)))
+        self.assertFalse({row[0] for row in actual} & reserved)
+        self.assertFalse(set(protocol["negative_control_seeds_offline_only"].values()) & reserved)
+
     def test_only_resolution_and_version_change(self):
         self.assertEqual((NEW["image_width_px"], NEW["image_height_px"]), (129, 65))
         for key in OLD:
@@ -28,7 +47,6 @@ class P8R2RGBTests(unittest.TestCase):
 
     def test_versioned_resolution_is_fixed(self):
         from tempfile import TemporaryDirectory
-        import json
         with TemporaryDirectory() as tmp:
             bad = copy.deepcopy(NEW)
             bad["image_width_px"] = 65
@@ -89,6 +107,18 @@ class P8R2RGBTests(unittest.TestCase):
         self.assertFalse(invalid["valid"])
         self.assertEqual(invalid["looming"], 0.0)
         self.assertEqual(mapper.build_external(invalid, now_ns=now), {})
+
+        now += 40_000_000
+        invalid_tof = pipeline.process(
+            render_pixels(NEW, trial, pose=POSE, elapsed_s=2.9),
+            camera_timestamp_ns=now, camera_frame_id=68,
+            tof_left_mm=NEW["tof_mm"], tof_center_mm=NEW["tof_mm"],
+            tof_right_mm=NEW["tof_mm"], tof_timestamp_ns=now,
+            tof_frame_id=68, now_ns=now, tof_source_valid=False,
+        )
+        self.assertFalse(invalid_tof["valid"])
+        self.assertEqual(invalid_tof["looming"], 0.0)
+        self.assertEqual(mapper.build_external(invalid_tof, now_ns=now), {})
 
     def test_stationary_and_receding_no_positive_looming(self):
         for motion, seed in (("static", 884204), ("receding", 884205)):
