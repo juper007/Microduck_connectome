@@ -64,6 +64,7 @@ def validate_frozen_selection(protocol):
         "p8-r3-v21-official-development-v1": ([885421, 885422, 885423], "fractional_rgb_v21"),
         "p8-r3-v22-official-development-v1": ([885521, 885522, 885523], "fractional_rgb_v21"),
         "p8-r3-v23-official-development-v1": ([885621, 885622, 885623], "fractional_rgb_v21"),
+        "p8-r3-v24-official-development-v1": ([885721, 885722, 885723], "fractional_rgb_v21"),
     }
     version = protocol.get("schema_version")
     if version not in versions:
@@ -96,7 +97,8 @@ def validate_frozen_selection(protocol):
     if version == "p8-r3-v21-official-development-v1" and hz != 10:
         raise RuntimeError("V2.1 selected visual cadence must remain 10 Hz")
     if version in ("p8-r3-v22-official-development-v1",
-                   "p8-r3-v23-official-development-v1"):
+                   "p8-r3-v23-official-development-v1",
+                   "p8-r3-v24-official-development-v1"):
         if protocol.get("fault_gate_status") != "PASS":
             raise RuntimeError("V2.2/V2.3 fault-stop gate must PASS before official execution")
         if config.method != "log_area" or hz != 20:
@@ -110,12 +112,17 @@ def validate_frozen_selection(protocol):
                     "fault_gate_artifact_path", "fault_gate_artifact_sha256"):
             if not isinstance(protocol.get(key), str):
                 raise RuntimeError(f"V2.2/V2.3 missing prospective {key}")
-    if version == "p8-r3-v23-official-development-v1":
+    if version in ("p8-r3-v23-official-development-v1",
+                   "p8-r3-v24-official-development-v1"):
         if protocol.get("startup_gate_status") != "PASS":
-            raise RuntimeError("V2.3 startup handoff gate must PASS before official execution")
+            raise RuntimeError("V2.3/V2.4 startup handoff gate must PASS before official execution")
         for key in ("startup_gate_artifact_path", "startup_gate_artifact_sha256"):
             if not isinstance(protocol.get(key), str):
-                raise RuntimeError(f"V2.3 missing prospective {key}")
+                raise RuntimeError(f"V2.3/V2.4 missing prospective {key}")
+    if version == "p8-r3-v24-official-development-v1":
+        for key in ("startup_gate_thor_artifact_path", "startup_gate_thor_artifact_sha256"):
+            if not isinstance(protocol.get(key), str):
+                raise RuntimeError(f"V2.4 missing prospective {key}")
     if not (isinstance(protocol.get("scenario_config_path"), str)
             and isinstance(protocol.get("scenario_config_sha256"), str)
             and isinstance(protocol.get("visual_scheduler_config_sha256"), str)
@@ -128,10 +135,9 @@ def validate_frozen_selection(protocol):
             or len({row.get("run_id") for row in runs}) != 3):
         raise RuntimeError("P8-R3 official three-reset seed matrix mismatch")
     if version in ("p8-r3-v22-official-development-v1",
-                   "p8-r3-v23-official-development-v1"):
-        seeds = ((885521, 885522, 885523)
-                 if version == "p8-r3-v22-official-development-v1"
-                 else (885621, 885622, 885623))
+                   "p8-r3-v23-official-development-v1",
+                   "p8-r3-v24-official-development-v1"):
+        seeds = versions[version][0]
         expected = [(f"{i:02d}-{seed}", seed, arm) for i, (seed, arm) in enumerate(
             zip(seeds, (2.0, 2.6, 3.0)), start=1)]
         if ([(row.get("run_id"), row.get("seed"), row.get("arm_elapsed_s"))
@@ -143,10 +149,96 @@ def validate_frozen_selection(protocol):
         raise RuntimeError("frozen RGB representation mismatches protocol version")
     if (version in ("p8-r3-v21-official-development-v1",
                     "p8-r3-v22-official-development-v1",
-                    "p8-r3-v23-official-development-v1")
+                    "p8-r3-v23-official-development-v1",
+                    "p8-r3-v24-official-development-v1")
             and not isinstance(protocol.get("fractional_rgb_module_sha256"), str)):
         raise RuntimeError("fractional RGB source hash must be frozen")
     return config, hz
+
+
+def validate_v24_gate_artifact(gate: dict, *, source_sha: str, thor: bool) -> None:
+    healthy_names = ("normal_handoff", "real_worker_start_and_stop_refresh")
+    fault_names = ("missing_prime", "invalid_prime", "future_prime", "stale_prime",
+                   "malformed_prime", "nan_prime", "delayed_start",
+                   "visual_drop_stale_neural_persistence", "fault_supersedes_neural_stop")
+    rows = gate.get("cases")
+    group_a, group_b = gate.get("group_a", {}), gate.get("group_b", {})
+    if (gate.get("schema_version") != "p8-r3-v24-startup-gate-v1"
+            or gate.get("result") != "PASS"
+            or gate.get("source_head") != source_sha
+            or not isinstance(rows, list)
+            or [row.get("name") for row in rows] != list(healthy_names + fault_names)
+            or any(row.get("result") != "PASS" for row in rows)
+            or group_a.get("result") != "PASS" or group_b.get("result") != "PASS"
+            or group_a.get("case_names") != list(healthy_names)
+            or group_b.get("case_names") != list(fault_names)
+            or (group_a.get("planned"), group_a.get("passed")) != (2, 2)
+            or (group_b.get("planned"), group_b.get("passed")) != (9, 9)
+            or group_a.get("healthy_missing_count") != 0
+            or not isinstance(group_b.get("injected_missing_count"), int)
+            or group_b["injected_missing_count"] <= 0):
+        raise RuntimeError("frozen V2.4 group gate artifact failed case/schema/source checks")
+    for row in rows[:2]:
+        metric = row.get("metrics", {})
+        ages = metric.get("armed_age_ms")
+        if (not isinstance(ages, list) or metric.get("armed_neural_ticks", 0) < 1
+                or len(ages) != metric["armed_neural_ticks"]
+                or metric.get("armed_missing_count") != 0
+                or metric.get("armed_invalid_count") != 0
+                or any(not isinstance(age, (int, float)) or age < 0 or age > 100
+                       for age in ages)
+                or any(gap > 100 for gap in metric.get("frame_gaps_ms", []))
+                or metric.get("post_stop_positive_moves") != 0
+                or row.get("scheduler_exceptions") != 0):
+            raise RuntimeError("frozen V2.4 healthy group has missing/stale input")
+    real_gaps = rows[1]["metrics"].get("stop_ack_gaps_ms", [])
+    if not real_gaps or max(real_gaps) > 100:
+        raise RuntimeError("frozen V2.4 real worker stop ACK refresh failed")
+    drop = rows[9]
+    if (drop.get("metrics", {}).get("armed_missing_count", 0) <= 0
+            or group_b["injected_missing_count"] != drop["metrics"]["armed_missing_count"]
+            or drop["metrics"].get("first_invalid_neural_ns") is None
+            or drop["metrics"].get("first_fault_control_ns") is None
+            or drop.get("arbiter_latch_reason") != "fault_stale_neural"
+            or drop["metrics"].get("post_stop_positive_moves") != 0):
+        raise RuntimeError("frozen V2.4 injected visual fault result is incomplete")
+    for row in rows[2:9]:
+        if (row.get("metrics", {}).get("command_ack_count") != 0
+                or any(event.get("kind") == "command_ack"
+                       for event in row.get("events", []))):
+            raise RuntimeError("frozen V2.4 rejected prime/delay published a command")
+    for row in rows[9:]:
+        metric = row.get("metrics", {})
+        gaps = metric.get("stop_ack_gaps_ms", [])
+        commands = [event for event in row.get("events", [])
+                    if event.get("kind") == "command_ack"]
+        first_stop = next((index for index, event in enumerate(commands)
+                           if event.get("action") == "robot.stop"), None)
+        stop_commands = commands[first_stop:] if first_stop is not None else []
+        actual_gaps = []
+        if all(isinstance(event.get("ack_ns"), int) for event in stop_commands):
+            actual_gaps = [(b["ack_ns"] - a["ack_ns"]) / 1e6
+                           for a, b in zip(stop_commands, stop_commands[1:])]
+        if (not gaps or len(gaps) != len(actual_gaps)
+                or any(not isinstance(gap, (int, float)) or gap < 0 or gap > 100
+                       or abs(gap - actual) > 1e-6
+                       for gap, actual in zip(gaps, actual_gaps))
+                or metric.get("post_stop_positive_moves") != 0
+                or row.get("scheduler_exceptions") != 0
+                or first_stop is None
+                or metric.get("command_ack_count") != len(commands)
+                or any(event.get("action") != "robot.stop" for event in stop_commands)):
+            raise RuntimeError("frozen V2.4 fault stop ACK/persistence failed")
+    external = rows[10]
+    if (external.get("arbiter_latch_reason") != "fault_camera_loss"
+            or (external.get("fault_latch") or {}).get("reason") != "camera_loss"):
+        raise RuntimeError("frozen V2.4 external fault priority failed")
+    hostname = str(gate.get("hostname", ""))
+    if thor and (not hostname.startswith("jetsonthor")
+                 or not str(gate.get("python_version", "")).startswith("3.12.")):
+        raise RuntimeError("frozen V2.4 Thor gate provenance mismatch")
+    if not thor and (not hostname or hostname.startswith("jetsonthor")):
+        raise RuntimeError("frozen V2.4 local gate provenance mismatch")
 
 
 def validate_frozen_material(root: Path, protocol: dict) -> None:
@@ -174,13 +266,17 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
             "sampling_gate_manifest_sha256": protocol["sampling_gate_manifest_path"],
         })
     if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
-                                       "p8-r3-v23-official-development-v1"):
+                                       "p8-r3-v23-official-development-v1",
+                                       "p8-r3-v24-official-development-v1"):
         files.update({
             "internal_gate_script_sha256": protocol["internal_gate_script_path"],
             "fault_gate_artifact_sha256": protocol["fault_gate_artifact_path"],
         })
-    if protocol["schema_version"] == "p8-r3-v23-official-development-v1":
+    if protocol["schema_version"] in ("p8-r3-v23-official-development-v1",
+                                       "p8-r3-v24-official-development-v1"):
         files["startup_gate_artifact_sha256"] = protocol["startup_gate_artifact_path"]
+    if protocol["schema_version"] == "p8-r3-v24-official-development-v1":
+        files["startup_gate_thor_artifact_sha256"] = protocol["startup_gate_thor_artifact_path"]
     config_paths = {
         "neural_model": "neural_model_v1.json", "sensory_mapping": "sensory_mapping_v1.json",
         "dn_readout": "dn_readout_v1.json", "escape_decoder": "escape_decoder_v1.json",
@@ -204,7 +300,8 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
                            target.relative_to(root).as_posix()], check=False).returncode != 0:
             raise RuntimeError(f"frozen {key} differs from committed content")
     if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
-                                       "p8-r3-v23-official-development-v1"):
+                                       "p8-r3-v23-official-development-v1",
+                                       "p8-r3-v24-official-development-v1"):
         fault_gate = json.loads((root / protocol["fault_gate_artifact_path"]).read_text())
         if (fault_gate.get("schema_version") != "p8-r3-v22-fault-gate-v1"
                 or fault_gate.get("result") != "PASS"):
@@ -214,6 +311,12 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
         if (startup_gate.get("schema_version") != "p8-r3-v23-startup-gate-v1"
                 or startup_gate.get("result") != "PASS"):
             raise RuntimeError("frozen V2.3 startup handoff gate artifact is not PASS")
+    if protocol["schema_version"] == "p8-r3-v24-official-development-v1":
+        for key in ("startup_gate_artifact_path", "startup_gate_thor_artifact_path"):
+            gate = json.loads((root / protocol[key]).read_text())
+            validate_v24_gate_artifact(
+                gate, source_sha=protocol["source_freeze_sha"],
+                thor=key == "startup_gate_thor_artifact_path")
     scenario = load_config(root / protocol["scenario_config_path"])
     if (scenario["safety_boundary_center_distance_m"] != 0.25
             or protocol["visual_representation"] == "fractional_rgb_v21"
@@ -1370,12 +1473,14 @@ def run(args):
         "state_machine_complete": valid_state_path(transition_states, complete=True),
     }
     if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
-                                       "p8-r3-v23-official-development-v1"):
+                                       "p8-r3-v23-official-development-v1",
+                                       "p8-r3-v24-official-development-v1"):
         checks["visual_age_within_ttl"] = bool(
             len(visual_ages_ms) == len(chain.neural_ledger)
             and all(0 <= age <= protocol["maximum_visual_lineage_age_ms"]
                     for age in visual_ages_ms))
-    if protocol["schema_version"] == "p8-r3-v23-official-development-v1":
+    if protocol["schema_version"] in ("p8-r3-v23-official-development-v1",
+                                       "p8-r3-v24-official-development-v1"):
         checks["continuous_neural_visual_input"] = bool(chain.neural_ledger and all(
             not row.get("input_none") and not row.get("result_none")
             and row.get("perception_valid") and row.get("perception_age_ms") is not None

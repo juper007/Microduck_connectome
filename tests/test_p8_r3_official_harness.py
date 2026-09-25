@@ -20,7 +20,7 @@ from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p8_r3_official_batch import validate_trial_artifacts
 from scripts.p8_r3_official_trial import (
     LoomingChain, VisualCadence, validate_frozen_material,
-    validate_frozen_output_dir, validate_frozen_selection,
+    validate_frozen_output_dir, validate_frozen_selection, validate_v24_gate_artifact,
 )
 
 
@@ -141,6 +141,83 @@ class OfficialSelectionTests(unittest.TestCase):
         protocol["ordered_official_runs"][0]["seed"] = 885521
         with self.assertRaisesRegex(RuntimeError, "seed matrix"):
             validate_frozen_selection(protocol)
+
+    def test_v24_requires_two_gate_artifacts_and_fresh_seed_matrix(self):
+        protocol = json.loads((ROOT / "config/p8_r3_v24_official_v1.json").read_text())
+        draft = copy.deepcopy(protocol)
+        draft["official_freeze_status"] = "DRAFT"
+        draft["startup_gate_status"] = "PENDING"
+        with self.assertRaisesRegex(RuntimeError, "internal neural gate"):
+            validate_frozen_selection(draft)
+        protocol["official_freeze_status"] = "FROZEN"
+        protocol["startup_gate_status"] = "PASS"
+        selected, hz = validate_frozen_selection(protocol)
+        self.assertEqual((selected.method, hz), ("log_area", 20))
+        self.assertEqual([row["seed"] for row in protocol["ordered_official_runs"]],
+                         [885721, 885722, 885723])
+        protocol["startup_gate_thor_artifact_path"] = None
+        with self.assertRaisesRegex(RuntimeError, "V2.4 missing"):
+            validate_frozen_selection(protocol)
+
+    def test_v24_group_preflight_rejects_hidden_healthy_missing_ticks(self):
+        healthy = ["normal_handoff", "real_worker_start_and_stop_refresh"]
+        injected = ["missing_prime", "invalid_prime", "future_prime", "stale_prime",
+                    "malformed_prime", "nan_prime", "delayed_start",
+                    "visual_drop_stale_neural_persistence", "fault_supersedes_neural_stop"]
+        rows = [{"name": name, "result": "PASS", "scheduler_exceptions": 0,
+                 "events": [],
+                 "metrics": {"armed_neural_ticks": 1, "armed_missing_count": 0,
+                             "armed_invalid_count": 0, "armed_age_ms": [20],
+                             "frame_gaps_ms": [60], "stop_ack_gaps_ms": [20],
+                             "post_stop_positive_moves": 0,
+                             "command_ack_count": 0}}
+                for name in healthy + injected]
+        for row in rows[9:]:
+            row["events"] = [{"kind": "command_ack", "action": "robot.stop",
+                              "ack_ns": 100_000_000},
+                             {"kind": "command_ack", "action": "robot.stop",
+                              "ack_ns": 120_000_000}]
+            row["metrics"]["command_ack_count"] = 2
+        rows[9]["metrics"].update({"armed_missing_count": 1,
+                                    "first_invalid_neural_ns": 120,
+                                    "first_fault_control_ns": 220})
+        rows[9]["arbiter_latch_reason"] = "fault_stale_neural"
+        rows[10]["arbiter_latch_reason"] = "fault_camera_loss"
+        rows[10]["fault_latch"] = {"reason": "camera_loss"}
+        gate = {"schema_version": "p8-r3-v24-startup-gate-v1", "result": "PASS",
+                "source_head": "a" * 40, "hostname": "jetsonthor01",
+                "python_version": "3.12.8", "cases": rows,
+                "group_a": {"result": "PASS", "planned": 2, "passed": 2,
+                            "healthy_missing_count": 0, "case_names": healthy},
+                "group_b": {"result": "PASS", "planned": 9, "passed": 9,
+                            "injected_missing_count": 1, "case_names": injected}}
+        validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[0]["metrics"]["armed_missing_count"] = 1
+        with self.assertRaisesRegex(RuntimeError, "healthy group"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[0]["metrics"]["armed_missing_count"] = 0
+        rows[2]["events"].append({"kind": "command_ack", "action": "robot.stop"})
+        with self.assertRaisesRegex(RuntimeError, "published a command"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[2]["events"].clear()
+        rows[9]["events"][1]["ack_ns"] = 220_000_000
+        with self.assertRaisesRegex(RuntimeError, "ACK/persistence"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[9]["events"][1]["ack_ns"] = 120_000_000
+        rows[9]["events"][1]["action"] = "robot.move"
+        with self.assertRaisesRegex(RuntimeError, "ACK/persistence"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[9]["events"][1]["action"] = "robot.stop"
+        rows[10]["fault_latch"]["reason"] = "watchdog"
+        with self.assertRaisesRegex(RuntimeError, "fault priority"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
+        rows[10]["fault_latch"]["reason"] = "camera_loss"
+        gate["hostname"] = "jetsonthor01"
+        with self.assertRaisesRegex(RuntimeError, "local gate provenance"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=False)
+        gate["hostname"] = "localdev"
+        with self.assertRaisesRegex(RuntimeError, "Thor gate provenance"):
+            validate_v24_gate_artifact(gate, source_sha="a" * 40, thor=True)
 
     def test_v21_selected_material_and_hashes_match_repository(self):
         protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
