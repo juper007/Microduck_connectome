@@ -1,6 +1,6 @@
 ---
 name: behavior-control-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome behavior-control-engineer repository skill.
+description: Convert MaleCNS descending-neuron activity into bounded high-level behavior intents. Use for population readout, steering, stop/backward triggers, filtering, hysteresis, readouts, shaping, or oscillation analysis; never direct servo control.
 ---
 
 # Qwen adapter: behavior-control-engineer
