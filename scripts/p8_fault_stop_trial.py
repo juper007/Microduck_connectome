@@ -242,8 +242,13 @@ def run(args):
         fault = latch.snapshot()
         if fault is None:
             raise RuntimeError("no fault latch")
-        if stop_acks[0]["stale_reason"] != "fault_" + fault.reason:
-            raise RuntimeError("first robot.stop was not attributed to the latched fault")
+        expected_first_sources = {"fault_" + fault.reason}
+        if args.fault == "neural_freeze":
+            # The production 100 ms Watchdog can detect stale neural output
+            # one control tick before the wrapper's own 100 ms latch check.
+            expected_first_sources.add("stale_neural")
+        if stop_acks[0]["stale_reason"] not in expected_first_sources:
+            raise RuntimeError("first robot.stop has an unapproved source")
         if args.fault == "unexpected_worker_exception":
             if not scheduler_errors or scheduler._metrics.scheduler_exceptions != 1:
                 raise RuntimeError("unexpected worker error was hidden")
@@ -305,7 +310,7 @@ def run(args):
     }
     fault = latch.snapshot()
     summary = {
-        "schema_version": "p8-v2-fault-stop-development-v1",
+        "schema_version": "p8-v2-fault-stop-development-v2",
         "evidence_role": "development_only_not_final_p8_04",
         "result": result, "failure": failure, "fault_mode": args.fault,
         "development_seed": args.development_seed,
@@ -317,15 +322,22 @@ def run(args):
         "fault_injected_ns": chain.fault_injected_ns,
         "last_motion_ack_ns": last_move_ack_ns,
         "first_stop_ack_ns": stop_acks[0]["ack_ns"] if stop_acks else None,
+        "first_stop_source": stop_acks[0]["stale_reason"] if stop_acks else None,
+        "watchdog_preempted_fault_latch": bool(
+            fault and stop_acks and stop_acks[0]["ack_ns"] < fault.detected_ns),
         "stop_ack_count": len(stop_acks),
         "stop_ack_gap_max_ms": max(((b["ack_ns"] - a["ack_ns"]) / 1e6
                                     for a, b in zip(stop_acks, stop_acks[1:])), default=None),
-        "fault_to_first_stop_request_ms": (
-            (stop_acks[0]["request_ns"] - fault.detected_ns) / 1e6
-            if fault and stop_acks else None),
-        "fault_to_first_stop_ack_ms": (
+        "injection_to_first_stop_request_ms": (
+            (stop_acks[0]["request_ns"] - chain.fault_injected_ns) / 1e6
+            if chain.fault_injected_ns and stop_acks else None),
+        "injection_to_first_stop_ack_ms": (
+            (stop_acks[0]["ack_ns"] - chain.fault_injected_ns) / 1e6
+            if chain.fault_injected_ns and stop_acks else None),
+        "detection_to_first_stop_ack_ms": (
             (stop_acks[0]["ack_ns"] - fault.detected_ns) / 1e6
-            if fault and stop_acks else None),
+            if fault and stop_acks and stop_acks[0]["ack_ns"] >= fault.detected_ns
+            else None),
         "first_stop_ack_to_pose_stop_ms": (
             (stop_confirmed_ns - stop_acks[0]["ack_ns"]) / 1e6
             if stop_confirmed_ns and stop_acks else None),

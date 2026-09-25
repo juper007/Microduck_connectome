@@ -108,6 +108,29 @@ def check_neural_freeze_and_planned_exception_are_distinct():
     assert other.snapshot().planned and other.snapshot().reason == "neural_freeze"
 
 
+def check_watchdog_can_preempt_redundant_freeze_latch():
+    latch, watchdog, robot, adapter = fixture()
+    watchdog.observe_neural({
+        "timestamp_ns": 1_000_000_000, "sequence": 1,
+        "steering_left": 0.0, "steering_right": 0.0,
+        "escape": 0.0, "runtime_healthy": True,
+    })
+    watchdog.observe_behavior(make_behavior_intent(
+        timestamp_ns=1_000_000_000, sequence=1))
+    scheduler = FaultStopRefreshScheduler(
+        fault_latch=latch, config=ROOT / "config/scheduler_v1.json",
+        watchdog=watchdog, perception_step=lambda t: None,
+        neural_step=lambda frame, t: None, publisher=adapter.send,
+    )
+    scheduler._control_tick(1_100_000_001)
+    assert robot.calls[-1][2] == "stale_neural"
+    assert robot.calls[-1][1]["stop"] is True
+    latch.latch("stale_neural", detected_ns=1_120_000_000, planned=True)
+    scheduler._control_tick(1_120_000_000)
+    assert robot.calls[-1][2] == "fault_stale_neural"
+    assert robot.calls[-1][1]["stop"] is True
+
+
 def check_fault_stop_refreshes_authentic_watchdog_output_through_adapter():
     latch, watchdog, robot, adapter = fixture()
     latch.latch("tof_loss", detected_ns=1, planned=True)
@@ -239,6 +262,9 @@ class FaultStopTests(unittest.TestCase):
 
     def test_neural_freeze(self):
         check_neural_freeze_and_planned_exception_are_distinct()
+
+    def test_watchdog_freeze_preemption(self):
+        check_watchdog_can_preempt_redundant_freeze_latch()
 
     def test_authentic_stop_refresh(self):
         check_fault_stop_refreshes_authentic_watchdog_output_through_adapter()

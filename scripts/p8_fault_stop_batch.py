@@ -30,6 +30,7 @@ def main():
     parser.add_argument("--sim-state", type=Path, required=True)
     parser.add_argument("--body-port", type=int, required=True)
     parser.add_argument("--faults", nargs="+", choices=FAULTS, required=True)
+    parser.add_argument("--seed-base", type=int, default=884000)
     args = parser.parse_args()
     if not socket.gethostname().startswith("jetsonthor") or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
@@ -37,6 +38,8 @@ def main():
     source_head = subprocess.check_output(
         ["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     protocol = json.loads((root / "config/g8_r5d_stop_refresh_v1.json").read_text())
+    if args.seed_base < 884000 or args.seed_base + len(args.faults) > 885000:
+        raise ValueError("development seed range is outside 884000..884999")
     args.output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ)
     env.update({
@@ -47,15 +50,15 @@ def main():
         "PYTHONPATH": str(root),
     })
     sim = args.microduck / "scripts/duck-sim"
-    rows = []
+    rows = [{"index": index, "fault": fault,
+             "development_seed": args.seed_base + index, "started": False,
+             "steps": {}, "result": "NOT_STARTED"}
+            for index, fault in enumerate(args.faults)]
     for index, fault in enumerate(args.faults):
-        development_seed = 884000 + index
+        development_seed = args.seed_base + index
         folder = args.output / f"trial-{index + 1:02d}-{fault}"
         folder.mkdir()
-        row = {"index": index, "fault": fault, "development_seed": development_seed,
-               "started": False, "steps": {},
-               "result": "NOT_STARTED"}
-        rows.append(row)
+        row = rows[index]
         try:
             for name, command in (
                 ("down", [str(sim), "down"]),
@@ -113,7 +116,7 @@ def main():
         if "failure" in row or "final_down_failure" in row:
             break
     batch = {
-        "schema_version": "p8-v2-fault-stop-development-batch-v1",
+        "schema_version": "p8-v2-fault-stop-development-batch-v2",
         "evidence_role": "development_only_not_final_p8_04",
         "source_head": source_head,
         "planned_faults": args.faults,
