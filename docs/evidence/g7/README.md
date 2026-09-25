@@ -125,10 +125,17 @@ traces, not a replacement for all 120 scored trials:
 | Trial / raw trace SHA256 | Camera → stimulation → DNa02 → command | First qualifying body response |
 |---|---|---|
 | Left `p7-v4-target-002`, `a53d32aa215d69fff68751291f4a9103da546d5f16a58ebdc7e6549efe5e0730` | `target_x = −0.4625`; `lc10a_left = 1.0`; steering left/right `0.2/0.0`; pre/post-safety yaw `+0.5/+0.5 rad/s`; robotd move transport | `+0.04020 rad` over 0.20069 s, onset target bearing `+0.38842 rad`, latency 0.774 s |
-| Right `p7-v4-target-001`, `285b629e83f7225162080866b90e1ba5205d64f277b009d80988f7fda78b09b0` | `target_x = +0.4669`; `lc10a_right = 1.0`; steering left/right `0.0/0.2`; pre/post-safety yaw `−0.5/−0.02798 rad/s` at response start (slew clamp), robotd move transport | `−0.02115 rad` over 0.22031 s, onset target bearing `−0.36806 rad`, latency 0.334 s |
+| Right `p7-v4-target-001`, `285b629e83f7225162080866b90e1ba5205d64f277b009d80988f7fda78b09b0` | At scorer-window baseline, row 45: `target_x = +0.4669`, `lc10a_right = 1.0`, but steering DNa and yaw are **zero**. At the next row 46, 8.377 ms after that body baseline: steering right `0.2`; pre/post-safety yaw `−0.5/−0.02798 rad/s` (slew clamp); robotd applied yaw `−0.005596 rad/s` at its body sample 19.65 ms after baseline. | First negative heading increment at row 48, about 60.35 ms after baseline; `−0.02115 rad` by row 56 over the scored 0.22031 s window; baseline target bearing `−0.36806 rad`, latency 0.334 s. |
 
-The sample values above are from telemetry records nearest each
-response start; each response delta is the frozen scorer's first
+The left values are from row 67, whose body sample is the scored
+window start. In the right example, the scored 200 ms window starts
+at row 45's body timestamp `1737915195589542` while DNa and yaw
+are still zero. The first nonzero right-side DNa and yaw appear in
+row 46 (command timestamp `1737915203966064`, body sample
+`1737915215239071`); subsequent negative body-heading increments
+begin at row 48. The window **baseline is not the physical turn
+onset**, and the quoted command must not be interpreted as preceding
+that baseline. Each response delta is the frozen scorer's first
 qualifying window. The controller issued bounded **high-level**
 motion intents; official `robotd` and its motion/safety stack kept
 motor ownership. Perception labels, stimulus, DNa activity,
