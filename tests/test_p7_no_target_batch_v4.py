@@ -1,11 +1,14 @@
 """Focused tests for the committed P7 v4 no-target control harness."""
 
 from pathlib import Path
+import hashlib
+import json
 import tempfile
 import unittest
 
 from scripts.p7_no_target_batch_v4 import (
     false_turn_from_trace, score_trace, summarize, validate_control_specs,
+    verify_and_score_trace,
 )
 
 
@@ -54,6 +57,63 @@ class FalseTurnTests(unittest.TestCase):
             path.write_text('{"timestamp_ns":', encoding="utf-8")
             with self.assertRaises(Exception):
                 score_trace(path, RULE)
+
+    def test_summary_trace_spec_binding_rejects_mismatch(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            trace_path = folder / "trace.jsonl"
+            summary_path = folder / "summary.json"
+            spec_path = folder / "trial-spec.json"
+            spec_path.write_text('{"seed": 1}\n', encoding="utf-8")
+            rows = trace([0.0] * 45)
+            payload = ("".join(json.dumps(row) + "\n" for row in rows)).encode("ascii")
+            trace_path.write_bytes(payload)
+            digest = hashlib.sha256(payload).hexdigest()
+            spec_digest = hashlib.sha256(spec_path.read_bytes()).hexdigest()
+            summary = {
+                "artifact": {
+                    "sha256": digest, "record_count": len(rows),
+                    "start_timestamp_ns": rows[0]["timestamp_ns"],
+                    "end_timestamp_ns": rows[-1]["timestamp_ns"],
+                },
+                "trial_spec_sha256": spec_digest,
+                "experiment_sha256": "manifest",
+                "walking_policy_sha256": "policy",
+            }
+            def checked():
+                return verify_and_score_trace(
+                    trace_path=trace_path, summary_path=summary_path,
+                    spec_path=spec_path, rule=RULE,
+                    manifest_sha256="manifest", policy_sha256="policy",
+                    committed_spec_sha256=spec_digest,
+                    journal_trace_sha256=digest,
+                    journal_summary_sha256=summary_digest)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+            summary_digest = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+            self.assertFalse(checked()["false_turn"])
+
+            tampered = trace([0.0] * 30 + [0.2] * 15)
+            trace_path.write_text("".join(json.dumps(row) + "\n" for row in tampered),
+                                  encoding="ascii")
+            self.assertTrue(score_trace(trace_path, RULE)["false_turn"])
+            with self.assertRaisesRegex(ValueError, "SHA mismatch"):
+                checked()
+
+            trace_path.write_bytes(payload)
+            summary["artifact"]["record_count"] -= 1
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+            summary_digest = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, "record count mismatch"):
+                checked()
+
+            summary["artifact"]["record_count"] = len(rows)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+            spec_path.write_text('{"seed": 2}\n', encoding="utf-8")
+            summary["trial_spec_sha256"] = hashlib.sha256(spec_path.read_bytes()).hexdigest()
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+            summary_digest = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, "SHA mismatch"):
+                checked()
 
 
 class ControlBatchGateTests(unittest.TestCase):

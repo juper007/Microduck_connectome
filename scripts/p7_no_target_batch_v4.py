@@ -78,12 +78,41 @@ def false_turn_from_trace(records: list[dict], rule: dict) -> dict:
 
 
 def score_trace(path: Path, rule: dict) -> dict:
-    records = []
-    with path.open(encoding="utf-8") as source:
-        for line in source:
-            if line.strip():
-                records.append(json.loads(line))
+    records = [json.loads(line) for line in path.read_text(encoding="ascii").splitlines()]
     return false_turn_from_trace(records, rule)
+
+
+def verify_and_score_trace(*, trace_path: Path, summary_path: Path,
+                           spec_path: Path, rule: dict,
+                           manifest_sha256: str, policy_sha256: str,
+                           committed_spec_sha256: str,
+                           journal_trace_sha256: str,
+                           journal_summary_sha256: str) -> dict:
+    """Bind scored bytes to trial-reported artifact, spec, manifest, and policy."""
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    artifact = summary["artifact"]
+    payload = trace_path.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    if (digest != artifact["sha256"]
+            or digest != journal_trace_sha256
+            or sha256_file(summary_path) != journal_summary_sha256
+            or summary["trial_spec_sha256"] != committed_spec_sha256
+            or sha256_file(spec_path) != committed_spec_sha256
+            or summary["experiment_sha256"] != manifest_sha256
+            or summary["walking_policy_sha256"] != policy_sha256):
+        raise ValueError("trial trace/spec/manifest/policy SHA mismatch")
+    records = [json.loads(line) for line in payload.decode("ascii").splitlines()]
+    if (not isinstance(artifact["record_count"], int)
+            or isinstance(artifact["record_count"], bool)
+            or len(records) != artifact["record_count"]):
+        raise ValueError("trial trace record count mismatch")
+    if (records[0]["timestamp_ns"] != artifact["start_timestamp_ns"]
+            or records[-1]["timestamp_ns"] != artifact["end_timestamp_ns"]):
+        raise ValueError("trial trace timestamp span mismatch")
+    scored = false_turn_from_trace(records, rule)
+    scored["verified_artifact_sha256"] = digest
+    scored["verified_record_count"] = len(records)
+    return scored
 
 
 def validate_control_specs(experiment: dict) -> list[dict]:
@@ -257,8 +286,16 @@ def main() -> None:
                 row.update(collect_started_trial(command, folder, env=env, root=root))
                 if not started_trial_failed(row) and row.get("outcome") == "no_target":
                     try:
-                        row.update(score_trace(folder / "trace.jsonl",
-                                               experiment["no_target_false_turn"]))
+                        row.update(verify_and_score_trace(
+                            trace_path=folder / "trace.jsonl",
+                            summary_path=folder / "summary.json",
+                            spec_path=spec_path,
+                            rule=experiment["no_target_false_turn"],
+                            manifest_sha256=sha256_file(experiment_path),
+                            policy_sha256=experiment["walking_policy"]["sha256"],
+                            committed_spec_sha256=row["spec_sha256"],
+                            journal_trace_sha256=row["trace_sha256"],
+                            journal_summary_sha256=row["summary_sha256"]))
                     except BaseException as error:
                         row["outcome"] = "invalid"
                         row["invalid_reasons"] = ["false_turn_scorer_exception"]
