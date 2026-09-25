@@ -28,6 +28,7 @@ def generate() -> dict:
         scope="prospective graph-v2 official Thor steering recertification; graph-v1 G7 is historical",
         graph_key=GRAPH,
         graph_sha256=GRAPH,
+        min_valid_target_trials=100,
         base_origin_main="9b9a147ac143db50d21ee04b361b9fb852402122",
         trial_order_randomization_seed=80601,
         seed_generation="Python random.Random(80601); unique 32-bit seeds assigned in listed trial order",

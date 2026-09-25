@@ -15,6 +15,7 @@ class G8R6ProtocolTest(unittest.TestCase):
         self.assertEqual(protocol["graph_key"], GRAPH)
         self.assertEqual(protocol["graph_sha256"], GRAPH)
         self.assertEqual(protocol["target_trial_count"], 120)
+        self.assertEqual(protocol["min_valid_target_trials"], 100)
         self.assertEqual(len(protocol["target_trials"]), 120)
         self.assertEqual(len(validate_control_specs(protocol)), 40)
         seeds = [row["seed"] for key in ("target_trials", "no_target_trials")

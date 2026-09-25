@@ -92,6 +92,7 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
                               if started_trial_failed(item)]
     expected = experiment["target_trial_count"]
     rate = counts["correct"] / valid if valid else None
+    min_valid = experiment.get("min_valid_target_trials", 100)
     return {
         "schema_version": "p7-02-target-batch-v4",
         "execution_target": "Thor", "hostname": socket.gethostname(),
@@ -112,7 +113,7 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
         "started_trial_failures": started_trial_failures,
         "raw_journal_sha256": journal_hash,
         "invalid_trial_ids": [item["trial_id"] for item in results if item["outcome"] == "invalid"],
-        "result": "PASS" if (len(results) == expected and valid >= 100
+        "result": "PASS" if (len(results) == expected and valid >= min_valid
                              and rate is not None
                              and rate >= experiment["target_response"]["correct_direction_rate_min"]
                              and safety == 0 and not started_trial_failures) else "FAIL",
