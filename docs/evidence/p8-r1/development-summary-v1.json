@@ -1,0 +1,72 @@
+{
+  "task_id": "P8-R1",
+  "status": "FAIL",
+  "evidence_role": "development_probe_only",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "frozen_boundary_m": 0.25,
+  "minimum_virtual_sphere_clearance_m": 0.015,
+  "stop_transport": "robot.stop",
+  "version_3": {
+    "source_head": "d07b8b45a742ae7f4dc373e9557263459d104eb9",
+    "protocol_sha256": "a5c590bb8167c42582f7a3cab0c307cf8e4a86a250ac15165a6f5bb79733d574",
+    "raw_directory": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r1/dev-d07b8b4-20260925-1/",
+    "batch_summary_sha256": "f939435c9e28aa497e207bce4509b2d8b75298a2d3d66014ef54d2a665f4a57f",
+    "raw_manifest_sha256": "228d5d3acecc0d57f4049ec94b1fd55c1fa8b594fb978f6705f439ad2baae790",
+    "planned_trials": 3,
+    "completed_trials": 3,
+    "transport_passes": 0,
+    "behavior_passes": 0,
+    "all_three_healthy_dn_origin_stop_acked": true,
+    "deadman_caused_stop_count": 0,
+    "trials": [
+      {
+        "seed": 881121,
+        "transport_result": "FAIL",
+        "behavior_result": "FAIL",
+        "boundary_margin_at_neural_stop_m": -0.06677450035086155,
+        "minimum_virtual_sphere_clearance_m": -0.025491677167162927,
+        "maximum_stop_ack_gap_ms": 24.631526,
+        "scheduler_exception": "perception worker failed: virtual camera entered sphere",
+        "deadman_before_stopped": false
+      },
+      {
+        "seed": 881122,
+        "transport_result": "FAIL",
+        "behavior_result": "FAIL",
+        "boundary_margin_at_neural_stop_m": -0.03635871329274454,
+        "minimum_virtual_sphere_clearance_m": 0.01341000556143139,
+        "maximum_stop_ack_gap_ms": 23.79719,
+        "scheduler_exception": null,
+        "deadman_before_stopped": false
+      },
+      {
+        "seed": 881123,
+        "transport_result": "FAIL",
+        "behavior_result": "FAIL",
+        "boundary_margin_at_neural_stop_m": -0.05390505561491066,
+        "minimum_virtual_sphere_clearance_m": -0.012828471908477482,
+        "maximum_stop_ack_gap_ms": 23.901413,
+        "scheduler_exception": "perception worker failed: virtual camera entered sphere",
+        "deadman_before_stopped": false
+      }
+    ]
+  },
+  "historical_versions_retained": [
+    {
+      "version": 1,
+      "source_head": "8274c5579a5995361fa5d96bbd3cde0042cec38c",
+      "raw_directory": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r1/dev-8274c55-20260925-1/",
+      "batch_summary_sha256": "57c17df5058cf821acca3a9580067c14a658ece5993985c1f2565c1eb9af025f",
+      "raw_manifest_sha256": "ab074889c198805bf4523d57fb4f6c5be9f7a9353d61c368825dcd58953955b9",
+      "transport_results": ["FAIL", "FAIL", "FAIL"]
+    },
+    {
+      "version": 2,
+      "source_head": "d8e1e225afb76d3b49e6777bde97c80ed98d8735",
+      "raw_directory": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r1/dev-d8e1e22-20260925-1/",
+      "batch_summary_sha256": "487b3cb523c312b891ede8b1f9a0e10b35bec0b222c97b1a4e2af4df10316be9",
+      "raw_manifest_sha256": "b045050be668500ef938200045565105beb29812453ac0c28d5b5a518352af0b",
+      "transport_results": ["PASS", "FAIL", "FAIL"]
+    }
+  ]
+}
