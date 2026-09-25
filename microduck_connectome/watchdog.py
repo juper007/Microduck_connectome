@@ -80,6 +80,22 @@ class ControllerWatchdog:
         self._last_behavior_meta=None
         self._last_output_timestamp=None
         self._last_output_sequence=None
+        self._latched_fault=None
+
+    def latch_fault(self, reason):
+        """Irreversibly stop this trial for an externally detected safety fault.
+
+        The owner must retain the detailed source/timestamp in its fault ledger.
+        Fresh neural updates cannot clear this latch; only an explicit reset for
+        a new trial can do so.
+        """
+        if (type(reason) is not str or not reason or len(reason)>64
+                or not all(char.islower() or char.isdigit() or char=="_" for char in reason)
+                or not reason[0].isalpha()):
+            raise WatchdogError("fault reason must be a short lowercase identifier")
+        if self._latched_fault is None:
+            self._latched_fault=reason
+        return self._latched_fault
 
     @staticmethod
     def _newer(sample,previous_meta):
@@ -159,7 +175,9 @@ def _install_tick_boundary():
     def tick(self, *, now_ns, output_sequence):
         self._tick_metadata(now_ns, output_sequence)
         reason = None
-        if not self._decoder_alive:
+        if self._latched_fault is not None:
+            reason = "fault_" + self._latched_fault
+        elif not self._decoder_alive:
             reason = "decoder_crash"
         elif self._neural_fault is not None:
             reason = self._neural_fault

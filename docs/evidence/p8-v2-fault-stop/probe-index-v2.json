@@ -1,0 +1,924 @@
+{
+  "attempts": [
+    {
+      "development_seed": null,
+      "failure": null,
+      "fault": "camera_loss",
+      "fault_to_first_stop_ack_ms": 5.85956,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 72106,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/events.jsonl",
+          "record_count": 134,
+          "sha256": "1c8c95d98d8180543477be100c28bae37cde1327791545320245f86797d2ca07"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 459,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/frames.jsonl",
+          "record_count": 3,
+          "sha256": "e6984282422d1dba87688595e492679a98c4bcf6bfe29f1b46e7569d73fd9b0a"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/neural.jsonl",
+          "record_count": 3,
+          "sha256": "3da5c345bf1be5530c00523c47bf9ce124a7d49a157dcbd34931ba166d566398"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2037,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/summary.json",
+          "record_count": null,
+          "sha256": "afa6063bf43cb6381f9f4c8d994c675c1b4e19b82a2c1547ef0d8fe62a4cf4ce"
+        },
+        {
+          "bytes": 230,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/trial.log",
+          "record_count": null,
+          "sha256": "db6b9f7fc8c1207e19d2ba10e8b05f67eaeefc7db5995f3949c1787974d0b0fe"
+        },
+        {
+          "bytes": 1169,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss/up.log",
+          "record_count": null,
+          "sha256": "d3d9214945dff52f8b5687e3460b2bbf92c7d4909cbfbbbd3e6529ec4da3b801"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 719.521816,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/trial-01-camera_loss",
+      "safety_limit_violations": null,
+      "scheduler_exceptions": 0,
+      "source_head": "8d2bee9ed0a44e7ee56ddefa3b1c8839f3e25d7f",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 36,
+      "stop_ack_gap_max_ms": 20.103889
+    },
+    {
+      "development_seed": 884000,
+      "failure": null,
+      "fault": "tof_loss",
+      "fault_to_first_stop_ack_ms": 6.513191,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 84357,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/events.jsonl",
+          "record_count": 134,
+          "sha256": "429b815bfc89077f2da9339b82ef409ed6fd2dc1d59f9f139946a89024bfbc9c"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 438,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/frames.jsonl",
+          "record_count": 3,
+          "sha256": "167e127478a367d09608f876d86d55bfd1bb9737b98c684cc7c5094859c04de5"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/neural.jsonl",
+          "record_count": 3,
+          "sha256": "6acac05810647a9607794959cbbbdca631e52c96a2575380106faa862e89f744"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2150,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/summary.json",
+          "record_count": null,
+          "sha256": "ea4d3dc629921543f61724bf5f5d38d0c6ab5c9bc3563878107709651c715c34"
+        },
+        {
+          "bytes": 224,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/trial.log",
+          "record_count": null,
+          "sha256": "22f226a2c6642d4b46cffaf98211314762685e20bfd625b25d94aa3f50a73f90"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss/up.log",
+          "record_count": null,
+          "sha256": "457b44325336dea395b0db9cc288853738b1da6b84bd9ec4247fda4681501cad"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 716.109818,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-01-tof_loss",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 36,
+      "stop_ack_gap_max_ms": 20.074228
+    },
+    {
+      "development_seed": 884001,
+      "failure": null,
+      "fault": "camera_and_tof_loss",
+      "fault_to_first_stop_ack_ms": 6.47669,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 84757,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/events.jsonl",
+          "record_count": 134,
+          "sha256": "3358b18bb097f02e249746f7cbae5ab193eb248b2d5a54a922ecae2402f23cce"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 474,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/frames.jsonl",
+          "record_count": 3,
+          "sha256": "aa2b32b207597a953bf1579ed569e8f873c6e52aa7a36ff2b4a4a0c471f4b900"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/neural.jsonl",
+          "record_count": 3,
+          "sha256": "4f6e495613312ecefefa92f0e3ff2b714ace4f9d319db7f701d976c024837641"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2204,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/summary.json",
+          "record_count": null,
+          "sha256": "0ed7289b6b5cd0fc2870f64dcf21d1d49a29565b497f2f773a80f38c2255a49b"
+        },
+        {
+          "bytes": 246,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/trial.log",
+          "record_count": null,
+          "sha256": "457c73833432a3eb3b66aad73ad0f0b2cf1e6267222e4daa844090560cf66794"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss/up.log",
+          "record_count": null,
+          "sha256": "3f057fb2b1eb4efffa42bdbd392c826215763d1527f982f125991cf35d9190c8"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 700.313342,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-02-camera_and_tof_loss",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 36,
+      "stop_ack_gap_max_ms": 20.913943
+    },
+    {
+      "development_seed": 884002,
+      "failure": null,
+      "fault": "malformed_perception",
+      "fault_to_first_stop_ack_ms": 2.460311,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 84783,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/events.jsonl",
+          "record_count": 134,
+          "sha256": "016b2eb4c80c83d6db35af6b7ca9c10d78efb5dae1298de054ac6539f4c30303"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 423,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/frames.jsonl",
+          "record_count": 3,
+          "sha256": "da15b409e41eb30e58eeeb50f938178c76fdd4b6a889d4fdbedfd8939fed383f"
+        },
+        {
+          "bytes": 4816,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/neural.jsonl",
+          "record_count": 4,
+          "sha256": "a736bdd838b3f9761590c68fa0479a5d5ba5112249b04cd1e6a6a38b1b05cfe6"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2210,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/summary.json",
+          "record_count": null,
+          "sha256": "e7e619d5889a64de51783adee4733c2687d8e1cb79e8e3496d6e8373a44a719b"
+        },
+        {
+          "bytes": 248,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/trial.log",
+          "record_count": null,
+          "sha256": "bb9c9aaff6568218fc5b8604461589fc83cb4a58ede917ff11460e9fc0caedf4"
+        },
+        {
+          "bytes": 1072,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception/up.log",
+          "record_count": null,
+          "sha256": "95124d95347759e9643f2dd22a468157026faf1dbb25d9084042e249680e7aa1"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 714.850125,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-03-malformed_perception",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 36,
+      "stop_ack_gap_max_ms": 20.108738
+    },
+    {
+      "development_seed": 884003,
+      "failure": null,
+      "fault": "nan_feature",
+      "fault_to_first_stop_ack_ms": 6.79184,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 85493,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/events.jsonl",
+          "record_count": 136,
+          "sha256": "a21dc5320b4a40f78cbe7ea0649ad538d6a7ab414ef16b1e235bffa329037094"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 423,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/frames.jsonl",
+          "record_count": 3,
+          "sha256": "c66687b65e46309fd7f4dc0087282eddd2555984e010618f441d82ae7131a7ce"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/neural.jsonl",
+          "record_count": 3,
+          "sha256": "1676a32e6f92b66975155a9de0acd0e9dcd7ea173b31107091862ab40123df33"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2162,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/summary.json",
+          "record_count": null,
+          "sha256": "20ec0574c41f3af3f7c15eb4a77281e3f4f2033c04e968aa4c180d26ddb2d0d5"
+        },
+        {
+          "bytes": 230,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/trial.log",
+          "record_count": null,
+          "sha256": "bb6f5954364c59271d3aa68d7cfdaeaecd5cadd7fc24815f50d63c35cf599374"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature/up.log",
+          "record_count": null,
+          "sha256": "f33d70758704af8a39054c541daeb3dd59b9a7f1757e627368d384f8f83e66cf"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 732.228145,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-04-nan_feature",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 37,
+      "stop_ack_gap_max_ms": 20.056665
+    },
+    {
+      "development_seed": 884004,
+      "failure": null,
+      "fault": "inf_feature",
+      "fault_to_first_stop_ack_ms": 6.299237,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 84788,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/events.jsonl",
+          "record_count": 135,
+          "sha256": "4b18dce81ed377da5bf481f91ef7d29e5b62d63ebdb0c3f853bf5c89434040bc"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 423,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/frames.jsonl",
+          "record_count": 3,
+          "sha256": "b91ce530f6ec22f1d14240406e674435d1d61a5f39ad5971b0cb2636f38b6085"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/neural.jsonl",
+          "record_count": 3,
+          "sha256": "4856fd8dccda82cd66b3214f99249907b76956fdcd4ffcc35e4a29b665d67b50"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2165,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/summary.json",
+          "record_count": null,
+          "sha256": "d1c3e3055d4bf135e70961a9a721af06cb1532039d50ce247cb22a0e04a18b69"
+        },
+        {
+          "bytes": 230,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/trial.log",
+          "record_count": null,
+          "sha256": "070fa6b2d4ab15ca4674f98b83921ed9d3a042f524d8015a24dbf312ac6c4518"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature/up.log",
+          "record_count": null,
+          "sha256": "c6400e8dcb79435d15e0b3ee950ab249fdf226b4025bc4eddc489c0f81ee6e91"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 730.855009,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-05-inf_feature",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 37,
+      "stop_ack_gap_max_ms": 20.177321
+    },
+    {
+      "development_seed": 884005,
+      "failure": null,
+      "fault": "camera_stale",
+      "fault_to_first_stop_ack_ms": 6.340958,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 83489,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/events.jsonl",
+          "record_count": 132,
+          "sha256": "5288aae71916802133f546e8270d61c52516730f678fc62d9980d9a8b5cdc863"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 508,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/frames.jsonl",
+          "record_count": 3,
+          "sha256": "fbfe47fd1b86494421307c35cd7a9489fb8aae017f237a8ca2793be29d23cba0"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/neural.jsonl",
+          "record_count": 3,
+          "sha256": "8d872d8d703761bdfda09d612dffddcb1f7e9c3475eac3df2d0d889ea43158a4"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2170,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/summary.json",
+          "record_count": null,
+          "sha256": "72fd2673ee4f009ae8438d01e945d0af9d739e48ca10ebe75c6aa96c94119687"
+        },
+        {
+          "bytes": 232,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/trial.log",
+          "record_count": null,
+          "sha256": "813aedc87d8cae731160fc1f8a03dcbbbac831d55068b7eb9d98104f133a9c0d"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale/up.log",
+          "record_count": null,
+          "sha256": "aa74a08760c739a3990c6906de86d26d165d1c4cce829c4f8ea88c4f6e6a9732"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 688.885324,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-06-camera_stale",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 35,
+      "stop_ack_gap_max_ms": 20.082636
+    },
+    {
+      "development_seed": 884006,
+      "failure": "RuntimeError: first robot.stop was not attributed to the latched fault",
+      "fault": "neural_freeze",
+      "fault_to_first_stop_ack_ms": -13.873261,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 88936,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/events.jsonl",
+          "record_count": 144,
+          "sha256": "393d90e18118491d0a4bec0e5aff5188ddc19c111ba92d02876f67aa85ffb889"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 705,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/frames.jsonl",
+          "record_count": 5,
+          "sha256": "e2dffb4e568d3b746c65c5dcc8b8fee52a609a006ee579203111fc2f0726aea9"
+        },
+        {
+          "bytes": 4014,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/neural.jsonl",
+          "record_count": 9,
+          "sha256": "7d62b9e984c8e1e262ed0c6f08db1b4ead45cf55d44505132331fb9adb465c89"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2231,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/summary.json",
+          "record_count": null,
+          "sha256": "2a0e3c0dc71818aca0d81a7e9c520fa14ed52ebb8668aad40aa94b39f54ec03e"
+        },
+        {
+          "bytes": 284,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/trial.log",
+          "record_count": null,
+          "sha256": "c8e2ddbb573ed4f498b2052239935881d84e38935d0fb1e6941de571c0ec3311"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze/up.log",
+          "record_count": null,
+          "sha256": "457b44325336dea395b0db9cc288853738b1da6b84bd9ec4247fda4681501cad"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 759.464976,
+      "first_stop_source": null,
+      "injection_to_first_stop_ack_ms": null,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/trial-07-neural_freeze",
+      "safety_limit_violations": null,
+      "scheduler_exceptions": 0,
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e",
+      "status": "FAIL",
+      "stop_ack_count": 39,
+      "stop_ack_gap_max_ms": 20.944341
+    },
+    {
+      "fault": "unexpected_worker_exception",
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1",
+      "reason": "batch stopped after prior retained failure",
+      "status": "NOT_STARTED"
+    },
+    {
+      "development_seed": 884100,
+      "failure": null,
+      "fault": "neural_freeze",
+      "fault_to_first_stop_ack_ms": null,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 87232,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/events.jsonl",
+          "record_count": 140,
+          "sha256": "1270ea6e5b850e1425f97fab8fb288bb23ca010d99dfe57acbc9e45396ee112a"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 705,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/frames.jsonl",
+          "record_count": 5,
+          "sha256": "0c3c66b3e75487ee614cf7d27d84cb5fa3e122239546dfe564d7c09e595a5ffb"
+        },
+        {
+          "bytes": 4014,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/neural.jsonl",
+          "record_count": 9,
+          "sha256": "e77d66ac2b1254dcc94c13b46690d6cdcc931ffd15b89db249495a5158fa5b12"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2336,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/summary.json",
+          "record_count": null,
+          "sha256": "9b2d66b93fcf4968a427d746e95352669ada37524f6eac02c100dceaef572339"
+        },
+        {
+          "bytes": 244,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/trial.log",
+          "record_count": null,
+          "sha256": "dbcfab88ea92ccdefbc0eef4d312dfa2c5661265833e553f9f12f2ca45eb1a5f"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze/up.log",
+          "record_count": null,
+          "sha256": "c6400e8dcb79435d15e0b3ee950ab249fdf226b4025bc4eddc489c0f81ee6e91"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 717.577138,
+      "first_stop_source": "stale_neural",
+      "injection_to_first_stop_ack_ms": 86.017937,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-01-neural_freeze",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 0,
+      "source_head": "4107426585724e29268cf4c6730f2507002a6500",
+      "status": "DEVELOPMENT_PROBE_PASS",
+      "stop_ack_count": 36,
+      "stop_ack_gap_max_ms": 20.45881
+    },
+    {
+      "development_seed": 884101,
+      "failure": null,
+      "fault": "unexpected_worker_exception",
+      "fault_to_first_stop_ack_ms": null,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 85765,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/events.jsonl",
+          "record_count": 136,
+          "sha256": "242a3eabbc134e4b0c619b017a2705d7e3e13cb58e3b390e643252bdb36ad20b"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 282,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/frames.jsonl",
+          "record_count": 2,
+          "sha256": "9cd35d680425f1a7e5d7c795b98ab971253354e69b9971fd55d1b9924839e372"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/neural.jsonl",
+          "record_count": 3,
+          "sha256": "13787acad844a99b027e509ec8abb3b183024e1342a32193efee3504ab2620f9"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 2569,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/summary.json",
+          "record_count": null,
+          "sha256": "8cde46c62488d3ac9a7a1f3a3345777d6ce3637032e434de4f9118716bd2af88"
+        },
+        {
+          "bytes": 291,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/trial.log",
+          "record_count": null,
+          "sha256": "639556b0fd74c4a4d2c1327d5b99d09d154cd8480f6579e7b60cc8bb84549223"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception/up.log",
+          "record_count": null,
+          "sha256": "c6400e8dcb79435d15e0b3ee950ab249fdf226b4025bc4eddc489c0f81ee6e91"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 730.170008,
+      "first_stop_source": "fault_worker_exception_perception",
+      "injection_to_first_stop_ack_ms": 6.507357,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/trial-02-unexpected_worker_exception",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 1,
+      "source_head": "4107426585724e29268cf4c6730f2507002a6500",
+      "status": "DEVELOPMENT_PROBE_EXPECTED_EXCEPTION_SAFE",
+      "stop_ack_count": 38,
+      "stop_ack_gap_max_ms": 20.113245
+    },
+    {
+      "development_seed": 884102,
+      "failure": null,
+      "fault": "unexpected_worker_exception",
+      "fault_to_first_stop_ack_ms": null,
+      "files": [
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 87464,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/events.jsonl",
+          "record_count": 137,
+          "sha256": "1df9b44083af96e07175b47be31ff807750914039d13c58303ee3443bd6ab3ba"
+        },
+        {
+          "bytes": 17,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/final-down.log",
+          "record_count": null,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        {
+          "bytes": 282,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/frames.jsonl",
+          "record_count": 2,
+          "sha256": "dda813f70e7b6c2aa5a538c074ff6053385a65a5d5d172934f58f1e94aad9a22"
+        },
+        {
+          "bytes": 3612,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/neural.jsonl",
+          "record_count": 3,
+          "sha256": "b4240fae53546a7d92cad581a21a930273a0f24344e2ef53317ab6b00fbfc19b"
+        },
+        {
+          "bytes": 1786,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/policy-readback.json",
+          "record_count": null,
+          "sha256": "e02625d05b069e8390be42fc39a3dd47f1cf51617cb233e3f36bd23e214dca8f"
+        },
+        {
+          "bytes": 235,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/policy_load.log",
+          "record_count": null,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        {
+          "bytes": 4024,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/summary.json",
+          "record_count": null,
+          "sha256": "69e4d6e7a85243b19d17e1a07c17df5d9c77ae3deb00d0b0d59fd3707583ad40"
+        },
+        {
+          "bytes": 284,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/trial.log",
+          "record_count": null,
+          "sha256": "b9d1a60a55fe3fc5cde556451ff6baa3c5ea801a86a8f88bedbe3a5e76211c1a"
+        },
+        {
+          "bytes": 1071,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception/up.log",
+          "record_count": null,
+          "sha256": "9eb11402dee8bebe67096323c2f42402f7f3518df09122b103364a8f36498ce4"
+        }
+      ],
+      "first_stop_ack_to_pose_stop_ms": 725.094189,
+      "first_stop_source": "fault_worker_exception_perception",
+      "injection_to_first_stop_ack_ms": 6.360207,
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/trial-01-unexpected_worker_exception",
+      "safety_limit_violations": 0,
+      "scheduler_exceptions": 1,
+      "source_head": "69fc019aa0ac4ee0b2f967a376c146cc16915365",
+      "status": "DEVELOPMENT_PROBE_EXPECTED_EXCEPTION_SAFE",
+      "stop_ack_count": 38,
+      "stop_ack_gap_max_ms": 20.215852
+    }
+  ],
+  "batches": [
+    {
+      "files": [
+        {
+          "bytes": 1539,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1/batch-summary.json",
+          "record_count": null,
+          "sha256": "9ae7518804b128eb2a5a0fac0f38d693ac4eb018d02c868333754199bbf46490"
+        }
+      ],
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-8d2bee9-camera-1",
+      "result": "DEVELOPMENT_PROBE_PASS",
+      "source_head": "8d2bee9ed0a44e7ee56ddefa3b1c8839f3e25d7f"
+    },
+    {
+      "files": [
+        {
+          "bytes": 9583,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1/batch-summary.json",
+          "record_count": null,
+          "sha256": "c567f83c5e98e64b923a03a0cb5a5597d349139012b875cf5e4157c57a0ebd75"
+        }
+      ],
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-49c0c71-matrix-1",
+      "result": "DEVELOPMENT_PROBE_FAIL",
+      "source_head": "49c0c71d13fbe9ec8ec4bc2f0779dbe1c026271e"
+    },
+    {
+      "files": [
+        {
+          "bytes": 2941,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1/batch-summary.json",
+          "record_count": null,
+          "sha256": "b1f7eb69ddbd7c1c4f89b000f4fef3ba557dfdd266818ae16ca5b62514d9ebac"
+        }
+      ],
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-4107426-freeze-exception-1",
+      "result": "DEVELOPMENT_PROBE_PASS",
+      "source_head": "4107426585724e29268cf4c6730f2507002a6500"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1624,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1/batch-summary.json",
+          "record_count": null,
+          "sha256": "1312f9f2468ff22e5d5586f204f771d2efbf6a8a34f5235824acd411ab7463c0"
+        }
+      ],
+      "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-fault-stop/probe-69fc019-traceback-1",
+      "result": "DEVELOPMENT_PROBE_PASS",
+      "source_head": "69fc019aa0ac4ee0b2f967a376c146cc16915365"
+    }
+  ],
+  "evidence_role": "development_only_not_final_p8_04",
+  "schema_version": "p8-v2-fault-stop-development-index-v1"
+}
