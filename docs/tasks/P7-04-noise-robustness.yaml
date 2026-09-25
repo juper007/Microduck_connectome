@@ -1,0 +1,67 @@
+task_id: P7-04
+phase: 7
+title: Paired clean/moderate visual-noise robustness
+owner_skill: experiment-evaluation-scientist
+support_skill: microduck-integration-engineer
+reviewer_skill: independent-phase-reviewer
+base:
+  origin_main: fcc2a77dade05d21a603ee887c4f28ee22401e37
+  branch: experiment/p7-04-noise-robustness
+  checkout: /home/juper007/projects/microduck-connectome-thor/p704-noise-robustness-fcc2a77
+goal: >-
+  Measure the observed clean-to-moderate change in frozen P7 target steering
+  using 60 matched base-seed pairs on official robotd/MuJoCo.
+read_first:
+  - AGENTS.md
+  - config/target_scenario_v1.json#visual_noise
+  - docs/evidence/p7-02/README.md
+  - docs/evidence/p7-03/README.md
+  - scripts/p7_target_steering_trial.py
+  - scripts/p7_pretrial_acquisition.py
+do_not_preload:
+  - unrelated graph and biological source
+inputs:
+  - config/steering_no_target_p7_03_v1.json
+  - config/steering_experiment_v4.json
+  - config/target_scenario_v1.json
+  - model1250 ONNX SHA256 98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a
+hypothesis: >-
+  Moderate existing pixel dropout and RGB jitter may change correct-direction
+  rate, response latency, or terminal target-relative bearing error.
+design:
+  cells: 2 target sides x 3 eccentricities x 2 motions
+  pairs_per_cell: 5
+  total: 60 pairs, 120 target trials
+  pairing: same independent base seed and target geometry for clean/moderate
+  order: fixed preregistered randomized pair order and within-pair condition order
+  noise: P7-01 clean dropout 0/jitter 0; moderate dropout 0.2/jitter 20
+  history: new seeds disjoint from P7-02 target/no-target and P7-03 no-target
+  validity: frozen v4 trial and pretrial pose criteria; no outcome-based replacement
+analysis:
+  primary: moderate minus clean correct-direction indicator, paired 95% bootstrap CI
+  secondary: condition Wilson 95% CI, paired discordance, response-only latency, terminal absolute bearing error for all valid trials, first-response heading magnitude, each 12-cell breakdown, safety/timing
+  threshold: no new success-rate PASS threshold
+acceptance:
+  - exact committed source, manifest, model and upstream hashes
+  - 120 valid target trials and 60 complete pairs for COMPLETE
+  - zero safety violations and no started-trial failure
+  - raw trace, spec, command, summary, readback, journal hashes retained
+  - all incorrect, no-response, and invalid trials retained without post hoc exclusion
+  - independent prelaunch review GO before official final run
+outputs:
+  - config/steering_noise_p7_04_v1.json
+  - scripts/p7_04_preregister.py
+  - scripts/p7_04_noise_batch.py
+  - tests/test_p7_04_noise.py
+limitations:
+  - paired seed aligns target geometry and random stream, while official sim resets between conditions
+  - moderate is the existing synthetic visual-noise level, not rendered distractor objects
+  - historical P7-02 left/near_center/slow_crossing 0/10 remains in full aggregate; no exclusion or reweighting
+context_budget: "<30K input tokens target"
+reasoning_effort: medium
+handoff:
+  include:
+    - source/base/branch/manifest hashes
+    - tests and outcome
+    - official raw paths and hashes after reviewed run
+    - independent review head and unresolved risks

@@ -1,0 +1,218 @@
+{
+  "base_origin_main": "fcc2a77dade05d21a603ee887c4f28ee22401e37",
+  "branch": "experiment/p7-04-noise-robustness",
+  "design": {
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 7040402,
+    "cells": 12,
+    "controller_safety_response_validity": "frozen from P7-02/P7-03 manifest; no retuning",
+    "noise_semantics": {
+      "clean": {
+        "background_rgb_jitter": 0,
+        "target_pixel_dropout": 0.0
+      },
+      "moderate": {
+        "background_rgb_jitter": 20,
+        "target_pixel_dropout": 0.2
+      }
+    },
+    "order_seed": 7040401,
+    "pair_count": 60,
+    "pairs_per_cell": 5,
+    "performance_threshold": null,
+    "seed_history_intersection": 0,
+    "trials": 120,
+    "trials_per_condition": 60
+  },
+  "historical_context": {
+    "p7_02_target_aggregate_rate": 0.9,
+    "p7_02_target_correct": 108,
+    "p7_02_target_valid": 120,
+    "use": "context only; P7-04 rates and pairs are separate"
+  },
+  "identities": {
+    "generator_sha256": "16e1abd4bea013d3162f622f70041c5e5c829b721954a03b32362374aa8cd7d5",
+    "graph_cache_sha256": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+    "graph_key": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+    "harness_sha256": "1a651ee5af20a18909521f4f243ccbb263aaec3e7b72164b5345f9a6fb9e1da1",
+    "manifest_sha256": "58ec776f12d87966d1cfd5da5555d0d2c8276fa5468be0f211a8af4a67eaf808",
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "p7_02_historical_manifest_sha256": "f24170521f049cec6a65a88285925343316f84ce9bdaf59a1a668257db5460cd",
+    "p7_03_source_manifest_sha256": "fccc4a08656c8b3a81db6b7c8bd0a0b724abadc87c36163ca052ffc77d63c75b",
+    "policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+    "policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+    "scenario_sha256": "089af4f05b5158579f7f335232793ffff5056fa3ea868d40cf0631fa0b33d804"
+  },
+  "interpretation": "inconclusive under tested noise",
+  "limitations": [
+    "Only clean and P7-01 moderate synthetic pixel dropout/RGB jitter tested.",
+    "No separately rendered decoy object.",
+    "Official Thor simulation, not physical robot.",
+    "Observed paired bootstrap interval includes zero; no direction of noise effect established.",
+    "Known P7-02 left/near_center/slow_crossing 0/10 subgroup is retained without exclusion or reweighting."
+  ],
+  "raw_evidence": {
+    "audit": {
+      "file_count": 1476,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9-audit.json",
+      "sha256": "5d084f150c2ef46cbc33fc0b9195f19b7c8652d5c4bdf53858078a3410ae35d1"
+    },
+    "batch_summary": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9/batch-summary.json",
+      "sha256": "044143f37207f2df3995426e397f3cb0f6a43075dd17e66096f8da5b9a6c4f74"
+    },
+    "console": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9-console.log",
+      "sha256": "5a1babbcd8ea271826397e8942b424f9306458dcc8be79f857820eb7ec274f88"
+    },
+    "final_down": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9/batch-final-sim-down.log",
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    "journal": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9/trial-results.jsonl",
+      "sha256": "2f86749fb32fcc01b2fb822aae36ca03141a4c54ad3f7fb98ab88a4f67822130"
+    },
+    "per_trial": "120 subdirectories; journal binds trace, summary, spec, command and acquisition SHA; pretrial-acquisition binds readback/retry logs",
+    "preflight": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9-preflight.json",
+      "sha256": "45ba4c2e544f2285749036e03860890b9477711309afc71aa8a493dfda35d535"
+    },
+    "preflight_attempt_001": {
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/preflight-attempt-001.json",
+      "sha256": "9f6e4efb1e2531ed84355c77baf7e0289d6eab54f4558f2292f97ed0cb304d90",
+      "simulator_started": false
+    },
+    "run_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-04/final-noise-v1-62915f9"
+  },
+  "result": {
+    "attempted": 120,
+    "cell_breakdown": {
+      "left/far/slow_crossing": {
+        "clean_correct": 4,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "left/far/static": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "left/medium/slow_crossing": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 4
+      },
+      "left/medium/static": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "left/near_center/slow_crossing": {
+        "clean_correct": 0,
+        "complete_pairs": 5,
+        "moderate_correct": 1
+      },
+      "left/near_center/static": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 3
+      },
+      "right/far/slow_crossing": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "right/far/static": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "right/medium/slow_crossing": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "right/medium/static": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 5
+      },
+      "right/near_center/slow_crossing": {
+        "clean_correct": 5,
+        "complete_pairs": 5,
+        "moderate_correct": 4
+      },
+      "right/near_center/static": {
+        "clean_correct": 4,
+        "complete_pairs": 5,
+        "moderate_correct": 4
+      }
+    },
+    "complete_pairs": 60,
+    "condition": {
+      "clean": {
+        "correct": 53,
+        "correct_95pct_wilson_ci": [
+          0.7782121197582914,
+          0.9423227935994396
+        ],
+        "correct_rate": 0.8833333333333333,
+        "first_response_heading_magnitude_median_rad": 0.042415851664233006,
+        "incorrect": 7,
+        "no_response": 0,
+        "response_count": 60,
+        "response_latency_median_s": 0.764318633,
+        "response_latency_p95_s": 0.8065317043499998,
+        "terminal_abs_bearing_error_median_rad": 0.1684979660153867,
+        "terminal_abs_bearing_error_p95_rad": 0.8435848100221062,
+        "valid": 60
+      },
+      "moderate": {
+        "correct": 51,
+        "correct_95pct_wilson_ci": [
+          0.7388541093022145,
+          0.9190255941983225
+        ],
+        "correct_rate": 0.85,
+        "first_response_heading_magnitude_median_rad": 0.04019779240586274,
+        "incorrect": 7,
+        "no_response": 2,
+        "response_count": 58,
+        "response_latency_median_s": 0.7647791415,
+        "response_latency_p95_s": 1.4721328304999999,
+        "terminal_abs_bearing_error_median_rad": 0.18088829895947267,
+        "terminal_abs_bearing_error_p95_rad": 0.8294437201390901,
+        "valid": 60
+      }
+    },
+    "final_sim_down_exit": 0,
+    "final_sim_down_sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c",
+    "invalid_trial_ids": [],
+    "max_heading_sample_delay_ms": 24.034804,
+    "paired_95pct_bootstrap_ci": [
+      -0.13333333333333333,
+      0.05
+    ],
+    "paired_discordance": {
+      "both_correct": 48,
+      "clean_only": 5,
+      "moderate_only": 3,
+      "neither_correct": 4
+    },
+    "paired_moderate_minus_clean_correct_rate": -0.03333333333333333,
+    "safety_limit_violations": 0,
+    "started_trial_failures": [],
+    "valid": 120
+  },
+  "review": {
+    "gate": "not declared",
+    "postrun": "pending",
+    "prelaunch": "GO at source head 62915f900d8a3620bb7528a2378cb28bcedb9a9e"
+  },
+  "schema_version": "p7-04-noise-evidence-v1",
+  "source_head": "62915f900d8a3620bb7528a2378cb28bcedb9a9e",
+  "status": "official_batch_COMPLETE_independent_final_review_pending",
+  "task_id": "P7-04"
+}
