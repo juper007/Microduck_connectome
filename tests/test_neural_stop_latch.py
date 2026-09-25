@@ -14,6 +14,7 @@ from microduck_connectome.scheduler import NeuralUpdate
 from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p8_r1_stop_persistence_trial import (
     ensure_healthy_neutral_priming, last_pre_stop_state, neural_stop_origin,
+    precondition_deadman_after_motion,
 )
 from pathlib import Path
 
@@ -369,6 +370,19 @@ def test_pre_stop_state_excludes_late_arriving_sample():
     assert last_pre_stop_state(history, 89) is None
 
 
+def test_precondition_deadman_uses_sample_time_after_established_motion():
+    rows = [
+        {"robot_state": {"robot_t_ns": 90, "limited_by": ["deadman"]}},
+        {"robot_state": {"robot_t_ns": 101, "limited_by": []}},
+    ]
+    assert not precondition_deadman_after_motion(rows, 100)
+    rows.append({"robot_state": {"robot_t_ns": 102, "limited_by": ["deadman"]}})
+    assert precondition_deadman_after_motion(rows, 100)
+    assert precondition_deadman_after_motion(rows[:1], None)
+    rows[-1]["robot_state"]["robot_t_ns"] = None
+    assert precondition_deadman_after_motion(rows, 100)
+
+
 class NeuralStopLatchTests(unittest.TestCase):
     def test_healthy_escape_persists(self):
         test_healthy_escape_persists_through_fresh_safety_and_watchdog_updates()
@@ -399,3 +413,6 @@ class NeuralStopLatchTests(unittest.TestCase):
 
     def test_pre_stop_sample_order(self):
         test_pre_stop_state_excludes_late_arriving_sample()
+
+    def test_precondition_deadman_sample_time(self):
+        test_precondition_deadman_uses_sample_time_after_established_motion()
