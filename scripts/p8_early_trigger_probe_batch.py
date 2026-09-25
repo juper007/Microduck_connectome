@@ -60,6 +60,8 @@ def main():
         raise RuntimeError("batch requires clean committed source")
     protocol_path = root / f"config/p8_early_trigger_probe_v{a.protocol_version}.json"
     protocol = json.loads(protocol_path.read_text())
+    if protocol["schema_version"] != f"p8-v2-early-trigger-development-v{a.protocol_version}":
+        raise ValueError("protocol version mismatch before simulator launch")
     if not a.development_probe and protocol_path.read_bytes() != subprocess.check_output([
         "git", "-C", str(root), "show", f"HEAD:config/p8_early_trigger_probe_v{a.protocol_version}.json"]):
         raise RuntimeError("uncommitted protocol bytes")

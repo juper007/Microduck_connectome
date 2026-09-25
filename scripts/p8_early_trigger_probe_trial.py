@@ -153,8 +153,7 @@ class LoomingChain(FullChain):
 def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
-    if protocol["schema_version"] not in ("p8-v2-early-trigger-development-v1",
-                                          "p8-v2-early-trigger-development-v2"):
+    if protocol["schema_version"] != f"p8-v2-early-trigger-development-v{args.protocol_version}":
         raise ValueError("protocol version mismatch")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
