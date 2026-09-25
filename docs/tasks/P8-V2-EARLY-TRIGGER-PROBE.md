@@ -58,6 +58,12 @@ The preflight geometry uses `looming_scenario.sphere_center`, including its
 center starts 0.5424428 m from the anchor pose, with a 0.2924428 m boundary
 margin before robot displacement. The evaluator recalculates distance from
 official pose at each event; these preflight numbers are not trial results.
+After v2's retained negative result, version 3 uses distinct development seeds
+880905/880906 at arms 3.0/3.1 s. Canonical initial center distances are
+0.3417638/0.3368610 m; pre-motion boundary margins are 0.0917638/0.0868610 m.
+The 700 ms observation horizon plus 100 ms margin stays below conservative
+virtual sphere-entry lower bounds of 858/834 ms even with 0.10 m robot forward
+displacement. Any stop at zero or negative measured boundary margin is late.
 
 ## Evidence and handoff
 

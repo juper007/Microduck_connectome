@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class EarlyProbeProtocolTest(unittest.TestCase):
     def test_dev_arm_matrices_and_camera_entry_bound(self):
         scenario = json.loads((ROOT / "config/looming_scenario_v1.json").read_text())
-        for version in (1, 2):
+        for version in (1, 2, 3):
             protocol = json.loads((ROOT / f"config/p8_early_trigger_probe_v{version}.json").read_text())
             self.assertEqual(protocol["schema_version"], f"p8-v2-early-trigger-development-v{version}")
             self.assertEqual(len(protocol["scenario_seeds"]), len(protocol["arm_elapsed_s"]))

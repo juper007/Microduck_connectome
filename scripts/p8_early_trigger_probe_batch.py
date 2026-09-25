@@ -47,7 +47,7 @@ def main():
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--sim-state", type=Path, required=True)
     ap.add_argument("--body-port", type=int, required=True)
-    ap.add_argument("--protocol-version", type=int, choices=(1, 2), default=1)
+    ap.add_argument("--protocol-version", type=int, choices=(1, 2, 3), default=1)
     ap.add_argument("--development-probe", action="store_true",
                     help="run all development-only arm variants; never P8 final evidence")
     a = ap.parse_args()

@@ -1078,7 +1078,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
     ap.add_argument("--trial-index", type=int, choices=(0, 1, 2), required=True)
-    ap.add_argument("--protocol-version", type=int, choices=(1, 2), default=1)
+    ap.add_argument("--protocol-version", type=int, choices=(1, 2, 3), default=1)
     ap.add_argument("--socket", required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--microduck", type=Path, required=True)
