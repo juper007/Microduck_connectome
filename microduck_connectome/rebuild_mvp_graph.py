@@ -6,6 +6,7 @@ existing connectivity extractor over complete selected-source rows.
 """
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path
@@ -67,6 +68,8 @@ def select_nodes(table, weights_path, manifest, config):
     arrays = {name: id_array(values) for name, values in ids.items()}
     first_targets = {name: set() for name, _, _ in pairs}
     second_sources = {name: set() for _, name, _ in pairs}
+    first_counts = {name: Counter() for name, _, _ in pairs}
+    second_counts = {name: Counter() for _, name, _ in pairs}
     direct_edges = {f"{pre}->{post}": [] for pre, post, _ in pairs}
     for batch in weight_batches(weights_path, manifest["weights"]["expected_rows"]):
         for pre, post, _ in pairs:
@@ -74,6 +77,8 @@ def select_nodes(table, weights_path, manifest, config):
             second = batch.filter(pc.is_in(batch["body_post"], value_set=arrays[post]))
             first_targets[pre].update(pc.unique(first["body_post"]).to_pylist())
             second_sources[post].update(pc.unique(second["body_pre"]).to_pylist())
+            first_counts[pre].update(row["body_post"] for row in first.to_pylist())
+            second_counts[post].update(row["body_pre"] for row in second.to_pylist())
             direct = first.filter(pc.is_in(first["body_post"], value_set=arrays[post]))
             direct_edges[f"{pre}->{post}"].extend(direct.to_pylist())
     annotated = set(table["bodyId"].to_pylist())
@@ -88,6 +93,10 @@ def select_nodes(table, weights_path, manifest, config):
         paths[key] = {
             "direct_edge_count": len(direct_edges[key]),
             "direct_weight_sum": sum(row["weight"] for row in direct_edges[key]),
+            "two_edge_path_count": sum(
+                first_counts[pre][middle] * second_counts[post][middle]
+                for middle in overlap
+            ),
             "two_edge_intermediate_count": len(internal),
             "two_edge_intermediate_body_ids": sorted(internal),
             "unannotated_overlap_count": len(overlap - annotated),
@@ -160,6 +169,8 @@ def rebuild(annotations_path, weights_path, manifest, config, code_commit, outpu
         "populations": {
             name: {
                 "body_ids": [row["bodyId"] for row in rows],
+                "left_body_ids": [row["bodyId"] for row in rows if row["somaSide"] == "L"],
+                "right_body_ids": [row["bodyId"] for row in rows if row["somaSide"] == "R"],
                 "soma_side_counts": counts(rows, "somaSide"),
             }
             for name, rows in populations.items()
