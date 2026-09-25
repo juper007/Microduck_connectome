@@ -1,0 +1,128 @@
+{
+  "case_count_per_environment": 11,
+  "files": [
+    {
+      "bytes": 65109,
+      "event_count": 256,
+      "path": "docs/evidence/p8-r3/v23-startup-gate-raw-v1.json",
+      "record_count": 11,
+      "sha256": "7ba645f2d7ee14ee2faedd250d3c875113109886eec3aa2ce2374e7db9cd5035"
+    },
+    {
+      "bytes": 64280,
+      "event_count": 251,
+      "path": "docs/evidence/p8-r3/v23-startup-gate-thor-raw-v1.json",
+      "record_count": 11,
+      "sha256": "7d4fc4200b680e949f976e1cf95486e480239de33eff3f8b19e188b8ece0dc31"
+    },
+    {
+      "bytes": 4190,
+      "path": "docs/evidence/p8-r3/v23-startup-gate-summary-v1.md",
+      "record_count": null,
+      "sha256": "7f385dea79aaa1fedd1b31c83ad4cbfb71487eda2028b915b2984168dfc8e2f5"
+    },
+    {
+      "bytes": 10047,
+      "path": "docs/tasks/P8-R3-V2_3-DEVELOPMENT-PROTOCOL.md",
+      "record_count": null,
+      "sha256": "890fb265726b4afe4b760bd233115abc664598691e01a41995fb0310d110996c"
+    },
+    {
+      "bytes": 5085,
+      "committed_bytes": 4970,
+      "committed_sha256": "6a3cb5d6536a1bc21a941dfa06b1bbf093a578d5c4a33db166d084e39028f527",
+      "normalized_execution_equals_committed": true,
+      "path": "microduck_connectome/motion_adapter.py",
+      "record_count": null,
+      "sha256": "4b8b6af632a019b1435bfa9096258e340af6e180c2f2732f077b2b550238b23c"
+    },
+    {
+      "bytes": 3595,
+      "committed_bytes": 3537,
+      "committed_sha256": "d4359aa2c666a0b4bc4cc625b0492932f3ffe208bcf5a7918e394c9419dcda73",
+      "normalized_execution_equals_committed": true,
+      "path": "microduck_connectome/neural_stop_arbiter.py",
+      "record_count": null,
+      "sha256": "c0c574a60b3bbaf0534806ff275444db2856173622267784e5f94c1bfea3a8f7"
+    },
+    {
+      "bytes": 4101,
+      "committed_bytes": 4078,
+      "committed_sha256": "cd494855f6d17c6db4cb2f673d1ae8be9ddacaf2317b2590676da3d0b4724b09",
+      "normalized_execution_equals_committed": true,
+      "path": "microduck_connectome/neural_stop_scheduler.py",
+      "record_count": null,
+      "sha256": "c0fede222e5ba1e7191be7638ff09ae62a33d885456a58e0d196d08e016d15ee"
+    },
+    {
+      "bytes": 9618,
+      "committed_bytes": 9369,
+      "committed_sha256": "994d8e878bcee28caed44fa1d1dcf7ec894cd461b96fa9ebb90d43275e221e46",
+      "normalized_execution_equals_committed": true,
+      "path": "microduck_connectome/watchdog.py",
+      "record_count": null,
+      "sha256": "4cf7ff2f4f8b804fa797c700c46486a1b784773474665354117b59d2be918c6e"
+    },
+    {
+      "bytes": 96615,
+      "committed_bytes": 95429,
+      "committed_sha256": "ee5171b261f8c79f11dc8f84939b9e93277c59c2e64af1fc57c834a206af3bda",
+      "normalized_execution_equals_committed": true,
+      "path": "scripts/p8_r3_official_trial.py",
+      "record_count": null,
+      "sha256": "f97097f09bc0819cdc20e2f6ab55b4bdb3f204fee99e5150bb0fb56ced7b84b1"
+    },
+    {
+      "bytes": 19904,
+      "committed_bytes": 19904,
+      "committed_sha256": "76d33d8648826ce4946820b5ba14f92ed8fc9d13437bb155969ee68a83b0fedc",
+      "normalized_execution_equals_committed": true,
+      "path": "scripts/p8_r3_v23_startup_gate.py",
+      "record_count": null,
+      "sha256": "76d33d8648826ce4946820b5ba14f92ed8fc9d13437bb155969ee68a83b0fedc"
+    },
+    {
+      "bytes": 342,
+      "committed_bytes": 333,
+      "committed_sha256": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+      "normalized_execution_equals_committed": true,
+      "path": "config/motion_adapter_v1.json",
+      "record_count": null,
+      "sha256": "575148f275b27c6140995e314fee964244c8245b04a5d1137ad8c0f74ed867a7"
+    },
+    {
+      "bytes": 239,
+      "committed_bytes": 229,
+      "committed_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+      "normalized_execution_equals_committed": true,
+      "path": "config/p8_r3_visual_scheduler_v1.json",
+      "record_count": null,
+      "sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5"
+    },
+    {
+      "bytes": 228,
+      "committed_bytes": 221,
+      "committed_sha256": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10",
+      "normalized_execution_equals_committed": true,
+      "path": "config/watchdog_v1.json",
+      "record_count": null,
+      "sha256": "904a5aa41d7e996d0202de5edcc3ec9d74d471903af417f801adfae42e948d22"
+    }
+  ],
+  "freeze_commit": "fde86b36d54ad652a8c93e3f043563a24e5b8fd6",
+  "local_execution": {
+    "command": "$env:PYTHONPATH='.'; python scripts/p8_r3_v23_startup_gate.py --output docs/evidence/p8-r3/v23-startup-gate-raw-v1.json",
+    "cwd": "C:\\projects\\Microduck_connectome\\.worktrees\\p8-r3-looming-encoder",
+    "python_version": "3.13.15"
+  },
+  "original_origin_main_base": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
+  "result": "PASS",
+  "schema_version": "p8-r3-v23-startup-gate-artifact-manifest-v1",
+  "scope": "11-case focused scheduler startup handoff and fault gate with fake robotd; no official moving-body trial",
+  "thor_execution": {
+    "command": "B=/home/juper007/projects/microduck-connectome-thor; R=\"$B/p8-r3-v23-preflight\"; cd \"$R\" && PYTHONPATH=\"$R\" python3.12 -m unittest tests.test_neural_stop_cache_prime tests.test_p8_r3_official_harness tests.test_neural_stop_persistence tests.test_neural_stop_latch -q && mkdir -p \"$B/evidence/p8-r3-v23\" && PYTHONPATH=\"$R\" python3.12 scripts/p8_r3_v23_startup_gate.py --output \"$B/evidence/p8-r3-v23/startup-gate-thor-python312-v1.json\"",
+    "python_version": "3.12.3",
+    "raw_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v23/startup-gate-thor-python312-v1.json",
+    "source_checkout": "clean detached fde86b3"
+  }
+}
