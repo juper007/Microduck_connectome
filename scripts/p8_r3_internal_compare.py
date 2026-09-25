@@ -43,8 +43,10 @@ def run_case(graph, scenario, *, method, config, seed, arm_elapsed_s, motion):
                        seed=seed, motion=motion, initial_pose=POSE)
     frames, steps = [], []
     current = None
-    # Fixed 50 Hz neural clock and 10 Hz RGB clock; two seconds after arm.
-    for index in range(101):
+    # Common elapsed 4.0 s end avoids entering the virtual sphere for late arms.
+    # Observation lengths are 2.0, 1.4, and 1.0 s for the paired arm times.
+    step_count = round((4.0 - arm_elapsed_s) * 50) + 1
+    for index in range(step_count):
         now_ns = (index + 1) * 20_000_000
         elapsed_s = arm_elapsed_s + index * 0.02
         truth = evaluator_truth(scenario, trial, pose=POSE, elapsed_s=elapsed_s)
