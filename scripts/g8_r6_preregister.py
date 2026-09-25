@@ -31,7 +31,9 @@ def generate() -> dict:
         base_origin_main="9b9a147ac143db50d21ee04b361b9fb852402122",
         trial_order_randomization_seed=80601,
         seed_generation="Python random.Random(80601); unique 32-bit seeds assigned in listed trial order",
-        source_matrix_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
+        source_matrix_sha256=hashlib.sha256(
+            SOURCE.read_bytes().replace(b"\r\n", b"\n")
+        ).hexdigest(),
         source_matrix_role="condition strata only; no G7 outcomes reused",
         final_result_policy="freeze this committed protocol and source before first final trial; retain all started failures and do not replace seeds",
     )

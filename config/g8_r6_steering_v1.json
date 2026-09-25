@@ -405,7 +405,7 @@
   "scope": "prospective graph-v2 official Thor steering recertification; graph-v1 G7 is historical",
   "seed_generation": "Python random.Random(80601); unique 32-bit seeds assigned in listed trial order",
   "source_matrix_role": "condition strata only; no G7 outcomes reused",
-  "source_matrix_sha256": "f9deb07794fc4772a3a0eee5390543fc5bb73086457deaa4722c114ed70151f6",
+  "source_matrix_sha256": "f24170521f049cec6a65a88285925343316f84ce9bdaf59a1a668257db5460cd",
   "target_response": {
     "center_tolerance_rad": 0.05,
     "correct_direction_rate_min": 0.9,
