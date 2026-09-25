@@ -1,6 +1,6 @@
 ---
 name: robot-safety-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome robot-safety-engineer repository skill.
+description: Design and verify the independent safety envelope. Use for watchdogs, TTL/stale commands, clamps, slew limits, stop/E-stop, fault injection, failure analysis, or simulation-to-hardware promotion.
 ---
 
 # Qwen adapter: robot-safety-engineer
