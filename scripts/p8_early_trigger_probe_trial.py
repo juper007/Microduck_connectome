@@ -830,13 +830,37 @@ def run(args):
         stopped_confirmed_ns=stopped_confirmed_ns)
 
     def sampled_boundary(event_ns):
-        if event_ns is None or not geometry_rows:
+        if event_ns is None or not pose_rows or chain.started_ns is None:
             return None
-        row = min(geometry_rows, key=lambda item: abs(item["timestamp_ns"] - event_ns))
-        return {"margin_m": row["boundary_margin_m"],
-                "distance_m": row["sphere_center_distance_m"],
-                "pose_sample_timestamp_ns": row["timestamp_ns"],
-                "event_to_sample_ms": (row["timestamp_ns"] - event_ns) / 1e6}
+        samples = sorted(pose_rows, key=lambda item: item["timestamp_ns"])
+        before = next((row for row in reversed(samples)
+                       if row["timestamp_ns"] <= event_ns), None)
+        after = next((row for row in samples
+                      if row["timestamp_ns"] >= event_ns), None)
+        if before is not None and after is not None:
+            gap_ns = after["timestamp_ns"] - before["timestamp_ns"]
+            if gap_ns > 100_000_000:
+                return None
+            weight = ((event_ns - before["timestamp_ns"]) / gap_ns
+                      if gap_ns else 0.0)
+            x = before["x_m"] + weight * (after["x_m"] - before["x_m"])
+            y = before["y_m"] + weight * (after["y_m"] - before["y_m"])
+            method = "bracketed_linear_pose_interpolation"
+            uncertainty_ms = gap_ns / 1e6
+        else:
+            nearest = before or after
+            uncertainty_ms = abs(nearest["timestamp_ns"] - event_ns) / 1e6
+            if uncertainty_ms > 100:
+                return None
+            x, y = nearest["x_m"], nearest["y_m"]
+            method = "nearest_pose_sample"
+        elapsed_s = arm_elapsed_s + max(0.0, (event_ns - chain.started_ns) / 1e9)
+        center_x, center_y = sphere_center(scenario, chain.trial, elapsed_s)
+        distance = math.hypot(center_x - x, center_y - y)
+        return {"margin_m": distance - scenario["safety_boundary_center_distance_m"],
+                "distance_m": distance, "event_timestamp_ns": event_ns,
+                "pose_method": method, "pose_gap_bound_ms": uncertainty_ms,
+                "scenario_elapsed_s": elapsed_s}
 
     refresh_call_gaps_ms = [
         (b["request_call_started_at_ns"] - a["request_call_started_at_ns"]) / 1e6
@@ -862,7 +886,7 @@ def run(args):
                 for row in arbiter.move_transactions) if arbiter.first_stop_ack_ns else False),
         "trigger_before_frozen_boundary": bool(trigger_boundary and
             trigger_boundary["margin_m"] > 0 and
-            abs(trigger_boundary["event_to_sample_ms"]) <= 100),
+            trigger_boundary["pose_gap_bound_ms"] <= 100),
         "healthy_neural_stop_first": first_stop_is_neural,
         "bounded_temporal_neural_lineage": first_stop_is_neural and lineage["valid"],
         "robot_stop_ack": stop_ack_ns is not None,
@@ -971,6 +995,9 @@ def run(args):
         "robot_stop_rpc_call_started_ns": first_neural["robot_state"]["publish_call_started_ns"] if first_neural else None,
         "robot_stop_rpc_ack_returned_ns": stop_ack_ns,
         "boundary_at_decoder_stop": trigger_boundary,
+        "boundary_at_first_looming": sampled_boundary(first_looming_ns),
+        "boundary_at_first_lplc2": sampled_boundary(first_lplc2_ns),
+        "boundary_at_first_dn_escape": sampled_boundary(first_escape_ns),
         "boundary_at_stop_ack": sampled_boundary(stop_ack_ns),
         "boundary_at_stopped_confirmation": sampled_boundary(stopped_confirmed_ns),
         "robot_stop_rpc_exact_socket_write_ns": None,

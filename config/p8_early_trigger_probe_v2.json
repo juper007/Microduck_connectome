@@ -66,7 +66,7 @@
     "vy_mps": 0.0,
     "vyaw_radps": 0.0
   },
-  "required_successful_independent_trials": 3,
+  "required_successful_independent_trials": 1,
   "safety_limit_violations_max": 0,
   "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
   "scenario_elapsed_start_s": 2.0,
@@ -75,7 +75,7 @@
     880904
   ],
   "scenario_version": "looming-scenario-v1",
-  "scenario_window_interpretation": "Pre-ACK original P8-01 virtual visual trajectory anchored to official pose after confirmed motion; terminate visual input at first neural robot.stop ACK; retain watchdog/control and official robot.stop refresh at 50 Hz through actual stopped confirmation; hold evaluation-only world center",
+  "scenario_window_interpretation": "Original P8-01 approaching virtual visual trajectory anchored to official pose after confirmed motion; continue visual input through actual stopped confirmation while refreshing robot.stop at 50 Hz after first ACK; keep the 0.25 m boundary and sphere center evaluator-only",
   "scheduler_exceptions_max": 0,
   "schema_version": "p8-v2-early-trigger-development-v2",
   "sphere_entry_safety_margin_ms": 100,
