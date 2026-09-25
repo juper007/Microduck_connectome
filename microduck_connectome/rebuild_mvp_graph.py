@@ -93,9 +93,13 @@ def select_nodes(table, weights_path, manifest, config):
         paths[key] = {
             "direct_edge_count": len(direct_edges[key]),
             "direct_weight_sum": sum(row["weight"] for row in direct_edges[key]),
-            "two_edge_path_count": sum(
+            "source_two_edge_path_count": sum(
                 first_counts[pre][middle] * second_counts[post][middle]
                 for middle in overlap
+            ),
+            "selected_two_edge_path_count": sum(
+                first_counts[pre][middle] * second_counts[post][middle]
+                for middle in internal
             ),
             "two_edge_intermediate_count": len(internal),
             "two_edge_intermediate_body_ids": sorted(internal),
