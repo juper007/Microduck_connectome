@@ -1,6 +1,6 @@
 ---
 name: independent-phase-reviewer
-description: Qwen Code adapter for the canonical MicroDuck Connectome independent-phase-reviewer repository skill.
+description: Independently review work against task and phase completion criteria. Use for defect-first code/science/safety review, clean-checkout reproduction, PASS/FAIL/BLOCKED gates, or final verification; do not silently fix reviewed work.
 ---
 
 # Qwen adapter: independent-phase-reviewer
