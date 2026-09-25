@@ -1,0 +1,200 @@
+{
+  "files": [
+    {
+      "bytes": 17,
+      "path": "01-885721/down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 127807,
+      "path": "01-885721/events.jsonl",
+      "record_count": 215,
+      "sha256": "fc8a535d3dab29304084e0b79c9a5589b6768d8d2707831147ed373e0bfc7d2d"
+    },
+    {
+      "bytes": 38662,
+      "path": "01-885721/neural-ledger.jsonl",
+      "record_count": 43,
+      "sha256": "e967a69b5e311339fd51b47279cf10c6cec9ca75658b672e9e4917f757f45817"
+    },
+    {
+      "bytes": 1741,
+      "path": "01-885721/policy-readback.json",
+      "record_count": 1,
+      "sha256": "25bbf582d14b03999b719119ea338ba37414c6927b20ae2f180f2b37106d78c5"
+    },
+    {
+      "bytes": 235,
+      "path": "01-885721/policy_load.log",
+      "record_count": 2,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 23859,
+      "path": "01-885721/summary.json",
+      "record_count": 736,
+      "sha256": "b5b27be9517431da6df791361b00a463304807a2df85e0029012a760fbf0b560"
+    },
+    {
+      "bytes": 3106,
+      "path": "01-885721/trace.jsonl",
+      "record_count": 1,
+      "sha256": "9bc888ebd8ed6c0fb40184b2cfae621a11b56e86f45d0413c5302d92058985bc"
+    },
+    {
+      "bytes": 1187,
+      "path": "01-885721/trial.log",
+      "record_count": 1,
+      "sha256": "46966d6b11cfdf15f8082922631896f503a0d440ea657e47458dd4bb490d164b"
+    },
+    {
+      "bytes": 1170,
+      "path": "01-885721/up.log",
+      "record_count": 26,
+      "sha256": "2bef5a1de9b240b6d2c7d5f8f595e14b4cad0dd220d4cce6b0813c0694d7cc4c"
+    },
+    {
+      "bytes": 6130,
+      "path": "01-885721/visual-frames.jsonl",
+      "record_count": 17,
+      "sha256": "f97eafede4d7b797ff69da90b0fc28156813fa3d853a8d2b2207a565ed9aec49"
+    },
+    {
+      "bytes": 17,
+      "path": "02-885722/down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 128254,
+      "path": "02-885722/events.jsonl",
+      "record_count": 212,
+      "sha256": "ef2ac9a90eee1b489284944e0a5ff33212e4f41f0b74816b0db7ef66e9341244"
+    },
+    {
+      "bytes": 37704,
+      "path": "02-885722/neural-ledger.jsonl",
+      "record_count": 42,
+      "sha256": "40095bdd2822f214ca8a3e13e4e345764243413281c28d929d60d9d726c7d6ca"
+    },
+    {
+      "bytes": 1741,
+      "path": "02-885722/policy-readback.json",
+      "record_count": 1,
+      "sha256": "25bbf582d14b03999b719119ea338ba37414c6927b20ae2f180f2b37106d78c5"
+    },
+    {
+      "bytes": 235,
+      "path": "02-885722/policy_load.log",
+      "record_count": 2,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 23465,
+      "path": "02-885722/summary.json",
+      "record_count": 720,
+      "sha256": "7347250cb4b5b9a3fb12540072e30e9b64cffdf46099172a1989d2f79f48784d"
+    },
+    {
+      "bytes": 3102,
+      "path": "02-885722/trace.jsonl",
+      "record_count": 1,
+      "sha256": "ac89cff634b6d9b675b662eeba148435cf8e95c45043cab8a9f463104dda07db"
+    },
+    {
+      "bytes": 1187,
+      "path": "02-885722/trial.log",
+      "record_count": 1,
+      "sha256": "a743b7910b4a43c4beed9bccdfc7d720aeb096164797e2ec60913cea190ba71d"
+    },
+    {
+      "bytes": 1071,
+      "path": "02-885722/up.log",
+      "record_count": 24,
+      "sha256": "b58aeb408b4fa3109c1f684f730caef509ba50ea3a59b915ffc1311d36ab2baa"
+    },
+    {
+      "bytes": 6125,
+      "path": "02-885722/visual-frames.jsonl",
+      "record_count": 17,
+      "sha256": "ab19bc89f791b782a40ff70404775cc0341722679ebb972f3ab2a9768e966759"
+    },
+    {
+      "bytes": 17,
+      "path": "03-885723/down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 124060,
+      "path": "03-885723/events.jsonl",
+      "record_count": 210,
+      "sha256": "08b554f417a2be65d0f53a29396d3bfb9bc4417e9108866abbcac1adde7605ba"
+    },
+    {
+      "bytes": 37733,
+      "path": "03-885723/neural-ledger.jsonl",
+      "record_count": 42,
+      "sha256": "9c523dcbac85c3000411f1ebe10271cd964b42378ebd88b7ac0c851c7a7fa6be"
+    },
+    {
+      "bytes": 1741,
+      "path": "03-885723/policy-readback.json",
+      "record_count": 1,
+      "sha256": "25bbf582d14b03999b719119ea338ba37414c6927b20ae2f180f2b37106d78c5"
+    },
+    {
+      "bytes": 235,
+      "path": "03-885723/policy_load.log",
+      "record_count": 2,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 23803,
+      "path": "03-885723/summary.json",
+      "record_count": 736,
+      "sha256": "777571abfe929df6e4334df3838ab0c61c2adfb9947f883d10df65f9091992da"
+    },
+    {
+      "bytes": 3106,
+      "path": "03-885723/trace.jsonl",
+      "record_count": 1,
+      "sha256": "955caa8b266eeffcb2e37d7e4c5bc55df93987728eea98557836ba9425e3e066"
+    },
+    {
+      "bytes": 1187,
+      "path": "03-885723/trial.log",
+      "record_count": 1,
+      "sha256": "c165e65af8766bc5984f3a7a65d0d9f98b4375082e2b358b9c91e4a85132cc58"
+    },
+    {
+      "bytes": 1071,
+      "path": "03-885723/up.log",
+      "record_count": 24,
+      "sha256": "a779b464825e581514069881ec3ecc2825de2e9e385c14064bb3afd16f5f935d"
+    },
+    {
+      "bytes": 6123,
+      "path": "03-885723/visual-frames.jsonl",
+      "record_count": 17,
+      "sha256": "369d6e8cd40fce19307d09b9e16c073717d16d28fd93fe4de54ef71d85c076b9"
+    },
+    {
+      "bytes": 89344,
+      "path": "batch-summary.json",
+      "record_count": 2343,
+      "sha256": "ff0e585f1fca5bcdf9e0990591903f1da95970448df6f4e97a5802b1559b2078"
+    },
+    {
+      "bytes": 17,
+      "path": "final-down.log",
+      "record_count": 1,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    }
+  ],
+  "protocol_schema_version": "p8-r3-v24-official-development-v1",
+  "protocol_sha256": "40f05766fc457ba29f9ec3f3fd5f8818e7829b6810eb40e35cdf8d304102ffd4",
+  "schema_version": "p8-r3-official-raw-manifest-v1",
+  "source_head": "6855f3872f685425b41795a4aaf407dfbd860c7f"
+}
