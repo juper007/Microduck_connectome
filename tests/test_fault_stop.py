@@ -15,6 +15,7 @@ from microduck_connectome.perception_frame import make_perception_frame
 from microduck_connectome.safety_clamp import SafetyClamp, load_safety_envelope
 from microduck_connectome.scheduler import NeuralUpdate, SchedulerWorkerError
 from microduck_connectome.watchdog import ControllerWatchdog
+from scripts.p8_fault_stop_trial import retain_scheduler_exception
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -249,6 +250,23 @@ def check_expected_vs_unexpected_worker_failure_keeps_control_tail(planned):
 
 
 class FaultStopTests(unittest.TestCase):
+    def test_unexpected_worker_retains_full_chained_traceback(self):
+        errors, events = [], []
+        try:
+            try:
+                raise RuntimeError("injected perception worker fault")
+            except RuntimeError as cause:
+                raise SchedulerWorkerError("perception", cause) from cause
+        except SchedulerWorkerError as error:
+            retain_scheduler_exception(error, errors, events, 123)
+        self.assertEqual(len(errors), 1)
+        self.assertIn('raise RuntimeError("injected perception worker fault")', errors[0])
+        self.assertIn("RuntimeError: injected perception worker fault", errors[0])
+        self.assertIn("SchedulerWorkerError:", errors[0])
+        self.assertEqual(events[0]["kind"], "scheduler_exception")
+        self.assertEqual(events[0]["timestamp_ns"], 123)
+        self.assertEqual(events[0]["traceback"], errors[0])
+
     def test_latch(self):
         check_latch_is_first_fault_wins_and_retains_last_healthy_timestamps()
 

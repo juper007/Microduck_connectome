@@ -9,6 +9,7 @@ import platform
 import socket
 import threading
 import time
+import traceback
 
 from microduck_connectome.fault_stop import FaultAwareInputs, FaultStopLatch, FaultStopRefreshScheduler
 from microduck_connectome.g8_r5d_fixture import IsolatedStopPublisher, SUPPRESSED_NEUTRAL
@@ -28,6 +29,14 @@ FAULTS = (
     "malformed_perception", "nan_feature", "inf_feature",
     "neural_freeze", "unexpected_worker_exception",
 )
+
+
+def retain_scheduler_exception(error, scheduler_errors, events, timestamp_ns):
+    """Keep the full chained worker traceback in both raw events and summary."""
+    trace = "".join(traceback.format_exception(error))
+    scheduler_errors.append(trace)
+    events.append({"kind": "scheduler_exception", "timestamp_ns": timestamp_ns,
+                   "exception_type": type(error).__name__, "traceback": trace})
 
 
 class FaultChain(FullChain):
@@ -207,7 +216,8 @@ def run(args):
             try:
                 scheduler.run(1.4)
             except BaseException as error:
-                scheduler_errors.append(f"{type(error).__name__}: {error}")
+                retain_scheduler_exception(error, scheduler_errors, events,
+                                           time.monotonic_ns())
 
         scheduler_thread = threading.Thread(target=run_scheduler, name="p8-fault-stop-scheduler")
         scheduler_thread.start()
