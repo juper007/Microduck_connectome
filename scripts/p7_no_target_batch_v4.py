@@ -117,7 +117,8 @@ def verify_and_score_trace(*, trace_path: Path, summary_path: Path,
 
 def validate_control_specs(experiment: dict) -> list[dict]:
     specs = experiment["no_target_trials"]
-    if (experiment["schema_version"] != "steering-experiment-v4"
+    is_g8 = experiment["schema_version"] == "g8-r6-steering-v1"
+    if (experiment["schema_version"] not in ("steering-experiment-v4", "g8-r6-steering-v1")
             or experiment["no_target_trial_count"] != 40
             or len(specs) != 40):
         raise ValueError("frozen v4 no-target trial count or schema mismatch")
@@ -126,7 +127,8 @@ def validate_control_specs(experiment: dict) -> list[dict]:
     if len(set(ids)) != 40 or len(set(seeds)) != 40:
         raise ValueError("duplicate no-target trial ID or seed")
     for index, spec in enumerate(specs, 1):
-        if (spec["trial_id"] != f"p7-v4-no-target-{index:03d}"
+        prefix = "g8-r6-no-target" if is_g8 else "p7-v4-no-target"
+        if (spec["trial_id"] != f"{prefix}-{index:03d}"
                 or spec["target_present"] is not False
                 or any(spec[field] != "none" for field in
                        ("target_side", "target_eccentricity", "target_motion"))):
@@ -196,7 +198,9 @@ def main() -> None:
         raise RuntimeError("final v4 control batch requires Thor Python 3.12")
     root = args.root.resolve()
     experiment_path = args.experiment.resolve()
-    tracked_manifest = (root / "config/steering_experiment_v4.json").resolve()
+    manifest_name = ("g8_r6_steering_v1.json" if experiment_path.name == "g8_r6_steering_v1.json"
+                     else "steering_experiment_v4.json")
+    tracked_manifest = (root / "config" / manifest_name).resolve()
     if experiment_path != tracked_manifest:
         raise RuntimeError("final batch requires tracked v4 manifest")
     head = subprocess.check_output(
@@ -205,7 +209,7 @@ def main() -> None:
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("final batch requires clean source checkout")
     committed_manifest = subprocess.check_output(
-        ["git", "-C", str(root), "show", "HEAD:config/steering_experiment_v4.json"])
+        ["git", "-C", str(root), "show", f"HEAD:config/{manifest_name}"])
     if experiment_path.read_bytes() != committed_manifest:
         raise RuntimeError("v4 manifest differs from committed bytes")
     experiment = json.loads(experiment_path.read_text(encoding="utf-8"))
@@ -271,7 +275,9 @@ def main() -> None:
                     "--microduck-rl", str(args.microduck_rl),
                     "--source-head", head, "--trial-spec", str(spec_path),
                     "--experiment", str(experiment_path),
-                    "--run-id", f"p7-no-target-v4-{index:03d}",
+                    "--run-id", (f"g8-r6-no-target-{index:03d}"
+                                 if experiment["schema_version"] == "g8-r6-steering-v1"
+                                 else f"p7-no-target-v4-{index:03d}"),
                     "--artifact", str(folder / "trace.jsonl"),
                     "--summary", str(folder / "summary.json"),
                 ]

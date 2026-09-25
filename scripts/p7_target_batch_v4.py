@@ -92,6 +92,7 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
                               if started_trial_failed(item)]
     expected = experiment["target_trial_count"]
     rate = counts["correct"] / valid if valid else None
+    min_valid = experiment.get("min_valid_target_trials", 100)
     return {
         "schema_version": "p7-02-target-batch-v4",
         "execution_target": "Thor", "hostname": socket.gethostname(),
@@ -112,7 +113,7 @@ def summarize(results: list[dict], experiment: dict, *, head: str,
         "started_trial_failures": started_trial_failures,
         "raw_journal_sha256": journal_hash,
         "invalid_trial_ids": [item["trial_id"] for item in results if item["outcome"] == "invalid"],
-        "result": "PASS" if (len(results) == expected and valid >= 100
+        "result": "PASS" if (len(results) == expected and valid >= min_valid
                              and rate is not None
                              and rate >= experiment["target_response"]["correct_direction_rate_min"]
                              and safety == 0 and not started_trial_failures) else "FAIL",
@@ -137,17 +138,19 @@ def main() -> None:
     experiment_path = args.experiment.resolve()
     experiment = json.loads(experiment_path.read_text(encoding="utf-8"))
     expected = experiment["target_trial_count"]
-    if (experiment["schema_version"] != "steering-experiment-v4" or expected != 120
+    if (experiment["schema_version"] not in ("steering-experiment-v4", "g8-r6-steering-v1") or expected != 120
             or len(experiment["target_trials"]) != expected):
         raise RuntimeError("v4 target trial count or schema mismatch")
     head = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("final batch requires clean source checkout")
-    tracked_manifest = root / "config/steering_experiment_v4.json"
+    manifest_name = ("g8_r6_steering_v1.json" if experiment["schema_version"] == "g8-r6-steering-v1"
+                     else "steering_experiment_v4.json")
+    tracked_manifest = root / "config" / manifest_name
     if experiment_path != tracked_manifest.resolve():
         raise RuntimeError("final batch requires the tracked v4 manifest")
     committed_manifest = subprocess.check_output(
-        ["git", "-C", str(root), "show", "HEAD:config/steering_experiment_v4.json"])
+        ["git", "-C", str(root), "show", f"HEAD:config/{manifest_name}"])
     if experiment_path.read_bytes() != committed_manifest:
         raise RuntimeError("v4 manifest bytes differ from the committed source")
     args.output.mkdir(parents=True, exist_ok=False)
@@ -201,7 +204,7 @@ def main() -> None:
                     "--microduck-rl", str(args.microduck_rl),
                     "--source-head", head, "--trial-spec", str(spec_path),
                     "--experiment", str(experiment_path),
-                    "--run-id", f"p7-steering-v4-{index:03d}",
+                    "--run-id", f"{experiment['experiment_version']}-{index:03d}",
                     "--artifact", str(folder / "trace.jsonl"),
                     "--summary", str(folder / "summary.json"),
                 ]
