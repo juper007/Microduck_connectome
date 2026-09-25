@@ -1,0 +1,25 @@
+# G8-R5c development probes (not final evidence)
+
+All probes below ran on Thor using official MicroDuck robotd and MuJoCo before the G8-R5c protocol was frozen. They are retained as immutable diagnostic artifacts. A one-trial development PASS does **not** satisfy the required three independently reset final trials. PR #60 (G8-R5) and PR #61 (G8-R5b) remain historical FAIL, unmerged.
+
+Artifact root: `/home/juper007/projects/microduck-connectome-thor/evidence/g8-r5c/`. SHA256 values refer to the exact files in the named immutable directories.
+
+| Probe directory | Development finding | `batch-summary.json` SHA256 | `trial-01-80101/summary.json` SHA256 |
+|---|---|---|---|
+| `development-probe-20260925T1640Z` | FAIL: early visual window produced neural stop 655 ms after the last positive move call; deadman had already intervened. | `962109e48e1b1f5fa592c2914776a95df55e139e89c9ec5b2d4bcace1f5829d6` | `5a2c9c70b75d4be79e7ef89f34cc3df7c07b586c02e0f6aadc9ad0c65bfe8756` |
+| `development-probe-20260925T1647Z` | FAIL: later visual window gave timely neural stop ACK (337 ms after last move call), but 400 ms post-ACK observation was shorter than actual pose settling. | `c02b07b74f4b39e125d11871811ebbe7d673f7086f57e2b8d457d6c01718de45` | `e381892792d3684de2fe12b2b5ce6b914e11ba76138b51d96f1da2170a166da8` |
+| `development-probe-20260925T1653Z` | FAIL: an overstrict same-cycle looming/LPLC2 check rejected a healthy stop. Prior neural step 13 had valid looming/LPLC2 and escape 0.4; consecutive step 14 crossed escape 0.6 about 22 ms later. | `abd221f87d5dc3eea1222b70ac2cecde54d1f2c3cd29212be1fe1c0602f6f18c` | `d538060c1429612b0d08b643dbb82f1df8abd0c4cb602fc2e3b29ef1df387367` |
+| `development-probe-20260925T1657Z` | Development PASS: bounded temporal neural lineage, timely stop, applied-vx decline, sustained pose stop, safety and scheduler checks all passed for this **single** trial. | `7157879d7c5863b625afd5534389b1d267a86562d5996cb88339bb4b328da39b` | `9cc4d55788d629e735af775cd189d6bde0ee7821d8334051a302bb3f63813ecc` |
+
+Raw artifact hashes:
+
+| Probe | `events.jsonl` SHA256 | `trace.jsonl` SHA256 | `neural-ledger.jsonl` SHA256 |
+|---|---|---|---|
+| 1640Z | `ea6c7fff2df0d1173cd6c89de2267cf25f3ceb05d3834b3c5a6dbc29e22a6616` | `62f79c4409202fb6132725918b70c326ca8e772689b58fea1800b8058fba448c` | not produced by this draft |
+| 1647Z | `7a9d3b6d35d7b6e0c8d38942cddd52fe475e92d43cafa11d3c2a38b788578f88` | `c7182d67067dee2e9cc78a3207874034831ba798b64c8f8e61efa50c05c894fc` | not produced by this draft |
+| 1653Z | `bec4d9d56c7b9c2a100c2c0f1ccfcb8d66be245591f37dbbe64bd86ff1787ecb` | `89ed0e86c89a01c9dd8b93139bd8dbbeb12af167318929ae750fc88c09cf4ac6` | not produced by this draft |
+| 1657Z | `c70f955be62f46852be8dde5a5251bd5fc9826ff89148d437f161f3d52561c24` | `012dd328a2b131a5a3a7d17c00ba119b07ebf08e08cb90e16b92c035af8dbfec` | `ee60913b00509c01e0800f2bf86bd8b52f57dce587707ea0a93fd5cfea540cda` |
+
+Separate official pose-noise probe: `development-pose-noise-20260925T1710Z/`. This immutable directory name is a historical label, not its execution time: Thor recorded a file modification time of **2026-09-25 16:48:57 UTC** for the artifact. Interpret sample ordering and elapsed durations from the raw monotonic timestamps. The same pinned model1250 ONNX walking policy had SHA256 `98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a` and was loaded/read back. After 75 bounded `.07 m/s` high-level move requests and official `robot.stop`, 130 robot.state/MuJoCo pose rows were retained. `pose-raw.jsonl` SHA256 `92ea04914f795d9d80b39a1555ffff6c99837eb9daf0f71523784a0cc22335da`; `pose-noise-summary.json` SHA256 `6f1aeda442add1a844487fe36e743fed669d5f9e78cb2210cbe291549af5b648`. Applied vx was approximately `.01835 m/s` at ACK+106 ms, `.00601` at +206 ms, and `.000646` at +405 ms. After +600 ms, 100 ms pose-speed windows had median `.00075 m/s`, maximum `.00365 m/s`; 200 ms windows had median `.00092`, maximum `.00258`. The existing `.008 m/s` pose-speed threshold was retained. The post-ACK read-only window was extended to permit sustained confirmation of actual settling. The virtual visual scenario ends at ACK and its center is held only for evaluator clearance checks; this is not a continuous-approach P8 trial.
+
+The frozen final protocol must be committed before the final batch. No development outcome above is counted toward the three-trial requirement.
