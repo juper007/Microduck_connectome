@@ -1,0 +1,21 @@
+{
+  "schema_version": "p8-01-smoke-manifest-v1",
+  "scenario_config": "config/looming_scenario_v1.json",
+  "trials": [
+    {
+      "trial_id": "p801-smoke-approach",
+      "seed": 80101,
+      "motion": "approaching"
+    },
+    {
+      "trial_id": "p801-smoke-static",
+      "seed": 80102,
+      "motion": "static"
+    },
+    {
+      "trial_id": "p801-smoke-recede",
+      "seed": 80103,
+      "motion": "receding"
+    }
+  ]
+}
