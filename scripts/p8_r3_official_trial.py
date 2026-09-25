@@ -63,6 +63,7 @@ def validate_frozen_selection(protocol):
         "p8-r3-official-development-v1": ([885321, 885322, 885323], "binary_rgb_v1"),
         "p8-r3-v21-official-development-v1": ([885421, 885422, 885423], "fractional_rgb_v21"),
         "p8-r3-v22-official-development-v1": ([885521, 885522, 885523], "fractional_rgb_v21"),
+        "p8-r3-v23-official-development-v1": ([885621, 885622, 885623], "fractional_rgb_v21"),
     }
     version = protocol.get("schema_version")
     if version not in versions:
@@ -94,20 +95,27 @@ def validate_frozen_selection(protocol):
         raise RuntimeError("visual cadence must be selected from the frozen sampling screen")
     if version == "p8-r3-v21-official-development-v1" and hz != 10:
         raise RuntimeError("V2.1 selected visual cadence must remain 10 Hz")
-    if version == "p8-r3-v22-official-development-v1":
+    if version in ("p8-r3-v22-official-development-v1",
+                   "p8-r3-v23-official-development-v1"):
         if protocol.get("fault_gate_status") != "PASS":
-            raise RuntimeError("V2.2 fault-stop gate must PASS before official execution")
+            raise RuntimeError("V2.2/V2.3 fault-stop gate must PASS before official execution")
         if config.method != "log_area" or hz != 20:
-            raise RuntimeError("V2.2 requires unchanged estimator A at selected 20 Hz")
+            raise RuntimeError("V2.2/V2.3 requires unchanged estimator A at selected 20 Hz")
         if (protocol.get("selected_visual_period_ms") != 50
                 or protocol.get("maximum_official_visual_frame_gap_ms") != 100
                 or protocol.get("maximum_visual_lineage_age_ms") != 100
                 or protocol.get("deadman_timeout_ms") != 500):
-            raise RuntimeError("V2.2 visual cadence or safety freshness changed")
+            raise RuntimeError("V2.2/V2.3 visual cadence or safety freshness changed")
         for key in ("internal_gate_script_path", "internal_gate_script_sha256",
                     "fault_gate_artifact_path", "fault_gate_artifact_sha256"):
             if not isinstance(protocol.get(key), str):
-                raise RuntimeError(f"V2.2 missing prospective {key}")
+                raise RuntimeError(f"V2.2/V2.3 missing prospective {key}")
+    if version == "p8-r3-v23-official-development-v1":
+        if protocol.get("startup_gate_status") != "PASS":
+            raise RuntimeError("V2.3 startup handoff gate must PASS before official execution")
+        for key in ("startup_gate_artifact_path", "startup_gate_artifact_sha256"):
+            if not isinstance(protocol.get(key), str):
+                raise RuntimeError(f"V2.3 missing prospective {key}")
     if not (isinstance(protocol.get("scenario_config_path"), str)
             and isinstance(protocol.get("scenario_config_sha256"), str)
             and isinstance(protocol.get("visual_scheduler_config_sha256"), str)
@@ -119,18 +127,23 @@ def validate_frozen_selection(protocol):
             or [row.get("seed") for row in runs] != versions[version][0]
             or len({row.get("run_id") for row in runs}) != 3):
         raise RuntimeError("P8-R3 official three-reset seed matrix mismatch")
-    if version == "p8-r3-v22-official-development-v1":
+    if version in ("p8-r3-v22-official-development-v1",
+                   "p8-r3-v23-official-development-v1"):
+        seeds = ((885521, 885522, 885523)
+                 if version == "p8-r3-v22-official-development-v1"
+                 else (885621, 885622, 885623))
         expected = [(f"{i:02d}-{seed}", seed, arm) for i, (seed, arm) in enumerate(
-            zip((885521, 885522, 885523), (2.0, 2.6, 3.0)), start=1)]
+            zip(seeds, (2.0, 2.6, 3.0)), start=1)]
         if ([(row.get("run_id"), row.get("seed"), row.get("arm_elapsed_s"))
              for row in runs] != expected
-                or protocol.get("scenario_seeds") != [885521, 885522, 885523]
+                or protocol.get("scenario_seeds") != list(seeds)
                 or protocol.get("arm_elapsed_s") != [2.0, 2.6, 3.0]):
-            raise RuntimeError("V2.2 official run order or arm assignment changed")
+            raise RuntimeError("V2.2/V2.3 official run order or arm assignment changed")
     if protocol.get("visual_representation") != versions[version][1]:
         raise RuntimeError("frozen RGB representation mismatches protocol version")
     if (version in ("p8-r3-v21-official-development-v1",
-                    "p8-r3-v22-official-development-v1")
+                    "p8-r3-v22-official-development-v1",
+                    "p8-r3-v23-official-development-v1")
             and not isinstance(protocol.get("fractional_rgb_module_sha256"), str)):
         raise RuntimeError("fractional RGB source hash must be frozen")
     return config, hz
@@ -160,11 +173,14 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
             "internal_gate_manifest_sha256": protocol["internal_gate_manifest_path"],
             "sampling_gate_manifest_sha256": protocol["sampling_gate_manifest_path"],
         })
-    if protocol["schema_version"] == "p8-r3-v22-official-development-v1":
+    if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
+                                       "p8-r3-v23-official-development-v1"):
         files.update({
             "internal_gate_script_sha256": protocol["internal_gate_script_path"],
             "fault_gate_artifact_sha256": protocol["fault_gate_artifact_path"],
         })
+    if protocol["schema_version"] == "p8-r3-v23-official-development-v1":
+        files["startup_gate_artifact_sha256"] = protocol["startup_gate_artifact_path"]
     config_paths = {
         "neural_model": "neural_model_v1.json", "sensory_mapping": "sensory_mapping_v1.json",
         "dn_readout": "dn_readout_v1.json", "escape_decoder": "escape_decoder_v1.json",
@@ -187,11 +203,17 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
         if subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD", "--",
                            target.relative_to(root).as_posix()], check=False).returncode != 0:
             raise RuntimeError(f"frozen {key} differs from committed content")
-    if protocol["schema_version"] == "p8-r3-v22-official-development-v1":
+    if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
+                                       "p8-r3-v23-official-development-v1"):
         fault_gate = json.loads((root / protocol["fault_gate_artifact_path"]).read_text())
         if (fault_gate.get("schema_version") != "p8-r3-v22-fault-gate-v1"
                 or fault_gate.get("result") != "PASS"):
             raise RuntimeError("frozen V2.2 fault-stop gate artifact is not PASS")
+    if protocol["schema_version"] == "p8-r3-v23-official-development-v1":
+        startup_gate = json.loads((root / protocol["startup_gate_artifact_path"]).read_text())
+        if (startup_gate.get("schema_version") != "p8-r3-v23-startup-gate-v1"
+                or startup_gate.get("result") != "PASS"):
+            raise RuntimeError("frozen V2.3 startup handoff gate artifact is not PASS")
     scenario = load_config(root / protocol["scenario_config_path"])
     if (scenario["safety_boundary_center_distance_m"] != 0.25
             or protocol["visual_representation"] == "fractional_rgb_v21"
@@ -367,7 +389,8 @@ class LoomingChain(FullChain):
             self.neural_ledger.append({"neural_call_timestamp_ns": now_ns,
                                        "neural_call_started_ns": call_started_ns,
                                        "neural_call_returned_ns": call_returned_ns,
-                                       "result_none": True, "input_none": frame is None})
+                                       "result_none": True, "input_none": frame is None,
+                                       "perception_age_ms": None})
             return update
         trace = update.trace
         perception = trace["perception_frame"]
@@ -388,6 +411,7 @@ class LoomingChain(FullChain):
             "perception_timestamp_ns": perception["timestamp_ns"],
             "perception_frame_id": perception["frame_id"],
             "perception_valid": perception["valid"],
+            "perception_age_ms": (call_started_ns - perception["timestamp_ns"]) / 1e6,
             "looming": perception["looming"],
             "proximity_left": perception["proximity_left"],
             "proximity_center": perception["proximity_center"],
@@ -879,8 +903,20 @@ def run(args):
         first_frame = chain.perception(phase_started_ns)
         first_update = chain.neural(first_frame, phase_started_ns)
         ensure_healthy_neutral_priming(chain, first_update)
+        if first_update.trace["perception_frame"] != first_frame:
+            raise RuntimeError("neutral priming used a different perception frame")
         if not watchdog.observe_neural(first_update.readout) or not watchdog.observe_behavior(first_update.behavior_intent):
             raise RuntimeError("cannot prime healthy watchdog at neural phase handoff")
+        cache_prime_call_ns = time.monotonic_ns()
+        cached_frame = scheduler.prime_perception(first_frame, now_ns=cache_prime_call_ns)
+        if cached_frame != first_update.trace["perception_frame"]:
+            raise RuntimeError("scheduler cache differs from neutral priming frame")
+        cache_prime_return_ns = time.monotonic_ns()
+        events.append({"timestamp_ns": cache_prime_return_ns, "kind": "visual_cache_primed",
+                       "frame_id": first_frame["frame_id"],
+                       "source_timestamp_ns": first_frame["timestamp_ns"],
+                       "cache_prime_call_ns": cache_prime_call_ns,
+                       "cache_prime_return_ns": cache_prime_return_ns})
 
         def refresh_positive_motion():
             index = 0
@@ -1333,11 +1369,17 @@ def run(args):
                                          <= protocol["maximum_total_trial_duration_s"],
         "state_machine_complete": valid_state_path(transition_states, complete=True),
     }
-    if protocol["schema_version"] == "p8-r3-v22-official-development-v1":
+    if protocol["schema_version"] in ("p8-r3-v22-official-development-v1",
+                                       "p8-r3-v23-official-development-v1"):
         checks["visual_age_within_ttl"] = bool(
             len(visual_ages_ms) == len(chain.neural_ledger)
             and all(0 <= age <= protocol["maximum_visual_lineage_age_ms"]
                     for age in visual_ages_ms))
+    if protocol["schema_version"] == "p8-r3-v23-official-development-v1":
+        checks["continuous_neural_visual_input"] = bool(chain.neural_ledger and all(
+            not row.get("input_none") and not row.get("result_none")
+            and row.get("perception_valid") and row.get("perception_age_ms") is not None
+            for row in chain.neural_ledger))
     transport_checks = {key: value for key, value in checks.items()
                         if key != "trigger_before_frozen_boundary"}
     result = "PASS" if all(checks.values()) and not observer_errors else "FAIL"
@@ -1484,6 +1526,13 @@ def run(args):
         "visual_mean_frame_gap_ms": (sum(visual_frame_gaps_ms) / len(visual_frame_gaps_ms)
                                      if visual_frame_gaps_ms else None),
         "visual_max_neural_frame_age_ms": max(visual_ages_ms, default=None),
+        "visual_neural_missing_count": sum(row.get("input_none", False)
+                                            or row.get("result_none", False)
+                                            for row in chain.neural_ledger),
+        "visual_neural_invalid_count": sum(not row.get("result_none", False)
+                                            and not row.get("perception_valid", False)
+                                            for row in chain.neural_ledger),
+        "visual_neural_age_count": len(visual_ages_ms),
         "visual_after_ack_count": sum(row["timestamp_ns"] > stop_ack_ns
                                       for row in chain.visual_frames) if stop_ack_ns else None,
         "visual_frame_artifact": {"path": str(args.visual), "sha256": sha(args.visual),

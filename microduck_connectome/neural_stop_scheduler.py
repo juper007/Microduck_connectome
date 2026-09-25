@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from .fault_stop import FaultStopRefreshScheduler
 from .neural_stop_arbiter import NeuralStopMotionArbiter
-from .scheduler import ClosedLoopScheduler
+from .perception_frame import PerceptionFrameError, make_perception_frame
+from .scheduler import ClosedLoopScheduler, SchedulerError
 
 
 class NeuralStopRefreshScheduler(FaultStopRefreshScheduler):
@@ -23,6 +26,38 @@ class NeuralStopRefreshScheduler(FaultStopRefreshScheduler):
         kwargs["publisher"] = lambda output: motion_arbiter.publish(output, publisher)
         super().__init__(**kwargs)
         self.motion_arbiter = motion_arbiter
+        self._primed_source_ns = None
+
+    def prime_perception(self, frame, *, now_ns: int) -> dict:
+        """Seed the pre-run cache with the already used, fresh camera frame.
+
+        Cache insertion does not run a neural step or refresh the source time.
+        The first ordinary perception publication replaces this entry.
+        """
+        if self._started_ns is not None or self._threads or self._perception.get()[2]:
+            raise SchedulerError("perception priming must occur once before scheduler start")
+        if type(now_ns) is not int or now_ns < 0 or not isinstance(frame, Mapping):
+            raise SchedulerError("perception priming requires a frame and monotonic time")
+        try:
+            canonical = make_perception_frame(**dict(frame))
+        except (TypeError, ValueError, PerceptionFrameError) as error:
+            raise SchedulerError("invalid perception priming frame") from error
+        source_ns = canonical["timestamp_ns"]
+        if (not canonical["valid"] or source_ns > now_ns
+                or now_ns - source_ns > self.config["perception_ttl_ms"] * 1_000_000):
+            raise SchedulerError("perception priming frame is invalid, future, or stale")
+        self._perception.put(canonical, source_ns)
+        self._primed_source_ns = source_ns
+        return canonical
+
+    def run(self, duration_s: float) -> dict:
+        if self._primed_source_ns is not None:
+            now_ns = self.clock_ns()
+            if (now_ns < self._primed_source_ns
+                    or now_ns - self._primed_source_ns
+                    >= self.config["perception_ttl_ms"] * 1_000_000):
+                raise SchedulerError("primed perception expired before scheduler start")
+        return super().run(duration_s)
 
     def _neural_tick(self, now_ns):
         with self.motion_arbiter.lock:

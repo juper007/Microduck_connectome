@@ -122,6 +122,26 @@ class OfficialSelectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "V2.2"):
                     validate_frozen_selection(drift)
 
+    def test_v23_requires_fresh_matrix_and_passed_startup_gate(self):
+        protocol = json.loads((ROOT / "config/p8_r3_v23_official_v1.json").read_text())
+        draft = copy.deepcopy(protocol)
+        draft["official_freeze_status"] = "DRAFT"
+        draft["startup_gate_status"] = "PENDING"
+        with self.assertRaisesRegex(RuntimeError, "internal neural gate"):
+            validate_frozen_selection(draft)
+        protocol["internal_gate_status"] = "PASS"
+        protocol["official_freeze_status"] = "FROZEN"
+        protocol["fault_gate_status"] = "PASS"
+        protocol["startup_gate_status"] = "PENDING"
+        with self.assertRaisesRegex(RuntimeError, "startup handoff gate"):
+            validate_frozen_selection(protocol)
+        protocol["startup_gate_status"] = "PASS"
+        selected, hz = validate_frozen_selection(protocol)
+        self.assertEqual((selected.method, hz), ("log_area", 20))
+        protocol["ordered_official_runs"][0]["seed"] = 885521
+        with self.assertRaisesRegex(RuntimeError, "seed matrix"):
+            validate_frozen_selection(protocol)
+
     def test_v21_selected_material_and_hashes_match_repository(self):
         protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
         self.assertEqual(protocol["internal_gate_status"], "PASS")

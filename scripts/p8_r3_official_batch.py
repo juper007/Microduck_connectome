@@ -47,7 +47,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
     ap.add_argument("--protocol", type=Path, required=True,
-                    help="repo-relative frozen P8-R3 V1 or V2.1 protocol")
+                    help="repo-relative frozen P8-R3 development protocol")
     ap.add_argument("--microduck", type=Path, required=True)
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
