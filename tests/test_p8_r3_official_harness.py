@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -17,7 +19,8 @@ from microduck_connectome.safety_clamp import SafetyClamp
 from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p8_r3_official_batch import validate_trial_artifacts
 from scripts.p8_r3_official_trial import (
-    LoomingChain, VisualCadence, validate_frozen_selection,
+    LoomingChain, VisualCadence, validate_frozen_material,
+    validate_frozen_output_dir, validate_frozen_selection,
 )
 
 
@@ -78,15 +81,86 @@ class OfficialSelectionTests(unittest.TestCase):
                                                  (2.0, 2.6, 3.0)))
         ]
         protocol["fractional_rgb_module_sha256"] = "c" * 64
+        protocol["visual_hz"] = 10
         with self.assertRaisesRegex(RuntimeError, "RGB representation"):
             validate_frozen_selection(protocol)
         protocol["visual_representation"] = "fractional_rgb_v21"
         selected, hz = validate_frozen_selection(protocol)
-        self.assertEqual((selected.method, hz), ("log_area", 25))
+        self.assertEqual((selected.method, hz), ("log_area", 10))
         protocol["selected_v2"]["method"] = "relative_radius"
         protocol["selected_v2"]["full_scale_rate_per_s"] = 0.25
         with self.assertRaisesRegex(RuntimeError, "V2.1 fractional RGB"):
             validate_frozen_selection(protocol)
+        protocol["selected_v2"]["method"] = "log_area"
+        protocol["selected_v2"]["full_scale_rate_per_s"] = 0.5
+        protocol["visual_hz"] = 20
+        with self.assertRaisesRegex(RuntimeError, "10 Hz"):
+            validate_frozen_selection(protocol)
+
+    def test_v21_selected_material_and_hashes_match_repository(self):
+        protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
+        self.assertEqual(protocol["internal_gate_status"], "PASS")
+        self.assertEqual(protocol["visual_hz"], 10)
+        self.assertEqual(protocol["selected_v2"], {
+            "method": "log_area", "full_scale_rate_per_s": 0.5,
+            "area_epsilon": 1e-6, "max_gap_ms": 150, "window_ms": 200,
+        })
+        self.assertEqual(protocol["scenario_seeds"], [885421, 885422, 885423])
+        self.assertEqual(protocol["visual_representation"], "fractional_rgb_v21")
+        scenario = json.loads((ROOT / protocol["scenario_config_path"]).read_text())
+        self.assertEqual((scenario["image_width_px"], scenario["image_height_px"]),
+                         (65, 33))
+        self.assertEqual(scenario["safety_boundary_center_distance_m"], 0.25)
+        frozen_files = {
+            "graph_manifest_sha256": "data/manifests/controller-graph-v2.json",
+            "fractional_rgb_module_sha256": "microduck_connectome/fractional_rgb_v21.py",
+            "looming_v2_module_sha256": "microduck_connectome/looming_v2.py",
+            "internal_gate_artifact_sha256": protocol["internal_gate_artifact_path"],
+            "initial_internal_gate_artifact_sha256": protocol["initial_internal_gate_artifact_path"],
+            "internal_gate_manifest_sha256": protocol["internal_gate_manifest_path"],
+            "sampling_gate_manifest_sha256": protocol["sampling_gate_manifest_path"],
+            "scenario_config_sha256": protocol["scenario_config_path"],
+            "visual_scheduler_config_sha256": protocol["visual_scheduler_config_path"],
+        }
+        for key, relative in frozen_files.items():
+            with self.subTest(key=key):
+                self.assertEqual(
+                    hashlib.sha256(subprocess.check_output(
+                        ["git", "-C", str(ROOT), "show", f"HEAD:{relative}"])).hexdigest(),
+                    protocol[key])
+        files = {"neural_model": "neural_model_v1.json",
+                 "sensory_mapping": "sensory_mapping_v1.json",
+                 "dn_readout": "dn_readout_v1.json",
+                 "escape_decoder": "escape_decoder_v1.json",
+                 "safety_envelope": "safety_envelope_v1.json",
+                 "watchdog": "watchdog_v1.json",
+                 "motion_adapter": "motion_adapter_v1.json",
+                 "scheduler": "scheduler_v1.json", "telemetry": "telemetry_v1.json"}
+        for key, relative in files.items():
+            with self.subTest(config=key):
+                self.assertEqual(hashlib.sha256(subprocess.check_output(
+                    ["git", "-C", str(ROOT), "show", f"HEAD:config/{relative}"])).hexdigest(),
+                    protocol["config_sha256"][key])
+        versions = json.loads((ROOT / "config/versions.json").read_text())
+        self.assertEqual(protocol["microduck_commit"], versions["upstream"]["microduck"]["commit"])
+        self.assertEqual(protocol["microduck_rl_commit"], versions["upstream"]["microduck_rl"]["commit"])
+
+    def test_v21_frozen_preflight_rejects_source_hash_and_output_drift(self):
+        protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
+        protocol["source_freeze_sha"] = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+        validate_frozen_material(ROOT, protocol)
+        validate_frozen_output_dir(protocol, Path(protocol["frozen_output_dir"]))
+        drift = copy.deepcopy(protocol)
+        drift["internal_gate_artifact_sha256"] = "0" * 64
+        with self.assertRaisesRegex(RuntimeError, "internal_gate_artifact_sha256 hash mismatch"):
+            validate_frozen_material(ROOT, drift)
+        drift = copy.deepcopy(protocol)
+        drift["source_freeze_sha"] = "0" * 40
+        with self.assertRaisesRegex(RuntimeError, "source SHA"):
+            validate_frozen_material(ROOT, drift)
+        with self.assertRaisesRegex(RuntimeError, "frozen raw directory"):
+            validate_frozen_output_dir(protocol, Path(protocol["frozen_output_dir"] + "-replacement"))
 
 
 class ArtifactTests(unittest.TestCase):

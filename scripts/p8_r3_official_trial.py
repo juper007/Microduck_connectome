@@ -7,7 +7,7 @@ from dataclasses import asdict
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import queue
 import socket
@@ -91,6 +91,8 @@ def validate_frozen_selection(protocol):
     hz = protocol.get("visual_hz")
     if type(hz) is not int or hz not in (10, 20, 25):
         raise RuntimeError("visual cadence must be selected from the frozen sampling screen")
+    if version == "p8-r3-v21-official-development-v1" and hz != 10:
+        raise RuntimeError("V2.1 selected visual cadence must remain 10 Hz")
     if not (isinstance(protocol.get("scenario_config_path"), str)
             and isinstance(protocol.get("scenario_config_sha256"), str)
             and isinstance(protocol.get("visual_scheduler_config_sha256"), str)
@@ -108,6 +110,66 @@ def validate_frozen_selection(protocol):
             and not isinstance(protocol.get("fractional_rgb_module_sha256"), str)):
         raise RuntimeError("fractional RGB source hash must be frozen")
     return config, hz
+
+
+def validate_frozen_material(root: Path, protocol: dict) -> None:
+    """Verify selected source ancestor and committed local evidence/config bytes."""
+    root = root.resolve()
+    source = protocol.get("source_freeze_sha")
+    if (not isinstance(source, str) or len(source) != 40
+            or any(char not in "0123456789abcdef" for char in source)
+            or subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor",
+                               source, "HEAD"], check=False,
+                              stderr=subprocess.DEVNULL).returncode != 0):
+        raise RuntimeError("frozen pre-config source SHA is not an ancestor of HEAD")
+    files = {
+        "graph_manifest_sha256": "data/manifests/controller-graph-v2.json",
+        "scenario_config_sha256": protocol["scenario_config_path"],
+        "visual_scheduler_config_sha256": protocol["visual_scheduler_config_path"],
+        "internal_gate_artifact_sha256": protocol["internal_gate_artifact_path"],
+    }
+    if protocol["visual_representation"] == "fractional_rgb_v21":
+        files.update({
+            "fractional_rgb_module_sha256": "microduck_connectome/fractional_rgb_v21.py",
+            "looming_v2_module_sha256": "microduck_connectome/looming_v2.py",
+            "initial_internal_gate_artifact_sha256": protocol["initial_internal_gate_artifact_path"],
+            "internal_gate_manifest_sha256": protocol["internal_gate_manifest_path"],
+            "sampling_gate_manifest_sha256": protocol["sampling_gate_manifest_path"],
+        })
+    config_paths = {
+        "neural_model": "neural_model_v1.json", "sensory_mapping": "sensory_mapping_v1.json",
+        "dn_readout": "dn_readout_v1.json", "escape_decoder": "escape_decoder_v1.json",
+        "safety_envelope": "safety_envelope_v1.json", "watchdog": "watchdog_v1.json",
+        "motion_adapter": "motion_adapter_v1.json", "scheduler": "scheduler_v1.json",
+        "telemetry": "telemetry_v1.json",
+    }
+    files.update({f"config_sha256.{key}": f"config/{name}"
+                  for key, name in config_paths.items()})
+    for key, relative in files.items():
+        target = (root / relative).resolve()
+        if not target.is_relative_to(root):
+            raise RuntimeError(f"frozen {key} path escapes source")
+        expected = (protocol["config_sha256"][key.split(".", 1)[1]]
+                    if key.startswith("config_sha256.") else protocol[key])
+        committed = subprocess.check_output(
+            ["git", "-C", str(root), "show", f"HEAD:{target.relative_to(root).as_posix()}"])
+        if hashlib.sha256(committed).hexdigest() != expected:
+            raise RuntimeError(f"frozen {key} hash mismatch")
+        if subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD", "--",
+                           target.relative_to(root).as_posix()], check=False).returncode != 0:
+            raise RuntimeError(f"frozen {key} differs from committed content")
+    scenario = load_config(root / protocol["scenario_config_path"])
+    if (scenario["safety_boundary_center_distance_m"] != 0.25
+            or protocol["visual_representation"] == "fractional_rgb_v21"
+            and (scenario["image_width_px"], scenario["image_height_px"]) != (65, 33)):
+        raise RuntimeError("frozen scenario dimensions or 0.25 m boundary changed")
+
+
+def validate_frozen_output_dir(protocol: dict, output: Path) -> None:
+    frozen = protocol.get("frozen_output_dir")
+    if (not isinstance(frozen, str) or not PurePosixPath(frozen).is_absolute()
+            or output.resolve() != Path(frozen).resolve()):
+        raise RuntimeError("official output must use the frozen raw directory")
 
 
 def acknowledged_precondition_move(client, *, vx, vy, vyaw):
@@ -314,6 +376,13 @@ def verify_protocol(root, protocol_path, protocol, args):
                                          f"HEAD:{protocol_path.relative_to(root).as_posix()}"])
     if protocol_path.read_bytes() != committed:
         raise RuntimeError("protocol differs from committed bytes")
+    validate_frozen_material(root, protocol)
+    frozen_folder = Path(protocol["frozen_output_dir"]) / protocol["ordered_official_runs"][args.trial_index]["run_id"]
+    if any(path.resolve().parent != frozen_folder.resolve()
+           for path in (args.raw, args.events, args.ledger, args.visual, args.summary, args.policy_readback)):
+        raise RuntimeError("trial artifacts must use the frozen raw directory")
+    if any(path.exists() for path in (args.raw, args.events, args.ledger, args.visual, args.summary)):
+        raise RuntimeError("official trial raw artifacts must use unused paths")
     manifest_path = root / "data/manifests/controller-graph-v2.json"
     manifest = json.loads(manifest_path.read_text())
     if sha(manifest_path) != protocol["graph_manifest_sha256"]:

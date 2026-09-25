@@ -13,7 +13,10 @@ import sys
 import time
 
 from scripts.p7_pretrial_acquisition import run_logged, validate_loaded_walk_policy
-from scripts.p8_r3_official_trial import validate_frozen_selection
+from scripts.p8_r3_official_trial import (
+    validate_frozen_material, validate_frozen_output_dir,
+    validate_frozen_selection,
+)
 
 
 def sha(path):
@@ -66,6 +69,8 @@ def main():
     if protocol_path.read_bytes() != subprocess.check_output([
         "git", "-C", str(root), "show", f"HEAD:{protocol_path.relative_to(root).as_posix()}"]):
         raise RuntimeError("uncommitted protocol bytes")
+    validate_frozen_material(root, protocol)
+    validate_frozen_output_dir(protocol, a.output)
     a.output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ)
     env.update({
