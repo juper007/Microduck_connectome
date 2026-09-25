@@ -17,7 +17,7 @@
     "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
   },
   "deadman_timeout_ms": 500,
-  "development_reason": "Prospective V2.3 handoff repair after retained V2.2 0/3 official FAIL from 4/3/2 armed skipped neural ticks; seed validated priming frame into scheduler cache without timestamp rebasing. Focused gate and official three fresh resets pending.",
+  "development_reason": "Prospective V2.3 handoff repair after retained V2.2 0/3 official FAIL from 4/3/2 armed skipped neural ticks. Frozen source fde86b3; local and Thor startup gates 11/11 PASS, existing V2.2 internal/fault gates reused only for unchanged subsystems. Fresh official moving-body recertification pending.",
   "escape_threshold": 0.5,
   "evidence_role": "development_probe_only",
   "execution_target": "Thor official MicroDuck robotd and MuJoCo",
@@ -74,7 +74,7 @@
     "speed_window_max_ms": 140,
     "speed_window_ms": 100
   },
-  "official_freeze_status": "DRAFT",
+  "official_freeze_status": "FROZEN",
   "official_seed_status": "RESERVED_UNUSED",
   "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
   "ordered_official_runs": [
@@ -132,12 +132,12 @@
     "window_ms": 200
   },
   "selected_visual_period_ms": 50,
-  "source_freeze_relationship": "TBD: V2.3 cache handoff source and focused gate must be frozen before official seed use",
-  "source_freeze_sha": "0000000000000000000000000000000000000000",
+  "source_freeze_relationship": "Frozen V2.3 startup handoff source fde86b3 precedes both startup gate records and this official config; no runtime source changes after freeze",
+  "source_freeze_sha": "fde86b36d54ad652a8c93e3f043563a24e5b8fd6",
   "sphere_entry_safety_margin_ms": 100,
   "startup_gate_artifact_path": "docs/evidence/p8-r3/v23-startup-gate-raw-v1.json",
-  "startup_gate_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "startup_gate_status": "PENDING",
+  "startup_gate_artifact_sha256": "7ba645f2d7ee14ee2faedd250d3c875113109886eec3aa2ce2374e7db9cd5035",
+  "startup_gate_status": "PASS",
   "stop_transport": "robot_stop",
   "stopped_metric": {
     "require_confirmation_before_cleanup_stop": true,
