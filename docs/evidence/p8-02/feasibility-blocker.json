@@ -1,0 +1,89 @@
+{
+  "conclusion": "Both configured DNp01 IDs are absent from selected graph. The frozen FullChain projects absent readout IDs to False, so neural escape remains zero and no stimulus-triggered stop is possible without a separately reviewed graph/readout change.",
+  "conditions": {
+    "approaching": {
+      "counts": {
+        "nonzero_looming_ticks": 16,
+        "nonzero_lplc2_ticks": 16,
+        "stop_intent_ticks": 0,
+        "total_graph_spikes": 843
+      },
+      "final_virtual_distance_to_boundary_m": -0.09946584432995587,
+      "first_neural_stop_intent_s": null,
+      "first_nonzero_looming_s": 0.76,
+      "max": {
+        "escape": 0.0,
+        "looming": 1.0,
+        "lplc2": 1.0
+      },
+      "seed": 80101,
+      "tick_ms": 20,
+      "ticks": 201
+    },
+    "receding": {
+      "counts": {
+        "nonzero_looming_ticks": 0,
+        "nonzero_lplc2_ticks": 0,
+        "stop_intent_ticks": 0,
+        "total_graph_spikes": 0
+      },
+      "final_virtual_distance_to_boundary_m": 1.2998745378576144,
+      "first_neural_stop_intent_s": null,
+      "first_nonzero_looming_s": null,
+      "max": {
+        "escape": 0.0,
+        "looming": 0.0,
+        "lplc2": 0.0
+      },
+      "seed": 80103,
+      "tick_ms": 20,
+      "ticks": 201
+    },
+    "static": {
+      "counts": {
+        "nonzero_looming_ticks": 0,
+        "nonzero_lplc2_ticks": 0,
+        "stop_intent_ticks": 0,
+        "total_graph_spikes": 0
+      },
+      "final_virtual_distance_to_boundary_m": 0.6095023799345288,
+      "first_neural_stop_intent_s": null,
+      "first_nonzero_looming_s": null,
+      "max": {
+        "escape": 0.0,
+        "looming": 0.0,
+        "lplc2": 0.0
+      },
+      "seed": 80102,
+      "tick_ms": 20,
+      "ticks": 201
+    }
+  },
+  "configured_escape_dn_ids": [
+    10001,
+    10010
+  ],
+  "configured_lplc2_count": 185,
+  "dn_readout_config_sha256": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+  "escape_decoder_config_sha256": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+  "escape_dn_present_in_graph": {
+    "10001": false,
+    "10010": false
+  },
+  "graph_body_id_membership_sha256": "e9bfa8d271405ddab9197e6794a3a3daabe724e9724d155c85114cae829ad003",
+  "graph_file": "/home/juper007/projects/microduck-connectome-thor/g1-bfddc98/results/run1/graphs/340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70.json",
+  "graph_file_sha256": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+  "graph_key": "340f6a3180026f6c61f19ebc016ae8610ec9f4a07af2af589e4d6d89e5b31f70",
+  "graph_node_count": 570,
+  "lplc2_present_in_graph_count": 0,
+  "motion_adapter_config_sha256": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+  "p7_manifest_sha256": "f24170521f049cec6a65a88285925343316f84ce9bdaf59a1a668257db5460cd",
+  "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+  "schema_version": "p8-02-feasibility-audit-v1",
+  "scope": "offline frozen P4-to-P5 chain, no robotd command or P8-02 final trial",
+  "sensory_config_sha256": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+  "source_head": "8082f4be5a76458982974926f257b6fcc990c08b",
+  "status": "BLOCKED_PENDING_INDEPENDENT_REVIEW",
+  "stop_transport": "robot_stop",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
+}
