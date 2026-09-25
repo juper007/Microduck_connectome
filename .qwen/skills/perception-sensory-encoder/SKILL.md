@@ -1,6 +1,6 @@
 ---
 name: perception-sensory-encoder
-description: Qwen Code adapter for the canonical MicroDuck Connectome perception-sensory-encoder repository skill.
+description: Build camera/ToF perception features and bounded synthetic MaleCNS sensory stimulation. Use for target tracking, looming/proximity, confidence/filtering, left-right mapping, sensor-loss behavior, or feature-to-neural encoding.
 ---
 
 # Qwen adapter: perception-sensory-encoder
