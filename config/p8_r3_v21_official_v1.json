@@ -16,19 +16,24 @@
     "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
     "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
   },
-  "controller_commit_before_fixture": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
+  "controller_commit_before_fixture": "3baf54841290f0b88ec2943264a2f3f2698f4c83",
   "deadman_timeout_ms": 500,
-  "development_reason": "Separate V2.1 fractional RGB hypothesis; internal seeds 885401-403 and selected cadence not yet screened; official seeds 885421-423 reserved and unused",
+  "development_reason": "Fractional RGB V2.1 internal 36-case screen and 54-case cadence screen PASS; lowest passing cadence 10 Hz selected prospectively; fresh official Thor three-reset recertification remains unrun",
   "escape_threshold": 0.5,
   "evidence_role": "development_probe_only",
   "execution_target": "Thor official MicroDuck robotd and MuJoCo",
   "fixture_neutral_transport": "suppress exact zero non-stop watchdog output before first neural stop; fail unexpected nonzero",
-  "fractional_rgb_module_sha256": null,
+  "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
+  "frozen_output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v21/official-v1-885421-423",
   "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
   "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
-  "internal_gate_artifact_path": null,
-  "internal_gate_artifact_sha256": null,
-  "internal_gate_status": "UNASSESSED",
+  "initial_internal_gate_artifact_path": "docs/evidence/p8-r3/v21-internal-development-raw-v1.json",
+  "initial_internal_gate_artifact_sha256": "55e4f9e2db6fda448e89114d46ebcabae6532fc853e8b7d00e72a482ee3d1050",
+  "internal_gate_artifact_path": "docs/evidence/p8-r3/v21-sampling-development-raw-v1.json",
+  "internal_gate_artifact_sha256": "e00b89ae128e02438b2984426a1d65b06b69521cbe9e1dbfc77d6091b160178a",
+  "internal_gate_manifest_path": "docs/evidence/p8-r3/v21-internal-artifact-manifest-v1.json",
+  "internal_gate_manifest_sha256": "58c287b861c3ae2d0cdc552ba99628d7a63a38e288b19c80b8b621621b414817",
+  "internal_gate_status": "PASS",
   "invalid_stop_sources": [
     "startup_watchdog",
     "manual_stop",
@@ -37,6 +42,7 @@
     "fixture_timeout",
     "scheduler_shutdown"
   ],
+  "looming_v2_module_sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0",
   "maximum_last_motion_ack_to_stop_ack_ms": 400,
   "maximum_neural_observation_ms_by_run": [
     1000,
@@ -63,7 +69,8 @@
     "speed_window_max_ms": 140,
     "speed_window_ms": 100
   },
-  "official_freeze_status": "DRAFT_BLOCKED",
+  "official_freeze_status": "FROZEN",
+  "official_seed_status": "RESERVED_UNUSED",
   "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
   "ordered_official_runs": [
     {
@@ -97,8 +104,12 @@
   "primary_screen": "Three of three independent official starts: healthy DNp01/EscapeDecoder stop with strictly positive 0.25 m margin while body moving and applied vx positive; stop refreshed through pose cessation; no fault, deadman, scripted stop, safety violation, or post-latch positive move",
   "required_successful_independent_trials": 3,
   "safety_limit_violations_max": 0,
-  "scenario_config_path": null,
-  "scenario_config_sha256": null,
+  "sampling_gate_manifest_path": "docs/evidence/p8-r3/v21-sampling-artifact-manifest-v1.json",
+  "sampling_gate_manifest_sha256": "14f4a733a4aae79e800886cfa0a947ce7b92b8fb763c2118a42dcef4ddfcab2a",
+  "scenario_config_path": "config/looming_scenario_v1.json",
+  "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+  "scenario_image_height_px": 33,
+  "scenario_image_width_px": 65,
   "scenario_motion": "approaching",
   "scenario_seeds": [
     885421,
@@ -108,8 +119,15 @@
   "scenario_window_interpretation": "V2.1 fractional red coverage from 8x8 subpixel renderer and detector, unchanged virtual geometry, selected V2 log-area estimator, frozen visual cadence, official moving body",
   "scheduler_exceptions_max": 0,
   "schema_version": "p8-r3-v21-official-development-v1",
-  "selected_v2": null,
-  "source_freeze_sha": null,
+  "selected_v2": {
+    "area_epsilon": 1e-06,
+    "full_scale_rate_per_s": 0.5,
+    "max_gap_ms": 150,
+    "method": "log_area",
+    "window_ms": 200
+  },
+  "source_freeze_relationship": "tested pre-config source ancestor; final official batch requires a clean committed config HEAD descended from this commit",
+  "source_freeze_sha": "3baf54841290f0b88ec2943264a2f3f2698f4c83",
   "sphere_entry_safety_margin_ms": 100,
   "stop_transport": "robot_stop",
   "stopped_metric": {
@@ -118,11 +136,11 @@
     "stop_confirmation_ms": 200,
     "stopped_threshold_mps": 0.008
   },
-  "visual_hz": null,
+  "visual_hz": 10,
   "visual_lineage_interpretation": "complete consecutive healthy graph-v2 neural steps from latest positive looming/LPLC2 to first DN stop; LC10a visual co-input may coexist, no unique biology claim",
   "visual_representation": "fractional_rgb_v21",
   "visual_scheduler_config_path": "config/p8_r3_visual_scheduler_v1.json",
-  "visual_scheduler_config_sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5",
+  "visual_scheduler_config_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
   "walking_policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
   "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
 }

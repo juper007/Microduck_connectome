@@ -31,12 +31,12 @@ class OfficialSelectionTests(unittest.TestCase):
     def setUp(self):
         self.protocol = json.loads((ROOT / "config/p8_r3_official_v1.json").read_text())
 
-    def test_unselected_internal_failure_cannot_launch(self):
+    def test_failed_v1_stays_blocked_and_v21_selection_is_frozen(self):
         with self.assertRaisesRegex(RuntimeError, "internal neural gate"):
             validate_frozen_selection(self.protocol)
         v21 = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
-        with self.assertRaisesRegex(RuntimeError, "internal neural gate and official protocol freeze"):
-            validate_frozen_selection(v21)
+        selected, hz = validate_frozen_selection(v21)
+        self.assertEqual((selected.method, hz), ("log_area", 10))
 
     def frozen(self):
         protocol = copy.deepcopy(self.protocol)
@@ -100,6 +100,9 @@ class OfficialSelectionTests(unittest.TestCase):
     def test_v21_selected_material_and_hashes_match_repository(self):
         protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
         self.assertEqual(protocol["internal_gate_status"], "PASS")
+        self.assertEqual(protocol["official_freeze_status"], "FROZEN")
+        self.assertEqual(protocol["source_freeze_sha"],
+                         "3baf54841290f0b88ec2943264a2f3f2698f4c83")
         self.assertEqual(protocol["visual_hz"], 10)
         self.assertEqual(protocol["selected_v2"], {
             "method": "log_area", "full_scale_rate_per_s": 0.5,
@@ -147,8 +150,6 @@ class OfficialSelectionTests(unittest.TestCase):
 
     def test_v21_frozen_preflight_rejects_source_hash_and_output_drift(self):
         protocol = json.loads((ROOT / "config/p8_r3_v21_official_v1.json").read_text())
-        protocol["source_freeze_sha"] = subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
         validate_frozen_material(ROOT, protocol)
         validate_frozen_output_dir(protocol, Path(protocol["frozen_output_dir"]))
         drift = copy.deepcopy(protocol)
