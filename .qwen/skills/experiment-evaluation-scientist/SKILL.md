@@ -1,6 +1,6 @@
 ---
 name: experiment-evaluation-scientist
-description: Qwen Code adapter for the canonical MicroDuck Connectome experiment-evaluation-scientist repository skill.
+description: Design and analyze falsifiable MicroDuck Connectome experiments. Use for hypotheses, preregistered metrics, baselines, ablations, shared trials, robustness, statistics, or evidence-based conclusions.
 ---
 
 # Qwen adapter: experiment-evaluation-scientist
