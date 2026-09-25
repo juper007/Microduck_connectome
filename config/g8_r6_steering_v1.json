@@ -1,0 +1,1553 @@
+{
+  "base_origin_main": "9b9a147ac143db50d21ee04b361b9fb852402122",
+  "config_sha256": {
+    "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+    "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+    "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+    "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+    "scenario": "089af4f05b5158579f7f335232793ffff5056fa3ea868d40cf0631fa0b33d804",
+    "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+    "sensory_mapping_p6": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+    "steering_decoder_p7": "7f013fed3da8862976c740246a0fda39a93298486a8153ef00568d44adb4e907",
+    "steering_temporal_p7": "268d18c289c81d270e822d3b4dac35c7833a86a13a20739cf34cd3215d9baecd",
+    "target_drive": "eb932025a0b61a7d3f08e16ef7247a0a6a43a3755aaf22045ee4e2007a3355ea",
+    "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+    "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+  },
+  "controller_commit_before_preregistration": "54fa3623f7b7db2e5a1e38a1d0157e50fec1ce18",
+  "dataset": "male-cns:v1.0",
+  "experiment_version": "g8-r6-graph-v2-steering-v1",
+  "final_result_policy": "freeze this committed protocol and source before first final trial; retain all started failures and do not replace seeds",
+  "graph_key": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "no_target_false_turn": {
+    "false_turn_rate_max": 0.05,
+    "min_abs_robot_facing_vyaw_radps": 0.1,
+    "min_sustained_duration_s": 0.2,
+    "warmup_excluded_s": 0.6
+  },
+  "no_target_trial_count": 40,
+  "no_target_trials": [
+    {
+      "seed": 4010636639,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-001",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3936780779,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-002",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 957089348,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-003",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2632839109,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-004",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3217561762,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-005",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1939196849,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-006",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 890548439,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-007",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 105620520,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-008",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4047643847,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-009",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 204406680,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-010",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2514873767,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-011",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3202248328,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-012",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1750056048,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-013",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4171405781,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-014",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1055584659,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-015",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1832304118,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-016",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3796694680,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-017",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1906834786,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-018",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4289824851,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-019",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4029869834,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-020",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2750639454,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-021",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3300811628,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-022",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2295183768,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-023",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 5445986,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-024",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1077929072,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-025",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1989008387,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-026",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1182796156,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-027",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 574909764,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-028",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 847934003,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-029",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1088858125,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-030",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3462467770,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-031",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4061213126,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-032",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3128262438,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-033",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3349435836,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-034",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1160829664,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-035",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1615857913,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-036",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4017224635,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-037",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3030574620,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-038",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1399773833,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-039",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 373395845,
+      "target_eccentricity": "none",
+      "target_motion": "none",
+      "target_present": false,
+      "target_side": "none",
+      "trial_id": "g8-r6-no-target-040",
+      "visual_noise_level": "moderate"
+    }
+  ],
+  "reset_reference": {
+    "heading_rad": 0.11884765359676912,
+    "heading_tolerance_rad": 0.02,
+    "source": "docs/evidence/p7-01/scenario-smoke-first-v1.json initial_poses[0]",
+    "source_sha256": "3a0e88bb078b64c649d7b3c284ed7d228721bf4c9040141139ced879585ebaf6",
+    "trunk_z_m": 0.1158945287893718,
+    "trunk_z_tolerance_m": 0.01
+  },
+  "safety_limit_violations_max": 0,
+  "scenario_version": "target-scenario-v1",
+  "schema_version": "g8-r6-steering-v1",
+  "scope": "prospective graph-v2 official Thor steering recertification; graph-v1 G7 is historical",
+  "seed_generation": "Python random.Random(80601); unique 32-bit seeds assigned in listed trial order",
+  "source_matrix_role": "condition strata only; no G7 outcomes reused",
+  "source_matrix_sha256": "f9deb07794fc4772a3a0eee5390543fc5bb73086457deaa4722c114ed70151f6",
+  "target_response": {
+    "center_tolerance_rad": 0.05,
+    "correct_direction_rate_min": 0.9,
+    "direction_reference": "evaluator-only target bearing relative to robot heading at first response onset",
+    "first_sustained_window_s": 0.2,
+    "heading_source": "read-only official MuJoCo body IMU quaternion via BodyReader, timestamped immediately after body read",
+    "min_abs_heading_delta_rad": 0.02,
+    "min_same_sign_increment_fraction": 0.8
+  },
+  "target_trial_count": 120,
+  "target_trials": [
+    {
+      "seed": 3341527225,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-001",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 62552422,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-002",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1412483927,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-003",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2347723049,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-004",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1642409684,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-005",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3989222504,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-006",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1320107446,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-007",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1257480412,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-008",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 154498831,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-009",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 572839824,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-010",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1943047679,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-011",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3005618299,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-012",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1508433501,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-013",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 836343011,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-014",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1453678049,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-015",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2847295971,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-016",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2323105292,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-017",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1806147088,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-018",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2687110312,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-019",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 480617503,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-020",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1705607402,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-021",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1723697855,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-022",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3230641644,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-023",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 224562817,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-024",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2079510663,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-025",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1375487288,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-026",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1911828762,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-027",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3338044835,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-028",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 147948815,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-029",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2697501015,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-030",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 931231317,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-031",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1505540098,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-032",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2243753609,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-033",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4279931453,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-034",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2316842450,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-035",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1710584991,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-036",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1156532814,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-037",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3095719576,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-038",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3183427157,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-039",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3846693254,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-040",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 895844942,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-041",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1229562742,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-042",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2483583567,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-043",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 13165815,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-044",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2783183261,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-045",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2465285849,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-046",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2078327325,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-047",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 376414607,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-048",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3550791574,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-049",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1569653349,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-050",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1555856941,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-051",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2620383577,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-052",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4084267763,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-053",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4268570172,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-054",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3343078960,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-055",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 762830736,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-056",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2606805637,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-057",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 744390392,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-058",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1407571273,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-059",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1122177720,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-060",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2078847754,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-061",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2174857547,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-062",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3274531610,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-063",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3842156236,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-064",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1531014233,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-065",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2257677621,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-066",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1833181329,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-067",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1901806356,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-068",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3886107241,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-069",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1863651130,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-070",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2970713443,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-071",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 121699264,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-072",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2849704783,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-073",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1244890795,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-074",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 974404072,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-075",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 336101369,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-076",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2621478272,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-077",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 271453032,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-078",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3460083176,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-079",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1287382519,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-080",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3806048350,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-081",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1868771150,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-082",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2237488936,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-083",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4071288262,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-084",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 171624501,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-085",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 201637859,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-086",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1372263795,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-087",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2893916636,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-088",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 987253920,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-089",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3876387970,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-090",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 327282452,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-091",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3569948549,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-092",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3587374649,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-093",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2499176727,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-094",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3089540930,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-095",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1588143694,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-096",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1221586197,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-097",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3291791144,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-098",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1915483260,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-099",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1328606749,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-100",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 4085199741,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-101",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2423761105,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-102",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4246344669,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-103",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2948641587,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-104",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 2778533428,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-105",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1419068607,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-106",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 759039058,
+      "target_eccentricity": "near_center",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-107",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 3701103656,
+      "target_eccentricity": "far",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-108",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 1331374460,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-109",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 751591703,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-110",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1722984493,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-111",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3122654224,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-112",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2415886057,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-113",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3449860750,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-114",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 3256080401,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-115",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 4179294048,
+      "target_eccentricity": "far",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-116",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 2607566974,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-117",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 900141446,
+      "target_eccentricity": "near_center",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-118",
+      "visual_noise_level": "moderate"
+    },
+    {
+      "seed": 292643803,
+      "target_eccentricity": "medium",
+      "target_motion": "slow_crossing",
+      "target_present": true,
+      "target_side": "left",
+      "trial_id": "g8-r6-target-119",
+      "visual_noise_level": "clean"
+    },
+    {
+      "seed": 1238047915,
+      "target_eccentricity": "medium",
+      "target_motion": "static",
+      "target_present": true,
+      "target_side": "right",
+      "trial_id": "g8-r6-target-120",
+      "visual_noise_level": "moderate"
+    }
+  ],
+  "trial_order_randomization_seed": 80601,
+  "validity": {
+    "invalid_only_for": [
+      "official simulator down/up reset failure",
+      "initial pose outside preregistered tolerance",
+      "official simulator/robotd unavailable before stimulus",
+      "camera fixture or scenario invariant failure",
+      "missing post-command robot state or MuJoCo heading",
+      "MuJoCo heading sample more than 100 ms after associated command",
+      "unhealthy official runtime, missed control deadline, or scheduler exception"
+    ],
+    "max_body_sample_delay_ms": 100.0,
+    "pretrial_policy_settle_s": 1.0,
+    "pretrial_pose_acquisition_max_attempts": 3,
+    "replacement_policy": "none after trial start; record every pretrial acquisition attempt and fail if all three fail",
+    "reset_policy": "before each trial, official duck-sim down/up; load hash-pinned walk policy; settle 1 s; check frozen initial-pose tolerance; at most three fully logged down/up attempts before trial start",
+    "wrong_turn_and_no_response_are_evaluated_failures": true
+  },
+  "walking_policy": {
+    "artifact_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+    "checkpoint_iteration": 1250,
+    "checkpoint_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/resumed-training-to-1250/model_1250.pt",
+    "checkpoint_sha256": "e2354a97fa87e2bddca1e4dd1896bdaa04c671d1f62cd96ea77bdc107e1902e6",
+    "diagnostic_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/candidate-diagnostics.json",
+    "diagnostic_summary_sha256": "ae3a7a84e33f983919e3c22ab9be4caa94e8e0861cf6264051f8035c9efc19fb",
+    "export_log_sha256": "af2481181cc3492d38061c210294901afd03a26d778b2e0ba5c31cdceb40e393",
+    "exporter_source_commit": "601239073ab58b1586e02d4851910d996e842838",
+    "official_microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "p6_recert_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/affected-p6-recert/summary.json",
+    "p6_recert_summary_sha256": "1183d980e1a1f267cd05d1645049266f05c4503497f02eb21c9a4b68b7affbea",
+    "p7_development_smoke_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/p7-development-smoke/summary.json",
+    "p7_development_smoke_summary_sha256": "7439a98b36dd35f293a57ea6c6c655165d9903d3a9333794e99f0aa06abc30bb",
+    "schema_version": "p7-preliminary-policy-candidate-v2",
+    "sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+    "status": "preliminary_p6_recert_pass_pending_independent_review_and_v4_preregistration",
+    "training_num_envs": 4096,
+    "training_recipe_sha256": "a5672f17d25e834a8c6c5c4710dd4fa04c9d0cb8f2bc095d1bf949dc3deedf47",
+    "training_resume_manifest_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/resumed-training-to-1250/manifest.json",
+    "training_resume_manifest_sha256": "5920758f0c00a49c38fc92473bae16d8f0bc8d677323f7cc0691b5d59fc05a3e",
+    "training_seed": 70202,
+    "training_source_commit": "601239073ab58b1586e02d4851910d996e842838"
+  },
+  "walking_policy_validation": {
+    "affected_p6_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/affected-p6-recert/summary.json",
+    "affected_p6_summary_sha256": "1183d980e1a1f267cd05d1645049266f05c4503497f02eb21c9a4b68b7affbea",
+    "development_smoke_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/p7-development-smoke/summary.json",
+    "development_smoke_summary_sha256": "7439a98b36dd35f293a57ea6c6c655165d9903d3a9333794e99f0aa06abc30bb",
+    "policy_metadata_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/metadata.json",
+    "policy_metadata_sha256": "2e0a16534b30772eecafa1f405f596b085043aea20b33236fd7b34857e64c1c5",
+    "selection_summary_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/candidate-diagnostics.json",
+    "selection_summary_sha256": "ae3a7a84e33f983919e3c22ab9be4caa94e8e0861cf6264051f8035c9efc19fb"
+  }
+}

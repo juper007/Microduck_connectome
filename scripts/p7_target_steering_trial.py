@@ -188,7 +188,7 @@ def main():
         from scripts.p7_preregister import HASH_PATHS
         experiment = json.loads(args.experiment.read_text(encoding="utf-8"))
         schema = experiment["schema_version"]
-        if schema == "steering-experiment-v4":
+        if schema in ("steering-experiment-v4", "g8-r6-steering-v1"):
             from scripts.p7_preregister_v4 import HASH_PATHS_V4
             hash_paths = HASH_PATHS_V4
             policy = experiment["walking_policy"]
@@ -211,12 +211,14 @@ def main():
         experiment_hash = hashlib.sha256(args.experiment.read_bytes()).hexdigest()
     spec = json.loads(args.trial_spec.read_text(encoding="utf-8"))
     graph = ConnectomeGraph.from_cache(args.graph_cache, args.graph_key)
+    if experiment is not None and experiment["graph_key"] != graph.root_key:
+        raise ValueError("preregistered graph identity mismatch")
     identity = build_run_identity(
         args.root, run_id=args.run_id, project_commit=args.source_head,
         microduck_commit=git_head(args.microduck),
         microduck_rl_commit=git_head(args.microduck_rl), graph_identity=graph.root_key,
     )
-    if experiment is not None and experiment["schema_version"] == "steering-experiment-v4":
+    if experiment is not None and experiment["schema_version"] in ("steering-experiment-v4", "g8-r6-steering-v1"):
         if identity["microduck_commit"] != experiment["microduck_commit"] or \
                 identity["microduck_rl_commit"] != experiment["microduck_rl_commit"]:
             raise ValueError("v4 official runtime commit mismatch")
