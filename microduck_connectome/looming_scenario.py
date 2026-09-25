@@ -34,12 +34,18 @@ def load_config(path):
         "trial_duration_s", "frame_period_s", "tof_mm", "initial_pose_tolerance",
         "geometry_provenance",
     }
-    if set(value) != required or value["schema_version"] != "looming-scenario-v1":
+    if set(value) != required or value["schema_version"] not in {
+        "looming-scenario-v1", "looming-scenario-rgb-v2"
+    }:
         raise LoomingScenarioError("scenario schema mismatch")
     if value["representation"] != "virtual/synthetic visual obstacle; no MuJoCo obstacle contact":
         raise LoomingScenarioError("representation mismatch")
     if any(type(value[k]) is not int or value[k] < 3 or value[k] % 2 == 0 for k in ("image_width_px", "image_height_px")):
         raise LoomingScenarioError("invalid image dimensions")
+    if value["schema_version"] == "looming-scenario-rgb-v2" and (
+        value["image_width_px"], value["image_height_px"]
+    ) != (129, 65):
+        raise LoomingScenarioError("RGB v2 resolution must remain 129x65")
     numeric = ("horizontal_fov_half_angle_rad", "virtual_sphere_radius_m",
                "nominal_robot_planar_extent_m", "robot_extent_allowance_m",
                "additional_boundary_margin_m", "safety_boundary_center_distance_m",
