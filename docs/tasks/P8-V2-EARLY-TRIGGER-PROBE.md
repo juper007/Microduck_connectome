@@ -53,6 +53,12 @@ not a P8-02 numerator or G8 PASS claim.
    observed distributions and failure modes. If infeasible, retain raw failure
    and report a versioned remediation need; do not weaken thresholds.
 
+The preflight geometry uses `looming_scenario.sphere_center`, including its
+0.5 s warmup and seed jitter. For development seed 880904 at arm 2.0 s, the
+center starts 0.5424428 m from the anchor pose, with a 0.2924428 m boundary
+margin before robot displacement. The evaluator recalculates distance from
+official pose at each event; these preflight numbers are not trial results.
+
 ## Evidence and handoff
 
 Versioned code/config and a Thor raw hash manifest are required for any PR.
