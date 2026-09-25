@@ -1,0 +1,7 @@
+{
+  "schema_version": "target-stimulus-gain-v1",
+  "target_gain": 30.0,
+  "max_channel_amplitude": 1.0,
+  "source": "phase-7-engineering-calibration",
+  "scope": "multiply only fresh valid P4 LC10a target channels after the frozen v1 sensory mapping; clamp to 1 before P3 injection; never change looming channels, motor limits, or decoder sign"
+}

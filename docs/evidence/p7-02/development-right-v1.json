@@ -1,0 +1,9 @@
+{
+  "trial_id": "p7-02-dev-right-far-crossing-moderate",
+  "seed": 70202,
+  "target_present": true,
+  "target_side": "right",
+  "target_eccentricity": "far",
+  "target_motion": "slow_crossing",
+  "visual_noise_level": "moderate"
+}

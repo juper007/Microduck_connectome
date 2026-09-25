@@ -1,0 +1,8 @@
+{
+  "schema_version": "target-stimulus-drive-v2",
+  "target_gain": 30.0,
+  "max_channel_amplitude": 1.0,
+  "lateral_deadzone_x": 0.05,
+  "source": "phase-7-engineering-calibration",
+  "scope": "after frozen P4 target detection, route bounded LC10a stimulation to the image side outside a small center deadzone; center splits bilaterally; retain P4 TTL, looming channels, P5 decoder, and all P6 safety limits"
+}

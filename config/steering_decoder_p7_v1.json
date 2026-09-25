@@ -1,0 +1,8 @@
+{
+  "schema_version": "steering-decoder-v1",
+  "steering_yaw_sign": -1,
+  "gain_vyaw_radps": 2.5,
+  "max_abs_vyaw_radps": 0.5,
+  "source": "male-cns-controller",
+  "scope": "Phase-7 engineering gain calibration; preserve the P6-03 simulator-calibrated yaw sign and frozen SafetyClamp, watchdog, TTL, and robotd ownership"
+}
