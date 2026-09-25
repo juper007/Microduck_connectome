@@ -111,6 +111,8 @@ def run(args):
     root = args.root.resolve()
     if git_head(root) != args.source_head:
         raise RuntimeError("source identity mismatch")
+    if not 884000 <= args.development_seed < 885000:
+        raise ValueError("development seed must be outside frozen P8-v2 final ranges")
     protocol = json.loads((root / "config/g8_r5d_stop_refresh_v1.json").read_text())
     check_args = argparse.Namespace(source_head=args.source_head, development_probe=True,
                                     microduck=args.microduck, microduck_rl=args.microduck_rl,
@@ -154,7 +156,8 @@ def run(args):
             pose_rows.append({"timestamp_ns": pose_ns, "x_m": pose["x_m"], "y_m": pose["y_m"]})
             events.append({"kind": "precondition_move", "timestamp_ns": pose_ns, "index": index,
                            "request_ns": call_ns, "write_ns": write_ns, "ack_ns": ack_ns,
-                           "robot_state": robot_state_record(state, state_ns, pose, pose_ns)})
+                           "robot_state": robot_state_record(state, state_ns, pose, pose_ns),
+                           "safety_state": state.get("safety")})
             time.sleep(max(0, pre["command_period_ms"] / 1000 -
                            (time.monotonic_ns() - tick_ns) / 1e9))
         speeds = pose_speeds(pose_rows, window_ms=metric["speed_window_ms"],
@@ -216,7 +219,8 @@ def run(args):
             pose_ns = time.monotonic_ns()
             pose_rows.append({"timestamp_ns": pose_ns, "x_m": pose["x_m"], "y_m": pose["y_m"]})
             events.append({"kind": "robot_observation", "timestamp_ns": pose_ns,
-                           "robot_state": robot_state_record(state, state_ns, pose, pose_ns)})
+                           "robot_state": robot_state_record(state, state_ns, pose, pose_ns),
+                           "safety_state": state.get("safety")})
             if stop_acks:
                 speeds = pose_speeds(pose_rows, window_ms=metric["speed_window_ms"],
                                      max_window_ms=metric["speed_window_max_ms"])
@@ -262,6 +266,16 @@ def run(args):
             raise RuntimeError("deadman limiter before confirmed stop")
         if isolated.post_stop_move_count or isolated.nonzero_count:
             raise RuntimeError("unexpected post-stop or nonzero neural move")
+        for row in events:
+            state = row.get("robot_state")
+            if state is None:
+                continue
+            requested = state["requested_velocity"]
+            if (abs(requested[0]) > 0.08 or requested[1] != 0.0
+                    or abs(requested[2]) > 0.5
+                    or (row.get("safety_state") or {}).get("fallen")
+                    or (row.get("safety_state") or {}).get("limp")):
+                raise RuntimeError("official state shows a safety limit violation")
         result = ("DEVELOPMENT_PROBE_EXPECTED_EXCEPTION_SAFE"
                   if args.fault == "unexpected_worker_exception"
                   else "DEVELOPMENT_PROBE_PASS")
@@ -294,6 +308,8 @@ def run(args):
         "schema_version": "p8-v2-fault-stop-development-v1",
         "evidence_role": "development_only_not_final_p8_04",
         "result": result, "failure": failure, "fault_mode": args.fault,
+        "development_seed": args.development_seed,
+        "seed_role": "trial_identity_only_no_random_draws_in_fixture",
         "source_head": args.source_head, "graph_sha256": protocol["graph_sha256"],
         "microduck_commit": git_head(args.microduck),
         "microduck_rl_commit": git_head(args.microduck_rl),
@@ -316,6 +332,7 @@ def run(args):
         "stopped_confirmed_ns": stop_confirmed_ns,
         "scheduler_errors": scheduler_errors,
         "scheduler_exceptions": scheduler._metrics.scheduler_exceptions if scheduler else None,
+        "safety_limit_violations": 0 if result != "FAIL" else None,
         "artifacts": artifacts,
     }
     summary_path = args.output / "summary.json"
@@ -333,6 +350,7 @@ def main():
     parser.add_argument("--source-head", required=True)
     parser.add_argument("--policy-readback", type=Path, required=True)
     parser.add_argument("--fault", choices=FAULTS, required=True)
+    parser.add_argument("--development-seed", type=int, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     summary = run(args)

@@ -49,9 +49,11 @@ def main():
     sim = args.microduck / "scripts/duck-sim"
     rows = []
     for index, fault in enumerate(args.faults):
+        development_seed = 884000 + index
         folder = args.output / f"trial-{index + 1:02d}-{fault}"
         folder.mkdir()
-        row = {"index": index, "fault": fault, "started": False, "steps": {},
+        row = {"index": index, "fault": fault, "development_seed": development_seed,
+               "started": False, "steps": {},
                "result": "NOT_STARTED"}
         rows.append(row)
         try:
@@ -81,7 +83,8 @@ def main():
                 "--microduck", str(args.microduck), "--microduck-rl", str(args.microduck_rl),
                 "--source-head", source_head,
                 "--policy-readback", str(folder / "policy-readback.json"),
-                "--fault", fault, "--output", str(folder),
+                "--fault", fault, "--development-seed", str(development_seed),
+                "--output", str(folder),
             ]
             trial_log = folder / "trial.log"
             code = run_logged(command, trial_log, env=env, cwd=root)
