@@ -1,0 +1,2352 @@
+{
+  "batch_error": null,
+  "completed_trials": 3,
+  "ended_utc": "2026-09-25T21:50:04Z",
+  "evidence_role": "development_probe",
+  "execution_target": "Thor",
+  "final_sim_down": {
+    "exit": 0,
+    "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+  },
+  "historical_failed_pr_66_untouched": true,
+  "historical_failed_pr_68_untouched": true,
+  "official_passes": 0,
+  "official_passes_planned": 3,
+  "planned_trials": 3,
+  "protocol_schema_version": "p8-r3-v22-official-development-v1",
+  "protocol_sha256": "756ad7a6f1064c237f766af018bc95fbe344e877d4d008e03bfea8db0b1a640a",
+  "result": "FAIL",
+  "schema_version": "p8-r3-official-batch-v1",
+  "source_head": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+  "started_trials": 3,
+  "started_utc": "2026-09-25T21:49:14Z",
+  "trials": [
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1741,
+          "exit": 0,
+          "sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b"
+        },
+        "up": {
+          "bytes": 1169,
+          "exit": 0,
+          "sha256": "4e6e3b6a9a49389a153d9803d9401f4799d578b8efd1b58fa8c1c4eb1a38371a"
+        }
+      },
+      "run_id": "01-885521",
+      "scenario_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+      "seed": 885521,
+      "selected_v2": {
+        "area_epsilon": 1e-06,
+        "full_scale_rate_per_s": 0.5,
+        "max_gap_ms": 150,
+        "method": "log_area",
+        "window_ms": 200
+      },
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 2.0,
+        "behavior_result": "FAIL",
+        "boundary_at_decoder_stop": {
+          "distance_m": 0.5209800723843881,
+          "event_timestamp_ns": 1814493731521554,
+          "margin_m": 0.27098007238438815,
+          "pose_gap_bound_ms": 19.502521,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.149909054
+        },
+        "boundary_at_first_dn_escape": {
+          "distance_m": 0.5209800723843881,
+          "event_timestamp_ns": 1814493731521554,
+          "margin_m": 0.27098007238438815,
+          "pose_gap_bound_ms": 19.502521,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.149909054
+        },
+        "boundary_at_first_looming": {
+          "distance_m": 0.54059039031819,
+          "event_timestamp_ns": 1814493651375698,
+          "margin_m": 0.29059039031819,
+          "pose_gap_bound_ms": 20.031107,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.069763198
+        },
+        "boundary_at_first_lplc2": {
+          "distance_m": 0.5357815581832277,
+          "event_timestamp_ns": 1814493671516566,
+          "margin_m": 0.2857815581832277,
+          "pose_gap_bound_ms": 19.917876,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.089904066
+        },
+        "boundary_at_first_stop_request": {
+          "distance_m": 0.5194417912093333,
+          "event_timestamp_ns": 1814493737796328,
+          "margin_m": 0.2694417912093333,
+          "pose_gap_bound_ms": 19.502521,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.156183828
+        },
+        "boundary_at_stop_ack": {
+          "distance_m": 0.5194007801646091,
+          "event_timestamp_ns": 1814493737963653,
+          "margin_m": 0.2694007801646091,
+          "pose_gap_bound_ms": 19.502521,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.156351153
+        },
+        "boundary_at_stopped_confirmation": {
+          "distance_m": 0.3748528891567764,
+          "event_timestamp_ns": 1814494468538439,
+          "margin_m": 0.12485288915677639,
+          "pose_gap_bound_ms": 0.0,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.886925939
+        },
+        "bounded_neural_lineage": {
+          "age_ms": 0.0,
+          "observed_steps": [
+            9
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 3,
+          "source_step": 9,
+          "stop_frame_id": 3,
+          "stop_step": 9,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "trigger_before_frozen_boundary": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": 1814494468841958,
+        "complete_transition_observed": true,
+        "deadman_limiter_seen_before_stopped": false,
+        "deadman_margin_ms": 493.332104,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": 1814493731521554,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": 1814493731521554,
+        "encoder": {
+          "area_epsilon": 1e-06,
+          "full_scale_rate_per_s": 0.5,
+          "max_gap_ms": 150,
+          "method": "log_area",
+          "window_ms": 200
+        },
+        "events_artifact": {
+          "bytes": 126568,
+          "end_timestamp_ns": 1814494469593203,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/01-885521/events.jsonl",
+          "record_count": 220,
+          "sha256": "3fe49a9f8a8843586d343509d5ab1507305c7018547a4e1398d9b5214aa8780b",
+          "start_timestamp_ns": 1814492076560896
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "fault_stop_latch": null,
+        "first_applied_vx_near_zero_at_ns": 1814493927244029,
+        "first_applied_vx_reduction_at_ns": 1814493767718063,
+        "first_stop_source": "healthy_neural_escape",
+        "first_stopped_state_at_ns": 1814494247955109,
+        "fixture_exceptions": [],
+        "geometry_max_forward_displacement_m": 0.007709936595329279,
+        "geometry_min_surface_clearance_m": 0.3048528891567764,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.98957417441019,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 596
+          },
+          "cpu_temp_c": 42.593,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.97109362124167,
+            "last_tick_age_ms": 9,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 476
+          },
+          "cpu_temp_c": 42.531,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "healthy_neural_stop_latch": {
+          "cause": "DNp01_EscapeDecoder",
+          "detected_ns": 1814493731521554,
+          "escape_activity": 0.6,
+          "first_healthy_stop_ack_ns": 1814493737963653,
+          "graph_runtime_step": 9,
+          "neural_sequence": 9,
+          "neural_timestamp_ns": 1814493731521554,
+          "source": "healthy_neural_escape"
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+          "run_id": "p8-r3-dev-01-885521",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": 6.549961,
+        "last_motion_call_to_stop_ack_ms": 6.667896,
+        "last_nonzero_velocity_at_ns": 1814494227352369,
+        "last_precondition_move_ack_at_ns": 1814493731413692,
+        "last_precondition_move_request_call_started_at_ns": 1814493731295757,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1814493651375698,
+        "looming_phase_started_at_ns": 1814493581612500,
+        "lplc2_first_nonzero_at_ns": 1814493671516566,
+        "max_stop_refresh_gap_ms": 23.841767,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "maximum_neural_observation_ms": 1000,
+        "mean_stop_refresh_gap_ms": 20.06764947222222,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1814493737716699,
+        "motion_arbiter_latch_reason": "healthy_neural_escape",
+        "motion_confirmed_at_ns": 1814492487625088,
+        "motion_first_observed_at_ns": 1814492287194288,
+        "motion_refresh_count": 8,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 20.068719,
+        "motion_stop_latency_ms": 730.574786,
+        "neural_ledger_artifact": {
+          "bytes": 36371,
+          "end_timestamp_ns": 1814494451521097,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/01-885521/neural-ledger.jsonl",
+          "record_count": 45,
+          "sha256": "5468099529ed73f6bdadf62d8021708327d9f3f8e945c85df7936c649f16dffa",
+          "start_timestamp_ns": 1814493581612500
+        },
+        "neural_stop_count": 37,
+        "neutral_publish_suppressed_count": 7,
+        "observer_errors": [],
+        "peak_dn_escape": 0.6,
+        "peak_looming": 1.0,
+        "peak_lplc2_stimulus": 1.0,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_nonstop_decoder_output_held_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 36,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": 0.0018570346376371378,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": 0.04881762655560336,
+        "pre_stop_pose_speed_mps": 0.05189097846524854,
+        "pre_stop_robot_state_applied_vx_mps": 0.06999999936676202,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": 10.241795,
+        "pre_stop_robot_state_sample_at_ns": 1814493727554533,
+        "pre_stop_speed_sample_age_ms": 3.48413,
+        "pre_stop_speed_sample_at_ns": 1814493728037424,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.04039010487465549,
+          "motion_confirmed_at_ns": 1814492487625088,
+          "motion_first_observed_at_ns": 1814492287194288,
+          "precondition_displacement_m": 0.0406277346560937,
+          "precondition_peak_pose_speed_mps": 0.1472833061385504,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 20.064866,
+        "precondition_startup_deadman_marker_count": 0,
+        "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+        "protocol_schema_version": "p8-r3-v22-official-development-v1",
+        "protocol_sha256": "756ad7a6f1064c237f766af018bc95fbe344e877d4d008e03bfea8db0b1a640a",
+        "r3_official_screen_checks": {
+          "before_frozen_boundary": true,
+          "healthy_neural_lineage": true,
+          "moving_before_trigger": true,
+          "no_prior_fault_or_deadman": true,
+          "safety_bounds": true,
+          "stop_request_before_frozen_boundary": true
+        },
+        "r3_official_screen_result": "PASS",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": 1814493737963653,
+        "robot_stop_rpc_call_started_ns": 1814493737796328,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+        "scheduler": {
+          "dropped_neural": 4,
+          "dropped_perception": 27,
+          "duration_s": 0.87773676,
+          "missed_deadlines": {
+            "neural": 0,
+            "perception": 0,
+            "watchdog": 0
+          },
+          "neural_hz": 50.128924758716956,
+          "neural_jitter_ms_p50": 0.0012159999999994398,
+          "neural_jitter_ms_p95": 0.06307179999999973,
+          "neural_jitter_ms_p99": 0.20006306000000051,
+          "neural_period_ms_p50": 20.000403,
+          "neural_period_ms_p95": 20.005345900000002,
+          "neural_period_ms_p99": 20.14537738,
+          "neural_processing_latency_ms_p50": 6.0800325,
+          "neural_processing_latency_ms_p95": 9.150555899999999,
+          "neural_processing_latency_ms_p99": 9.42891573,
+          "perception_hz": 50.128924758716956,
+          "perception_jitter_ms_p50": 0.005207999999999657,
+          "perception_jitter_ms_p95": 5.2890332,
+          "perception_jitter_ms_p99": 5.3502615,
+          "perception_period_ms_p50": 19.999561,
+          "perception_period_ms_p95": 20.2995812,
+          "perception_period_ms_p99": 25.32780326,
+          "perception_processing_latency_ms_p50": 0.0044399999999999995,
+          "perception_processing_latency_ms_p95": 9.5336714,
+          "perception_processing_latency_ms_p99": 9.674231919999999,
+          "publish_hz": 50.128924758716956,
+          "publish_jitter_ms_p50": 2.9844100000000005,
+          "publish_jitter_ms_p95": 3.3155685000000013,
+          "publish_jitter_ms_p99": 3.7262885200000007,
+          "publish_period_ms_p50": 19.991441,
+          "publish_period_ms_p95": 23.2110846,
+          "publish_period_ms_p99": 23.72628852,
+          "publish_processing_latency_ms_p50": 0.146936,
+          "publish_processing_latency_ms_p95": 0.24090125,
+          "publish_processing_latency_ms_p99": 2.007223670000001,
+          "scheduler_exceptions": 0,
+          "stale_events": 0,
+          "watchdog_hz": 50.128924758716956,
+          "watchdog_jitter_ms_p50": 0.062087999999999255,
+          "watchdog_jitter_ms_p95": 3.6503320000000015,
+          "watchdog_jitter_ms_p99": 3.9491894399999996,
+          "watchdog_period_ms_p50": 20.000857,
+          "watchdog_period_ms_p95": 23.5875467,
+          "watchdog_period_ms_p99": 23.81780976,
+          "watchdog_processing_latency_ms_p50": 0.9775325,
+          "watchdog_processing_latency_ms_p95": 4.3693863,
+          "watchdog_processing_latency_ms_p99": 4.4070338499999995
+        },
+        "scheduler_errors": [],
+        "scheduler_exceptions": 0,
+        "scheduler_result_available": true,
+        "schema_version": "p8-r3-official-trial-v1",
+        "seed": 885521,
+        "source_checkout_uncommitted": false,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 1934.6932497566859
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1814493737963653,
+          1814493761212935,
+          1814493777947785,
+          1814493801046584,
+          1814493817916230,
+          1814493837765114,
+          1814493860772590,
+          1814493877528994,
+          1814493900672100,
+          1814493917920109,
+          1814493937729336,
+          1814493961000358,
+          1814493977825282,
+          1814494000899656,
+          1814494018129424,
+          1814494037580028,
+          1814494060645448,
+          1814494077722993,
+          1814494100628200,
+          1814494117784653,
+          1814494137582445,
+          1814494160644901,
+          1814494177523603,
+          1814494201316684,
+          1814494217985356,
+          1814494241026407,
+          1814494257857172,
+          1814494276846422,
+          1814494297486005,
+          1814494317685030,
+          1814494337651155,
+          1814494357034648,
+          1814494376598762,
+          1814494400440529,
+          1814494417289296,
+          1814494437169781,
+          1814494460399034
+        ],
+        "stop_refresh_count": 37,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1814493737963653,
+            "sent_at_ns": 1814493737796328,
+            "sequence": 8,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493761212935,
+            "sent_at_ns": 1814493760996295,
+            "sequence": 9,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493777947785,
+            "sent_at_ns": 1814493777824145,
+            "sequence": 10,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493801046584,
+            "sent_at_ns": 1814493800856379,
+            "sequence": 11,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493817916230,
+            "sent_at_ns": 1814493817808730,
+            "sequence": 12,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493837765114,
+            "sent_at_ns": 1814493837587067,
+            "sequence": 13,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493860772590,
+            "sent_at_ns": 1814493860656145,
+            "sequence": 14,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493877528994,
+            "sent_at_ns": 1814493877392466,
+            "sequence": 15,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493900672100,
+            "sent_at_ns": 1814493900582840,
+            "sequence": 16,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493917920109,
+            "sent_at_ns": 1814493917768247,
+            "sequence": 17,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493937729336,
+            "sent_at_ns": 1814493937630576,
+            "sequence": 18,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493961000358,
+            "sent_at_ns": 1814493960782764,
+            "sequence": 19,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814493977825282,
+            "sent_at_ns": 1814493977720430,
+            "sequence": 20,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494000899656,
+            "sent_at_ns": 1814494000712062,
+            "sequence": 21,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494018129424,
+            "sent_at_ns": 1814494017967581,
+            "sequence": 22,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494037580028,
+            "sent_at_ns": 1814494037442639,
+            "sequence": 23,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494060645448,
+            "sent_at_ns": 1814494060430049,
+            "sequence": 24,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494077722993,
+            "sent_at_ns": 1814494077529798,
+            "sequence": 25,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494100628200,
+            "sent_at_ns": 1814494100473282,
+            "sequence": 26,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494117784653,
+            "sent_at_ns": 1814494117593328,
+            "sequence": 27,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494137582445,
+            "sent_at_ns": 1814494137434610,
+            "sequence": 28,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494160644901,
+            "sent_at_ns": 1814494160496854,
+            "sequence": 29,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494177523603,
+            "sent_at_ns": 1814494177389361,
+            "sequence": 30,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494201316684,
+            "sent_at_ns": 1814494201158766,
+            "sequence": 31,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494217985356,
+            "sent_at_ns": 1814494217834347,
+            "sequence": 32,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494241026407,
+            "sent_at_ns": 1814494237733694,
+            "sequence": 33,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494257857172,
+            "sent_at_ns": 1814494257756774,
+            "sequence": 34,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494276846422,
+            "sent_at_ns": 1814494276726560,
+            "sequence": 35,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494297486005,
+            "sent_at_ns": 1814494297395884,
+            "sequence": 36,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494317685030,
+            "sent_at_ns": 1814494317555715,
+            "sequence": 37,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494337651155,
+            "sent_at_ns": 1814494337549349,
+            "sequence": 38,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494357034648,
+            "sent_at_ns": 1814494356923361,
+            "sequence": 39,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494376598762,
+            "sent_at_ns": 1814494376500298,
+            "sequence": 40,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494400440529,
+            "sent_at_ns": 1814494400175259,
+            "sequence": 41,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494417289296,
+            "sent_at_ns": 1814494417169211,
+            "sequence": 42,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494437169781,
+            "sent_at_ns": 1814494436961317,
+            "sequence": 43,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814494460399034,
+            "sent_at_ns": 1814494460172273,
+            "sequence": 44,
+            "source": "healthy",
+            "stale_reason": null
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": 8.139405,
+        "stopped_confirmed_at_ns": 1814494468538439,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3106,
+          "end_timestamp_ns": 1814493736743924,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/01-885521/trace.jsonl",
+          "record_count": 1,
+          "sha256": "a489e91c0065178f5a30e0d03cd5c7ebfe787511d1f44cef8fff36123fc1b3c1",
+          "start_timestamp_ns": 1814493736743924
+        },
+        "transport_checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "trial_id": "p8-r3-dev-01-885521",
+        "unexpected_nonzero_publish_count": 0,
+        "validity_class": "ARMED",
+        "visual_after_ack_count": 15,
+        "visual_frame_artifact": {
+          "bytes": 6495,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/01-885521/visual-frames.jsonl",
+          "record_count": 18,
+          "sha256": "0b0b5d87b1a8a64a3bfebf5a69cd7be7508dd8e1325930e6f3d944277bfde2c0"
+        },
+        "visual_frame_count": 18,
+        "visual_hz": 20,
+        "visual_max_frame_gap_ms": 69.763198,
+        "visual_max_neural_frame_age_ms": 60.346926,
+        "visual_mean_frame_gap_ms": 51.16252747058824,
+        "visual_representation": "fractional_rgb_v21",
+        "walking_policy_readback_sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": 1814493736743924
+      },
+      "summary_sha256": "c1afe8d695ee43ce286a463c19c923a002bf375112bac3b31dbdfa827ebb3254",
+      "trial_exit": 1,
+      "trial_index": 0,
+      "trial_log_sha256": "819329545a13deefa26852283e6ab7c0242b17db90bd63da20d3d0f53321bb39",
+      "trial_started": true,
+      "validity_class": "ARMED",
+      "visual_hz": 20,
+      "visual_representation": "fractional_rgb_v21"
+    },
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1741,
+          "exit": 0,
+          "sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b"
+        },
+        "up": {
+          "bytes": 1071,
+          "exit": 0,
+          "sha256": "b58aeb408b4fa3109c1f684f730caef509ba50ea3a59b915ffc1311d36ab2baa"
+        }
+      },
+      "run_id": "02-885522",
+      "scenario_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+      "seed": 885522,
+      "selected_v2": {
+        "area_epsilon": 1e-06,
+        "full_scale_rate_per_s": 0.5,
+        "max_gap_ms": 150,
+        "method": "log_area",
+        "window_ms": 200
+      },
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 2.6,
+        "behavior_result": "FAIL",
+        "boundary_at_decoder_stop": {
+          "distance_m": 0.40854992627794084,
+          "event_timestamp_ns": 1814508140447097,
+          "margin_m": 0.15854992627794084,
+          "pose_gap_bound_ms": 19.5564,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.730340759
+        },
+        "boundary_at_first_dn_escape": {
+          "distance_m": 0.40854992627794084,
+          "event_timestamp_ns": 1814508140447097,
+          "margin_m": 0.15854992627794084,
+          "pose_gap_bound_ms": 19.5564,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.730340759
+        },
+        "boundary_at_first_looming": {
+          "distance_m": 0.42799616431160364,
+          "event_timestamp_ns": 1814508060296851,
+          "margin_m": 0.17799616431160364,
+          "pose_gap_bound_ms": 19.577306,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.650190513
+        },
+        "boundary_at_first_lplc2": {
+          "distance_m": 0.42319868593167487,
+          "event_timestamp_ns": 1814508080441874,
+          "margin_m": 0.17319868593167487,
+          "pose_gap_bound_ms": 20.844369,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.670335536
+        },
+        "boundary_at_first_stop_request": {
+          "distance_m": 0.40686598593100176,
+          "event_timestamp_ns": 1814508147186632,
+          "margin_m": 0.15686598593100176,
+          "pose_gap_bound_ms": 19.5564,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.737080294
+        },
+        "boundary_at_stop_ack": {
+          "distance_m": 0.4068234941897193,
+          "event_timestamp_ns": 1814508147356707,
+          "margin_m": 0.1568234941897193,
+          "pose_gap_bound_ms": 19.5564,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 2.7372503690000003
+        },
+        "boundary_at_stopped_confirmation": {
+          "distance_m": 0.2653805340524785,
+          "event_timestamp_ns": 1814508874655996,
+          "margin_m": 0.015380534052478523,
+          "pose_gap_bound_ms": 0.0,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.464549658
+        },
+        "bounded_neural_lineage": {
+          "age_ms": 0.0,
+          "observed_steps": [
+            8
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 3,
+          "source_step": 8,
+          "stop_frame_id": 3,
+          "stop_step": 8,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "trigger_before_frozen_boundary": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": 1814508874987683,
+        "complete_transition_observed": true,
+        "deadman_limiter_seen_before_stopped": false,
+        "deadman_margin_ms": 492.766008,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": 1814508140447097,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": 1814508140447097,
+        "encoder": {
+          "area_epsilon": 1e-06,
+          "full_scale_rate_per_s": 0.5,
+          "max_gap_ms": 150,
+          "method": "log_area",
+          "window_ms": 200
+        },
+        "events_artifact": {
+          "bytes": 125048,
+          "end_timestamp_ns": 1814508876363505,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/02-885522/events.jsonl",
+          "record_count": 217,
+          "sha256": "af74adf031b524353cc1b4929d64397f82f2c315bd59c193097a6a32a6523d17",
+          "start_timestamp_ns": 1814506504808709
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "fault_stop_latch": null,
+        "first_applied_vx_near_zero_at_ns": 1814508333599966,
+        "first_applied_vx_reduction_at_ns": 1814508174300942,
+        "first_stop_source": "healthy_neural_escape",
+        "first_stopped_state_at_ns": 1814508654626618,
+        "fixture_exceptions": [],
+        "geometry_max_forward_displacement_m": 0.00723205184585845,
+        "geometry_min_surface_clearance_m": 0.19538053405247852,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.99298053559598,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 595
+          },
+          "cpu_temp_c": 42.593,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.966002103457,
+            "last_tick_age_ms": 10,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 476
+          },
+          "cpu_temp_c": 42.906,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "healthy_neural_stop_latch": {
+          "cause": "DNp01_EscapeDecoder",
+          "detected_ns": 1814508140447097,
+          "escape_activity": 0.6,
+          "first_healthy_stop_ack_ns": 1814508147356707,
+          "graph_runtime_step": 8,
+          "neural_sequence": 8,
+          "neural_timestamp_ns": 1814508140447097,
+          "source": "healthy_neural_escape"
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+          "run_id": "p8-r3-dev-02-885522",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": 7.146972,
+        "last_motion_call_to_stop_ack_ms": 7.233992,
+        "last_nonzero_velocity_at_ns": 1814508634335456,
+        "last_precondition_move_ack_at_ns": 1814508140209735,
+        "last_precondition_move_request_call_started_at_ns": 1814508140122715,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1814508060296851,
+        "looming_phase_started_at_ns": 1814508010106338,
+        "lplc2_first_nonzero_at_ns": 1814508080441874,
+        "max_stop_refresh_gap_ms": 24.818223,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "maximum_neural_observation_ms": 750,
+        "mean_stop_refresh_gap_ms": 20.093393777777777,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1814508147124540,
+        "motion_arbiter_latch_reason": "healthy_neural_escape",
+        "motion_confirmed_at_ns": 1814506935310250,
+        "motion_first_observed_at_ns": 1814506714732337,
+        "motion_refresh_count": 7,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 20.058447,
+        "motion_stop_latency_ms": 727.299289,
+        "neural_ledger_artifact": {
+          "bytes": 36170,
+          "end_timestamp_ns": 1814508860445551,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/02-885522/neural-ledger.jsonl",
+          "record_count": 44,
+          "sha256": "9483b593aeaf7576ce988862f0fad55845515a427a69f8971c09dd4bf90d55bd",
+          "start_timestamp_ns": 1814508010106338
+        },
+        "neural_stop_count": 37,
+        "neutral_publish_suppressed_count": 6,
+        "observer_errors": [],
+        "peak_dn_escape": 0.6,
+        "peak_looming": 1.0,
+        "peak_lplc2_stimulus": 1.0,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_nonstop_decoder_output_held_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 36,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": 0.0017302883626380793,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": 0.048173106580385636,
+        "pre_stop_pose_speed_mps": 0.07991848067930128,
+        "pre_stop_robot_state_applied_vx_mps": 0.06999999920845251,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": 13.220301,
+        "pre_stop_robot_state_sample_at_ns": 1814508133966331,
+        "pre_stop_speed_sample_age_ms": 5.89842,
+        "pre_stop_speed_sample_at_ns": 1814508134548677,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.04045801520363075,
+          "motion_confirmed_at_ns": 1814506935310250,
+          "motion_first_observed_at_ns": 1814506714732337,
+          "precondition_displacement_m": 0.0406277202845679,
+          "precondition_peak_pose_speed_mps": 0.15422321780234655,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 20.066634,
+        "precondition_startup_deadman_marker_count": 0,
+        "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+        "protocol_schema_version": "p8-r3-v22-official-development-v1",
+        "protocol_sha256": "756ad7a6f1064c237f766af018bc95fbe344e877d4d008e03bfea8db0b1a640a",
+        "r3_official_screen_checks": {
+          "before_frozen_boundary": true,
+          "healthy_neural_lineage": true,
+          "moving_before_trigger": true,
+          "no_prior_fault_or_deadman": true,
+          "safety_bounds": true,
+          "stop_request_before_frozen_boundary": true
+        },
+        "r3_official_screen_result": "PASS",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": 1814508147356707,
+        "robot_stop_rpc_call_started_ns": 1814508147186632,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+        "scheduler": {
+          "dropped_neural": 3,
+          "dropped_perception": 26,
+          "duration_s": 0.854965987,
+          "missed_deadlines": {
+            "neural": 0,
+            "perception": 0,
+            "watchdog": 0
+          },
+          "neural_hz": 50.29439843669476,
+          "neural_jitter_ms_p50": 3.1872574999999994,
+          "neural_jitter_ms_p95": 3.543986700000001,
+          "neural_jitter_ms_p99": 3.562743680000001,
+          "neural_period_ms_p50": 20.0009065,
+          "neural_period_ms_p95": 23.38033425,
+          "neural_period_ms_p99": 23.555324730000002,
+          "neural_processing_latency_ms_p50": 6.127365,
+          "neural_processing_latency_ms_p95": 8.565054999999997,
+          "neural_processing_latency_ms_p99": 10.029587639999999,
+          "perception_hz": 50.29439843669476,
+          "perception_jitter_ms_p50": 0.002560000000000784,
+          "perception_jitter_ms_p95": 0.06279935000000089,
+          "perception_jitter_ms_p99": 0.20888698999999944,
+          "perception_period_ms_p50": 20.000002000000002,
+          "perception_period_ms_p95": 20.00918675,
+          "perception_period_ms_p99": 20.14969094,
+          "perception_processing_latency_ms_p50": 0.003259,
+          "perception_processing_latency_ms_p95": 8.9435153,
+          "perception_processing_latency_ms_p99": 10.22073982,
+          "publish_hz": 50.29439843669476,
+          "publish_jitter_ms_p50": 2.858682,
+          "publish_jitter_ms_p95": 4.36818065,
+          "publish_jitter_ms_p99": 4.801058009999999,
+          "publish_period_ms_p50": 20.497875999999998,
+          "publish_period_ms_p95": 24.2047538,
+          "publish_period_ms_p99": 24.569909759999998,
+          "publish_processing_latency_ms_p50": 0.11788,
+          "publish_processing_latency_ms_p95": 0.21105699999999997,
+          "publish_processing_latency_ms_p99": 0.24172491999999998,
+          "scheduler_exceptions": 0,
+          "stale_events": 0,
+          "watchdog_hz": 50.29439843669476,
+          "watchdog_jitter_ms_p50": 3.0143994999999997,
+          "watchdog_jitter_ms_p95": 3.3947722,
+          "watchdog_jitter_ms_p99": 3.5112941699999993,
+          "watchdog_period_ms_p50": 20.002831999999998,
+          "watchdog_period_ms_p95": 23.287392699999998,
+          "watchdog_period_ms_p99": 23.46377476,
+          "watchdog_processing_latency_ms_p50": 1.085931,
+          "watchdog_processing_latency_ms_p95": 3.8004119,
+          "watchdog_processing_latency_ms_p99": 5.2339094600000005
+        },
+        "scheduler_errors": [],
+        "scheduler_exceptions": 0,
+        "scheduler_result_available": true,
+        "schema_version": "p8-r3-official-trial-v1",
+        "seed": 885522,
+        "source_checkout_uncommitted": false,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 1348.6780939541688
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1814508147356707,
+          1814508169081173,
+          1814508186231552,
+          1814508206901308,
+          1814508230673035,
+          1814508246568443,
+          1814508269354406,
+          1814508286644682,
+          1814508307002762,
+          1814508330281486,
+          1814508347369955,
+          1814508369062570,
+          1814508385957751,
+          1814508406746073,
+          1814508430281549,
+          1814508446620236,
+          1814508469271938,
+          1814508486887826,
+          1814508506782077,
+          1814508529331010,
+          1814508546865712,
+          1814508569467831,
+          1814508586010491,
+          1814508605744964,
+          1814508630125601,
+          1814508646663308,
+          1814508669404750,
+          1814508685795549,
+          1814508706442408,
+          1814508731260631,
+          1814508746298775,
+          1814508770525226,
+          1814508786743228,
+          1814508806721213,
+          1814508830736738,
+          1814508847170602,
+          1814508870718883
+        ],
+        "stop_refresh_count": 37,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1814508147356707,
+            "sent_at_ns": 1814508147186632,
+            "sequence": 7,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508169081173,
+            "sent_at_ns": 1814508168945886,
+            "sequence": 8,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508186231552,
+            "sent_at_ns": 1814508186131430,
+            "sequence": 9,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508206901308,
+            "sent_at_ns": 1814508206807790,
+            "sequence": 10,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508230673035,
+            "sent_at_ns": 1814508230549007,
+            "sequence": 11,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508246568443,
+            "sent_at_ns": 1814508246425285,
+            "sequence": 12,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508269354406,
+            "sent_at_ns": 1814508269249933,
+            "sequence": 13,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508286644682,
+            "sent_at_ns": 1814508286544218,
+            "sequence": 14,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508307002762,
+            "sent_at_ns": 1814508306927196,
+            "sequence": 15,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508330281486,
+            "sent_at_ns": 1814508330188040,
+            "sequence": 16,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508347369955,
+            "sent_at_ns": 1814508347295705,
+            "sequence": 17,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508369062570,
+            "sent_at_ns": 1814508368942513,
+            "sequence": 18,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508385957751,
+            "sent_at_ns": 1814508385864279,
+            "sequence": 19,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508406746073,
+            "sent_at_ns": 1814508406621332,
+            "sequence": 20,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508430281549,
+            "sent_at_ns": 1814508430146038,
+            "sequence": 21,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508446620236,
+            "sent_at_ns": 1814508446512531,
+            "sequence": 22,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508469271938,
+            "sent_at_ns": 1814508469152437,
+            "sequence": 23,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508486887826,
+            "sent_at_ns": 1814508486783241,
+            "sequence": 24,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508506782077,
+            "sent_at_ns": 1814508506672920,
+            "sequence": 25,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508529331010,
+            "sent_at_ns": 1814508529219852,
+            "sequence": 26,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508546865712,
+            "sent_at_ns": 1814508546787675,
+            "sequence": 27,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508569467831,
+            "sent_at_ns": 1814508569317820,
+            "sequence": 28,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508586010491,
+            "sent_at_ns": 1814508585928305,
+            "sequence": 29,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508605744964,
+            "sent_at_ns": 1814508605622066,
+            "sequence": 30,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508630125601,
+            "sent_at_ns": 1814508630000618,
+            "sequence": 31,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508646663308,
+            "sent_at_ns": 1814508646567473,
+            "sequence": 32,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508669404750,
+            "sent_at_ns": 1814508669297629,
+            "sequence": 33,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508685795549,
+            "sent_at_ns": 1814508685714670,
+            "sequence": 34,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508706442408,
+            "sent_at_ns": 1814508706329620,
+            "sequence": 35,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508731260631,
+            "sent_at_ns": 1814508731036500,
+            "sequence": 36,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508746298775,
+            "sent_at_ns": 1814508746166950,
+            "sequence": 37,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508770525226,
+            "sent_at_ns": 1814508770377142,
+            "sequence": 38,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508786743228,
+            "sent_at_ns": 1814508786620005,
+            "sequence": 39,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508806721213,
+            "sent_at_ns": 1814508806498888,
+            "sequence": 40,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508830736738,
+            "sent_at_ns": 1814508830590135,
+            "sequence": 41,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508847170602,
+            "sent_at_ns": 1814508847027490,
+            "sequence": 42,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814508870718883,
+            "sent_at_ns": 1814508870537623,
+            "sequence": 43,
+            "source": "healthy",
+            "stale_reason": null
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": 3.937113,
+        "stopped_confirmed_at_ns": 1814508874655996,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3099,
+          "end_timestamp_ns": 1814508145668412,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/02-885522/trace.jsonl",
+          "record_count": 1,
+          "sha256": "9467fab7e483bf44c40fd4d8b98a94443177cc67da3b817a753e3dd140937c6a",
+          "start_timestamp_ns": 1814508145668412
+        },
+        "transport_checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "trial_id": "p8-r3-dev-02-885522",
+        "unexpected_nonzero_publish_count": 0,
+        "validity_class": "ARMED",
+        "visual_after_ack_count": 15,
+        "visual_frame_artifact": {
+          "bytes": 6488,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/02-885522/visual-frames.jsonl",
+          "record_count": 18,
+          "sha256": "9aa95c0b2c5887e1f72484eacdf9513f7d8ae1257f9c4566a94cf931d41696c1"
+        },
+        "visual_frame_count": 18,
+        "visual_hz": 20,
+        "visual_max_frame_gap_ms": 60.002464,
+        "visual_max_neural_frame_age_ms": 63.691936,
+        "visual_mean_frame_gap_ms": 50.01123905882353,
+        "visual_representation": "fractional_rgb_v21",
+        "walking_policy_readback_sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": 1814508145668412
+      },
+      "summary_sha256": "1421ecd3146aa53865404b46a63a70d662688a6260c4b98aed4f6609ff8abe97",
+      "trial_exit": 1,
+      "trial_index": 1,
+      "trial_log_sha256": "10ca9075e2a905dd8a3336fda96e7936fbc76b3b4ac7391e724957f6ed765473",
+      "trial_started": true,
+      "validity_class": "ARMED",
+      "visual_hz": 20,
+      "visual_representation": "fractional_rgb_v21"
+    },
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1741,
+          "exit": 0,
+          "sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b"
+        },
+        "up": {
+          "bytes": 1072,
+          "exit": 0,
+          "sha256": "5b9ee2cd4fd873e7e72113c1e533cbb9d45fac2cc9f9f9ae2c67550501ae98d9"
+        }
+      },
+      "run_id": "03-885523",
+      "scenario_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+      "seed": 885523,
+      "selected_v2": {
+        "area_epsilon": 1e-06,
+        "full_scale_rate_per_s": 0.5,
+        "max_gap_ms": 150,
+        "method": "log_area",
+        "window_ms": 200
+      },
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 3.0,
+        "behavior_result": "FAIL",
+        "boundary_at_decoder_stop": {
+          "distance_m": 0.32882168831473013,
+          "event_timestamp_ns": 1814522498953904,
+          "margin_m": 0.07882168831473013,
+          "pose_gap_bound_ms": 39.221046,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.110906925
+        },
+        "boundary_at_first_dn_escape": {
+          "distance_m": 0.32882168831473013,
+          "event_timestamp_ns": 1814522498953904,
+          "margin_m": 0.07882168831473013,
+          "pose_gap_bound_ms": 39.221046,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.110906925
+        },
+        "boundary_at_first_looming": {
+          "distance_m": 0.34343756899342104,
+          "event_timestamp_ns": 1814522438802149,
+          "margin_m": 0.09343756899342104,
+          "pose_gap_bound_ms": 23.145972,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.05075517
+        },
+        "boundary_at_first_lplc2": {
+          "distance_m": 0.3386136445081355,
+          "event_timestamp_ns": 1814522458956771,
+          "margin_m": 0.08861364450813553,
+          "pose_gap_bound_ms": 16.819263,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.070909792
+        },
+        "boundary_at_first_stop_request": {
+          "distance_m": 0.3264657043511265,
+          "event_timestamp_ns": 1814522508472000,
+          "margin_m": 0.07646570435112648,
+          "pose_gap_bound_ms": 39.221046,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.120425021
+        },
+        "boundary_at_stop_ack": {
+          "distance_m": 0.32642543163416715,
+          "event_timestamp_ns": 1814522508634732,
+          "margin_m": 0.07642543163416715,
+          "pose_gap_bound_ms": 39.221046,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.120587753
+        },
+        "boundary_at_stopped_confirmation": {
+          "distance_m": 0.19279664430612634,
+          "event_timestamp_ns": 1814523186686325,
+          "margin_m": -0.057203355693873664,
+          "pose_gap_bound_ms": 0.0,
+          "pose_method": "bracketed_linear_pose_interpolation",
+          "scenario_elapsed_s": 3.798639346
+        },
+        "bounded_neural_lineage": {
+          "age_ms": 0.0,
+          "observed_steps": [
+            7
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 2,
+          "source_step": 7,
+          "stop_frame_id": 2,
+          "stop_step": 7,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "trigger_before_frozen_boundary": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": 1814523186973763,
+        "complete_transition_observed": true,
+        "deadman_limiter_seen_before_stopped": false,
+        "deadman_margin_ms": 489.99492,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": 1814522498953904,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": 1814522498953904,
+        "encoder": {
+          "area_epsilon": 1e-06,
+          "full_scale_rate_per_s": 0.5,
+          "max_gap_ms": 150,
+          "method": "log_area",
+          "window_ms": 200
+        },
+        "events_artifact": {
+          "bytes": 118785,
+          "end_timestamp_ns": 1814523187709035,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/03-885523/events.jsonl",
+          "record_count": 206,
+          "sha256": "caff05af9fade03f997c9c991549132044cf8301908454d78a2457ce61acf302",
+          "start_timestamp_ns": 1814520881269886
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "fault_stop_latch": null,
+        "first_applied_vx_near_zero_at_ns": 1814522708304469,
+        "first_applied_vx_reduction_at_ns": 1814522548335909,
+        "first_stop_source": "healthy_neural_escape",
+        "first_stopped_state_at_ns": 1814522748782372,
+        "fixture_exceptions": [],
+        "geometry_max_forward_displacement_m": 0.006323784671968466,
+        "geometry_min_surface_clearance_m": 0.12279664430612633,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 50.0290031374159,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 590
+          },
+          "cpu_temp_c": 42.625,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.98720278601617,
+            "last_tick_age_ms": 16,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 474
+          },
+          "cpu_temp_c": 44.156,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "healthy_neural_stop_latch": {
+          "cause": "DNp01_EscapeDecoder",
+          "detected_ns": 1814522498953904,
+          "escape_activity": 0.6,
+          "first_healthy_stop_ack_ns": 1814522508634732,
+          "graph_runtime_step": 7,
+          "neural_sequence": 7,
+          "neural_timestamp_ns": 1814522498953904,
+          "source": "healthy_neural_escape"
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+          "run_id": "p8-r3-dev-03-885523",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": 9.876237,
+        "last_motion_call_to_stop_ack_ms": 10.00508,
+        "last_nonzero_velocity_at_ns": 1814522966526041,
+        "last_precondition_move_ack_at_ns": 1814522498758495,
+        "last_precondition_move_request_call_started_at_ns": 1814522498629652,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1814522438802149,
+        "looming_phase_started_at_ns": 1814522388046979,
+        "lplc2_first_nonzero_at_ns": 1814522458956771,
+        "max_stop_refresh_gap_ms": 24.926323,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "maximum_neural_observation_ms": 550,
+        "mean_stop_refresh_gap_ms": 19.86690676470588,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1814522508105285,
+        "motion_arbiter_latch_reason": "healthy_neural_escape",
+        "motion_confirmed_at_ns": 1814521286025162,
+        "motion_first_observed_at_ns": 1814521085796908,
+        "motion_refresh_count": 6,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 20.060372,
+        "motion_stop_latency_ms": 678.051593,
+        "neural_ledger_artifact": {
+          "bytes": 34217,
+          "end_timestamp_ns": 1814523178954805,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/03-885523/neural-ledger.jsonl",
+          "record_count": 41,
+          "sha256": "f9b34f860a41b52597f4a879c7c91f84c6ba63988489321a76f3e0f44426dff6",
+          "start_timestamp_ns": 1814522388046979
+        },
+        "neural_stop_count": 35,
+        "neutral_publish_suppressed_count": 5,
+        "observer_errors": [],
+        "peak_dn_escape": 0.6,
+        "peak_looming": 1.0,
+        "peak_lplc2_stimulus": 1.0,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_nonstop_decoder_output_held_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 34,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": 0.0018856413516959132,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": 0.05028577833812009,
+        "pre_stop_pose_speed_mps": 0.09366913250801197,
+        "pre_stop_robot_state_applied_vx_mps": 0.06999999901056564,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": 22.582747,
+        "pre_stop_robot_state_sample_at_ns": 1814522485889253,
+        "pre_stop_speed_sample_age_ms": 12.607991,
+        "pre_stop_speed_sample_at_ns": 1814522486345913,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.12346977526237034,
+          "motion_confirmed_at_ns": 1814521286025162,
+          "motion_first_observed_at_ns": 1814521085796908,
+          "precondition_displacement_m": 0.04480338827199435,
+          "precondition_peak_pose_speed_mps": 0.14667349019024378,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 21.685111,
+        "precondition_startup_deadman_marker_count": 0,
+        "project_commit": "0d1a178767cf4eec5ba5e53b464e4658d4fbfca9",
+        "protocol_schema_version": "p8-r3-v22-official-development-v1",
+        "protocol_sha256": "756ad7a6f1064c237f766af018bc95fbe344e877d4d008e03bfea8db0b1a640a",
+        "r3_official_screen_checks": {
+          "before_frozen_boundary": true,
+          "healthy_neural_lineage": true,
+          "moving_before_trigger": true,
+          "no_prior_fault_or_deadman": true,
+          "safety_bounds": true,
+          "stop_request_before_frozen_boundary": true
+        },
+        "r3_official_screen_result": "PASS",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": 1814522508634732,
+        "robot_stop_rpc_call_started_ns": 1814522508472000,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+        "scheduler": {
+          "dropped_neural": 2,
+          "dropped_perception": 25,
+          "duration_s": 0.788435757,
+          "missed_deadlines": {
+            "neural": 0,
+            "perception": 0,
+            "watchdog": 0
+          },
+          "neural_hz": 50.733366218954984,
+          "neural_jitter_ms_p50": 3.554461,
+          "neural_jitter_ms_p95": 4.2417361,
+          "neural_jitter_ms_p99": 4.4977189399999995,
+          "neural_period_ms_p50": 20.000454,
+          "neural_period_ms_p95": 24.019907,
+          "neural_period_ms_p99": 24.389394619999997,
+          "neural_processing_latency_ms_p50": 5.6929739999999995,
+          "neural_processing_latency_ms_p95": 6.9425046999999935,
+          "neural_processing_latency_ms_p99": 9.70979045,
+          "perception_hz": 50.733366218954984,
+          "perception_jitter_ms_p50": 0.0032789999999991437,
+          "perception_jitter_ms_p95": 0.0720698000000003,
+          "perception_jitter_ms_p99": 0.11485899999999866,
+          "perception_period_ms_p50": 19.999343,
+          "perception_period_ms_p95": 20.0127874,
+          "perception_period_ms_p99": 20.09568196,
+          "perception_processing_latency_ms_p50": 0.0032405,
+          "perception_processing_latency_ms_p95": 9.195000949999999,
+          "perception_processing_latency_ms_p99": 9.96275549,
+          "publish_hz": 50.733366218954984,
+          "publish_jitter_ms_p50": 2.5060420000000008,
+          "publish_jitter_ms_p95": 4.6716475,
+          "publish_jitter_ms_p99": 4.825194179999999,
+          "publish_period_ms_p50": 20.021019,
+          "publish_period_ms_p95": 24.436028800000003,
+          "publish_period_ms_p99": 24.66852152,
+          "publish_processing_latency_ms_p50": 0.173163,
+          "publish_processing_latency_ms_p95": 0.6719773,
+          "publish_processing_latency_ms_p99": 0.71473508,
+          "scheduler_exceptions": 0,
+          "stale_events": 0,
+          "watchdog_hz": 50.733366218954984,
+          "watchdog_jitter_ms_p50": 1.5196269999999998,
+          "watchdog_jitter_ms_p95": 3.77572,
+          "watchdog_jitter_ms_p99": 4.063557999999999,
+          "watchdog_period_ms_p50": 20.002455,
+          "watchdog_period_ms_p95": 23.6594299,
+          "watchdog_period_ms_p99": 23.935060999999997,
+          "watchdog_processing_latency_ms_p50": 0.650077,
+          "watchdog_processing_latency_ms_p95": 4.488153199999999,
+          "watchdog_processing_latency_ms_p99": 5.328489949999999
+        },
+        "scheduler_errors": [],
+        "scheduler_exceptions": 0,
+        "scheduler_result_available": true,
+        "schema_version": "p8-r3-official-trial-v1",
+        "seed": 885523,
+        "source_checkout_uncommitted": false,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 926.3163430610501
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1814522508634732,
+          1814522525415476,
+          1814522542537759,
+          1814522564614020,
+          1814522584342955,
+          1814522609179091,
+          1814522624327937,
+          1814522648483700,
+          1814522664723533,
+          1814522684748627,
+          1814522702742394,
+          1814522724615016,
+          1814522748598945,
+          1814522765304058,
+          1814522785984821,
+          1814522810380151,
+          1814522825199496,
+          1814522842818541,
+          1814522864834478,
+          1814522885688642,
+          1814522909141486,
+          1814522924972595,
+          1814522943073058,
+          1814522964782800,
+          1814522984690070,
+          1814523009513699,
+          1814523024837704,
+          1814523049764027,
+          1814523064914586,
+          1814523084529308,
+          1814523103549888,
+          1814523125793151,
+          1814523149347513,
+          1814523165156781,
+          1814523184109562
+        ],
+        "stop_refresh_count": 35,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1814522508634732,
+            "sent_at_ns": 1814522508472000,
+            "sequence": 6,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522525415476,
+            "sent_at_ns": 1814522524880779,
+            "sequence": 7,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522542537759,
+            "sent_at_ns": 1814522542406027,
+            "sequence": 8,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522564614020,
+            "sent_at_ns": 1814522564473575,
+            "sequence": 9,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522584342955,
+            "sent_at_ns": 1814522584262204,
+            "sequence": 10,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522609179091,
+            "sent_at_ns": 1814522608911840,
+            "sequence": 11,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522624327937,
+            "sent_at_ns": 1814522624239372,
+            "sequence": 12,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522648483700,
+            "sent_at_ns": 1814522647763326,
+            "sequence": 13,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522664723533,
+            "sent_at_ns": 1814522664582949,
+            "sequence": 14,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522684748627,
+            "sent_at_ns": 1814522684605830,
+            "sequence": 15,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522702742394,
+            "sent_at_ns": 1814522702580782,
+            "sequence": 16,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522724615016,
+            "sent_at_ns": 1814522724495339,
+            "sequence": 17,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522748598945,
+            "sent_at_ns": 1814522748295943,
+            "sequence": 18,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522765304058,
+            "sent_at_ns": 1814522765123261,
+            "sequence": 19,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522785984821,
+            "sent_at_ns": 1814522785715774,
+            "sequence": 20,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522810380151,
+            "sent_at_ns": 1814522809980408,
+            "sequence": 21,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522825199496,
+            "sent_at_ns": 1814522825064061,
+            "sequence": 22,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522842818541,
+            "sent_at_ns": 1814522842695744,
+            "sequence": 23,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522864834478,
+            "sent_at_ns": 1814522864637116,
+            "sequence": 24,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522885688642,
+            "sent_at_ns": 1814522885013508,
+            "sequence": 25,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522909141486,
+            "sent_at_ns": 1814522908759400,
+            "sequence": 26,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522924972595,
+            "sent_at_ns": 1814522924811214,
+            "sequence": 27,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522943073058,
+            "sent_at_ns": 1814522942913882,
+            "sequence": 28,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522964782800,
+            "sent_at_ns": 1814522964582058,
+            "sequence": 29,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814522984690070,
+            "sent_at_ns": 1814522984511754,
+            "sequence": 30,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523009513699,
+            "sent_at_ns": 1814523009193928,
+            "sequence": 31,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523024837704,
+            "sent_at_ns": 1814523024694166,
+            "sequence": 32,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523049764027,
+            "sent_at_ns": 1814523049108394,
+            "sequence": 33,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523064914586,
+            "sent_at_ns": 1814523064733585,
+            "sequence": 34,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523084529308,
+            "sent_at_ns": 1814523084344446,
+            "sequence": 35,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523103549888,
+            "sent_at_ns": 1814523103413082,
+            "sequence": 36,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523125793151,
+            "sent_at_ns": 1814523125194343,
+            "sequence": 37,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523149347513,
+            "sent_at_ns": 1814523148925215,
+            "sequence": 38,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523165156781,
+            "sent_at_ns": 1814523165036687,
+            "sequence": 39,
+            "source": "healthy",
+            "stale_reason": null
+          },
+          {
+            "ack_at_ns": 1814523184109562,
+            "sent_at_ns": 1814523184021896,
+            "sequence": 40,
+            "source": "healthy",
+            "stale_reason": null
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": 2.576763,
+        "stopped_confirmed_at_ns": 1814523186686325,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3098,
+          "end_timestamp_ns": 1814522504021912,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/03-885523/trace.jsonl",
+          "record_count": 1,
+          "sha256": "c0abcd97a4099d3d1dfad9dc8c5059ae52f413850414623895fe7730d49cdd61",
+          "start_timestamp_ns": 1814522504021912
+        },
+        "transport_checks": {
+          "actual_stopped_confirmed": true,
+          "bounded_temporal_neural_lineage": true,
+          "continuous_neural_after_stop_ack": true,
+          "continuous_valid_rgb": true,
+          "continuous_visual_after_stop_ack": true,
+          "deadman_excluded": true,
+          "healthy_neural_stop_first": true,
+          "neural_stop_ack_confirmed": true,
+          "neutral_only_suppression": true,
+          "no_fault_stop": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": true,
+          "pre_stop_body_still_moving": true,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": true,
+          "robot_stop_ack": true,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": true,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": true,
+          "stop_request_before_frozen_boundary": true,
+          "timing_reconstructible": true,
+          "visual_age_within_ttl": false,
+          "within_frozen_trial_duration": true
+        },
+        "trial_id": "p8-r3-dev-03-885523",
+        "unexpected_nonzero_publish_count": 0,
+        "validity_class": "ARMED",
+        "visual_after_ack_count": 13,
+        "visual_frame_artifact": {
+          "bytes": 5764,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-r3-v22/official-v1-885521-523/03-885523/visual-frames.jsonl",
+          "record_count": 16,
+          "sha256": "3c9908824135274ec85008dea530dcdf46715cf195cb7a1fd5fcce501832cfd0"
+        },
+        "visual_frame_count": 16,
+        "visual_hz": 20,
+        "visual_max_frame_gap_ms": 60.003086,
+        "visual_max_neural_frame_age_ms": 64.051367,
+        "visual_mean_frame_gap_ms": 50.0503462,
+        "visual_representation": "fractional_rgb_v21",
+        "walking_policy_readback_sha256": "9144d9451a6708fc040603486d8a82129f55a45f78926271c7570a52d5927c6b",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": 1814522504021912
+      },
+      "summary_sha256": "ead986e659ba548aec586842c7416a7cfc2cf4f6aeec90c5beb7542e619071c7",
+      "trial_exit": 1,
+      "trial_index": 2,
+      "trial_log_sha256": "42c4b8e7541ebef1b4d4c1f52123c73ed24b57796d59b1a871893d6ff678d52c",
+      "trial_started": true,
+      "validity_class": "ARMED",
+      "visual_hz": 20,
+      "visual_representation": "fractional_rgb_v21"
+    }
+  ]
+}

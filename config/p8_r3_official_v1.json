@@ -1,0 +1,127 @@
+{
+  "applied_stop_threshold_mps": 0.008,
+  "arm_elapsed_s": [
+    2.0,
+    2.6,
+    3.0
+  ],
+  "config_sha256": {
+    "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+    "escape_decoder": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+    "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+    "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+    "safety_envelope": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+    "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+    "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+    "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+    "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+  },
+  "controller_commit_before_fixture": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
+  "deadman_timeout_ms": 500,
+  "development_reason": "P8-R3 internal gate failed frozen cross-resolution timing tolerance on seed 885302; official fixture remains blocked pending a new versioned hypothesis and seed set",
+  "escape_threshold": 0.5,
+  "evidence_role": "development_probe_only",
+  "execution_target": "Thor official MicroDuck robotd and MuJoCo",
+  "fixture_neutral_transport": "suppress exact zero non-stop watchdog output before first neural stop; fail unexpected nonzero",
+  "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "internal_gate_artifact_path": null,
+  "internal_gate_artifact_sha256": null,
+  "internal_gate_status": "FAIL",
+  "invalid_stop_sources": [
+    "startup_watchdog",
+    "manual_stop",
+    "deadman",
+    "connection_loss",
+    "fixture_timeout",
+    "scheduler_shutdown"
+  ],
+  "maximum_last_motion_ack_to_stop_ack_ms": 400,
+  "maximum_neural_observation_ms_by_run": [
+    1000,
+    750,
+    550
+  ],
+  "maximum_post_ack_stop_observation_ms": 1000,
+  "maximum_robot_forward_displacement_m": 0.1,
+  "maximum_stop_refresh_gap_ms": 100,
+  "maximum_total_trial_duration_s": 7.5,
+  "maximum_visual_lineage_age_ms": 100,
+  "maximum_visual_lineage_runtime_step_gap": 5,
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "minimum_applied_vx_reduction_fraction_after_first_stop": 0.2,
+  "minimum_center_clearance_after_ack_m": 0.015,
+  "minimum_deadman_margin_ms": 100,
+  "minimum_fresh_pre_stop_applied_vx_mps": 0.04,
+  "motion_metric": {
+    "maximum_gap_before_neural_stop_ms": 100,
+    "moving_confirmation_ms": 200,
+    "moving_threshold_mps": 0.015,
+    "source": "official MuJoCo trunk x/y; robot.state odometry velocity unavailable in development probe",
+    "speed_window_max_ms": 140,
+    "speed_window_ms": 100
+  },
+  "official_freeze_status": "BLOCKED_INTERNAL_FAIL",
+  "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
+  "ordered_official_runs": [
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "01-885321",
+      "seed": 885321
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "02-885322",
+      "seed": 885322
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "03-885323",
+      "seed": 885323
+    }
+  ],
+  "post_ack_visual_fixture": "continue original approaching RGB and neural input through stopped confirmation; latch official stop transport",
+  "precondition": {
+    "command_period_ms": 20,
+    "duration_s": 1.5,
+    "interface": "official robotd robot.move high-level JSON-RPC request with acknowledgement",
+    "maximum_command_call_gap_ms": 100,
+    "minimum_trunk_displacement_m": 0.01,
+    "source_label": "precondition_motion; engineering test setup, not MaleCNS output",
+    "vx_mps": 0.07,
+    "vy_mps": 0.0,
+    "vyaw_radps": 0.0
+  },
+  "primary_screen": "Three of three independent official starts: healthy DNp01/EscapeDecoder stop with strictly positive 0.25 m margin while body moving and applied vx positive; stop refreshed through pose cessation; no fault, deadman, scripted stop, safety violation, or post-latch positive move",
+  "required_successful_independent_trials": 3,
+  "safety_limit_violations_max": 0,
+  "scenario_config_path": null,
+  "scenario_config_sha256": null,
+  "scenario_motion": "approaching",
+  "scenario_seeds": [
+    885321,
+    885322,
+    885323
+  ],
+  "scenario_window_interpretation": "Selected RGB representation and V2 estimator at frozen cadence, official moving body, continuous visual and neural input through stopped confirmation",
+  "scheduler_exceptions_max": 0,
+  "schema_version": "p8-r3-official-development-v1",
+  "selected_v2": null,
+  "source_freeze_sha": null,
+  "sphere_entry_safety_margin_ms": 100,
+  "stop_transport": "robot_stop",
+  "stopped_metric": {
+    "require_confirmation_before_cleanup_stop": true,
+    "source": "official MuJoCo trunk x/y",
+    "stop_confirmation_ms": 200,
+    "stopped_threshold_mps": 0.008
+  },
+  "visual_hz": null,
+  "visual_lineage_interpretation": "complete consecutive healthy graph-v2 neural steps from latest positive looming/LPLC2 to first DN stop; LC10a visual co-input may coexist, no unique biology claim",
+  "visual_representation": "binary_rgb_v1",
+  "visual_scheduler_config_path": "config/p8_r3_visual_scheduler_v1.json",
+  "visual_scheduler_config_sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5",
+  "walking_policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
+}

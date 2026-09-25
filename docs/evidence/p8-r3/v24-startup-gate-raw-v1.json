@@ -1,0 +1,2560 @@
+{
+  "cases": [
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1000000000,
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 1,
+          "stop": false,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "frame_id": 1,
+          "kind": "cache_prime",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1005000000
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1020000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1020000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 2,
+          "stop": false,
+          "timestamp_ns": 1020000000
+        },
+        {
+          "ack_ns": 1021000000,
+          "action": "robot.move",
+          "call_ns": 1020000000,
+          "intent_timestamp_ns": 1020000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1020000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1040000000
+        },
+        {
+          "age_ns": 40000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1040000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 3,
+          "stop": false,
+          "timestamp_ns": 1040000000
+        },
+        {
+          "ack_ns": 1041000000,
+          "action": "robot.move",
+          "call_ns": 1040000000,
+          "intent_timestamp_ns": 1040000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1040000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "frame_id": 2,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1050000000,
+          "source_ns": 1060000000,
+          "timestamp_ns": 1060000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1060000000,
+          "timestamp_ns": 1060000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 4,
+          "stop": false,
+          "timestamp_ns": 1060000000
+        },
+        {
+          "ack_ns": 1061000000,
+          "action": "robot.move",
+          "call_ns": 1060000000,
+          "intent_timestamp_ns": 1060000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1060000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1080000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1060000000,
+          "timestamp_ns": 1080000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 5,
+          "stop": false,
+          "timestamp_ns": 1080000000
+        },
+        {
+          "ack_ns": 1081000000,
+          "action": "robot.move",
+          "call_ns": 1080000000,
+          "intent_timestamp_ns": 1080000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1080000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "frame_id": 3,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1100000000,
+          "source_ns": 1100000000,
+          "timestamp_ns": 1100000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1100000000,
+          "timestamp_ns": 1100000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 6,
+          "stop": false,
+          "timestamp_ns": 1100000000
+        },
+        {
+          "ack_ns": 1101000000,
+          "action": "robot.move",
+          "call_ns": 1100000000,
+          "intent_timestamp_ns": 1100000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1100000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1120000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1100000000,
+          "timestamp_ns": 1120000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 7,
+          "stop": false,
+          "timestamp_ns": 1120000000
+        },
+        {
+          "ack_ns": 1121000000,
+          "action": "robot.move",
+          "call_ns": 1120000000,
+          "intent_timestamp_ns": 1120000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1120000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1140000000
+        },
+        {
+          "age_ns": 40000000,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1100000000,
+          "timestamp_ns": 1140000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 8,
+          "stop": false,
+          "timestamp_ns": 1140000000
+        },
+        {
+          "ack_ns": 1141000000,
+          "action": "robot.move",
+          "call_ns": 1140000000,
+          "intent_timestamp_ns": 1140000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1140000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "frame_id": 4,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1150000000,
+          "source_ns": 1160000000,
+          "timestamp_ns": 1160000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 4,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1160000000,
+          "timestamp_ns": 1160000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 9,
+          "stop": false,
+          "timestamp_ns": 1160000000
+        },
+        {
+          "ack_ns": 1161000000,
+          "action": "robot.move",
+          "call_ns": 1160000000,
+          "intent_timestamp_ns": 1160000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1160000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1180000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 4,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1160000000,
+          "timestamp_ns": 1180000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 10,
+          "stop": false,
+          "timestamp_ns": 1180000000
+        },
+        {
+          "ack_ns": 1181000000,
+          "action": "robot.move",
+          "call_ns": 1180000000,
+          "intent_timestamp_ns": 1180000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1180000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "frame_id": 5,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1200000000,
+          "source_ns": 1200000000,
+          "timestamp_ns": 1200000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 5,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1200000000,
+          "timestamp_ns": 1200000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 11,
+          "stop": false,
+          "timestamp_ns": 1200000000
+        },
+        {
+          "ack_ns": 1201000000,
+          "action": "robot.move",
+          "call_ns": 1200000000,
+          "intent_timestamp_ns": 1200000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1200000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1220000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 5,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1200000000,
+          "timestamp_ns": 1220000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 12,
+          "stop": false,
+          "timestamp_ns": 1220000000
+        },
+        {
+          "ack_ns": 1221000000,
+          "action": "robot.move",
+          "call_ns": 1220000000,
+          "intent_timestamp_ns": 1220000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1220000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [
+          20.0,
+          40.0,
+          0.0,
+          20.0,
+          0.0,
+          20.0,
+          40.0,
+          0.0,
+          20.0,
+          0.0,
+          20.0
+        ],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 11,
+        "command_ack_count": 11,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [
+          60.0,
+          40.0,
+          60.0,
+          40.0
+        ],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "normal_handoff",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": "healthy_neural_escape",
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255193909120700,
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193909120700
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193909120700,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 1,
+          "stop": false,
+          "timestamp_ns": 255193909120700
+        },
+        {
+          "frame_id": 1,
+          "kind": "cache_prime",
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193909121900
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255193910034600
+        },
+        {
+          "age_ns": 1048400,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193910169100,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 2,
+          "stop": false,
+          "timestamp_ns": 255193910169100
+        },
+        {
+          "ack_ns": 255193910336000,
+          "action": "robot.move",
+          "call_ns": 255193910335700,
+          "intent_timestamp_ns": 255193910299800,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 255193910299800,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255193937621300
+        },
+        {
+          "age_ns": 28544200,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193937664900,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 3,
+          "stop": false,
+          "timestamp_ns": 255193937664900
+        },
+        {
+          "ack_ns": 255193937763700,
+          "action": "robot.move",
+          "call_ns": 255193937763400,
+          "intent_timestamp_ns": 255193937715400,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 255193937715400,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 44546900,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193909120700,
+          "timestamp_ns": 255193953667600,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 4,
+          "stop": false,
+          "timestamp_ns": 255193953667600
+        },
+        {
+          "ack_ns": 255193953772200,
+          "action": "robot.move",
+          "call_ns": 255193953772000,
+          "intent_timestamp_ns": 255193953729500,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 255193953729500,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255193953802200
+        },
+        {
+          "ack_ns": 255193984861400,
+          "action": "robot.move",
+          "call_ns": 255193984861100,
+          "intent_timestamp_ns": 255193984706400,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 255193984706400,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "frame_id": 2,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255193959120700,
+          "source_ns": 255193984953500,
+          "timestamp_ns": 255193984953500
+        },
+        {
+          "age_ns": 31200,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193984953500,
+          "timestamp_ns": 255193984984700,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 5,
+          "stop": true,
+          "timestamp_ns": 255193984984700
+        },
+        {
+          "age_ns": 15327400,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193984953500,
+          "timestamp_ns": 255194000280900,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 6,
+          "stop": true,
+          "timestamp_ns": 255194000280900
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194000349000
+        },
+        {
+          "ack_ns": 255194000425300,
+          "action": "robot.stop",
+          "call_ns": 255194000425200,
+          "intent_timestamp_ns": 255194000375600,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194000375600,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "ack_ns": 255194015304800,
+          "action": "robot.stop",
+          "call_ns": 255194015304700,
+          "intent_timestamp_ns": 255194015247600,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194015247600,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 30410800,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255193984953500,
+          "timestamp_ns": 255194015364300,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 7,
+          "stop": true,
+          "timestamp_ns": 255194015364300
+        },
+        {
+          "frame_id": 3,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255194009120700,
+          "source_ns": 255194015406300,
+          "timestamp_ns": 255194015406300
+        },
+        {
+          "age_ns": 15841400,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194015406300,
+          "timestamp_ns": 255194031247700,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 8,
+          "stop": true,
+          "timestamp_ns": 255194031247700
+        },
+        {
+          "ack_ns": 255194031365400,
+          "action": "robot.stop",
+          "call_ns": 255194031365200,
+          "intent_timestamp_ns": 255194031315300,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194031315300,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194031392300
+        },
+        {
+          "age_ns": 47151400,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194015406300,
+          "timestamp_ns": 255194062557700,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 9,
+          "stop": true,
+          "timestamp_ns": 255194062557700
+        },
+        {
+          "frame_id": 4,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255194059120700,
+          "source_ns": 255194062619700,
+          "timestamp_ns": 255194062619700
+        },
+        {
+          "ack_ns": 255194062706300,
+          "action": "robot.stop",
+          "call_ns": 255194062706000,
+          "intent_timestamp_ns": 255194062652000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194062652000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194078551200
+        },
+        {
+          "age_ns": 16041700,
+          "frame_id": 4,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194062619700,
+          "timestamp_ns": 255194078661400,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 10,
+          "stop": true,
+          "timestamp_ns": 255194078661400
+        },
+        {
+          "ack_ns": 255194078814200,
+          "action": "robot.stop",
+          "call_ns": 255194078814000,
+          "intent_timestamp_ns": 255194078761100,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194078761100,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194094050700
+        },
+        {
+          "ack_ns": 255194094134400,
+          "action": "robot.stop",
+          "call_ns": 255194094134100,
+          "intent_timestamp_ns": 255194094085900,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194094085900,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 31539600,
+          "frame_id": 4,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194062619700,
+          "timestamp_ns": 255194094159300,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 11,
+          "stop": true,
+          "timestamp_ns": 255194094159300
+        },
+        {
+          "age_ns": 47500300,
+          "frame_id": 4,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194062619700,
+          "timestamp_ns": 255194110120000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 12,
+          "stop": true,
+          "timestamp_ns": 255194110120000
+        },
+        {
+          "frame_id": 5,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255194109120700,
+          "source_ns": 255194110235400,
+          "timestamp_ns": 255194110235400
+        },
+        {
+          "ack_ns": 255194125288100,
+          "action": "robot.stop",
+          "call_ns": 255194125287800,
+          "intent_timestamp_ns": 255194125212600,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194125212600,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194141213600
+        },
+        {
+          "ack_ns": 255194141376300,
+          "action": "robot.stop",
+          "call_ns": 255194141375900,
+          "intent_timestamp_ns": 255194141317400,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194141317400,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 31177400,
+          "frame_id": 5,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194110235400,
+          "timestamp_ns": 255194141412800,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 13,
+          "stop": true,
+          "timestamp_ns": 255194141412800
+        },
+        {
+          "age_ns": 46942400,
+          "frame_id": 5,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194110235400,
+          "timestamp_ns": 255194157177800,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 14,
+          "stop": true,
+          "timestamp_ns": 255194157177800
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194157246300
+        },
+        {
+          "ack_ns": 255194157319800,
+          "action": "robot.stop",
+          "call_ns": 255194157319600,
+          "intent_timestamp_ns": 255194157271800,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194157271800,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 62611000,
+          "frame_id": 5,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194110235400,
+          "timestamp_ns": 255194172846400,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 15,
+          "stop": true,
+          "timestamp_ns": 255194172846400
+        },
+        {
+          "frame_id": 6,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255194159120700,
+          "source_ns": 255194172932700,
+          "timestamp_ns": 255194172932700
+        },
+        {
+          "ack_ns": 255194173037900,
+          "action": "robot.stop",
+          "call_ns": 255194173037700,
+          "intent_timestamp_ns": 255194172972700,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194172972700,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194200712200
+        },
+        {
+          "ack_ns": 255194200796500,
+          "action": "robot.stop",
+          "call_ns": 255194200796200,
+          "intent_timestamp_ns": 255194200748300,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194200748300,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 27898500,
+          "frame_id": 6,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194172932700,
+          "timestamp_ns": 255194200831200,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 16,
+          "stop": true,
+          "timestamp_ns": 255194200831200
+        },
+        {
+          "age_ns": 43313800,
+          "frame_id": 6,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194172932700,
+          "timestamp_ns": 255194216246500,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 17,
+          "stop": true,
+          "timestamp_ns": 255194216246500
+        },
+        {
+          "frame_id": 7,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 255194209120700,
+          "source_ns": 255194216367700,
+          "timestamp_ns": 255194216367700
+        },
+        {
+          "ack_ns": 255194216442000,
+          "action": "robot.stop",
+          "call_ns": 255194216441700,
+          "intent_timestamp_ns": 255194216397200,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194216397200,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 255194231517900
+        },
+        {
+          "ack_ns": 255194231603000,
+          "action": "robot.stop",
+          "call_ns": 255194231602700,
+          "intent_timestamp_ns": 255194231553400,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 255194231553400,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "age_ns": 15314700,
+          "frame_id": 7,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 255194216367700,
+          "timestamp_ns": 255194231682400,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 18,
+          "stop": true,
+          "timestamp_ns": 255194231682400
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [
+          1.0484,
+          28.5442,
+          44.5469,
+          0.0312,
+          15.3274,
+          30.4108,
+          15.8414,
+          47.1514,
+          16.0417,
+          31.5396,
+          47.5003,
+          31.1774,
+          46.9424,
+          62.611,
+          27.8985,
+          43.3138,
+          15.3147
+        ],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 17,
+        "command_ack_count": 17,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [
+          75.8328,
+          30.4528,
+          47.2134,
+          47.6157,
+          62.6973,
+          43.435
+        ],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": [
+          14.8795,
+          16.0606,
+          31.3409,
+          16.1079,
+          15.3202,
+          31.1537,
+          16.0882,
+          15.9435,
+          15.7181,
+          27.7586,
+          15.6455,
+          15.161
+        ]
+      },
+      "name": "real_worker_start_and_stop_refresh",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "scheduler_summary": {
+        "dropped_neural": 0,
+        "dropped_perception": 11,
+        "duration_s": 0.3218425,
+        "missed_deadlines": {
+          "neural": 0,
+          "perception": 0,
+          "watchdog": 0
+        },
+        "neural_hz": 52.820867349712984,
+        "neural_jitter_ms_p50": 4.5744,
+        "neural_jitter_ms_p95": 11.311774999999999,
+        "neural_jitter_ms_p99": 11.316035,
+        "neural_period_ms_p50": 15.922049999999999,
+        "neural_period_ms_p95": 31.311774999999997,
+        "neural_period_ms_p99": 31.316035,
+        "neural_processing_latency_ms_p50": 0.0372,
+        "neural_processing_latency_ms_p95": 0.09078,
+        "neural_processing_latency_ms_p99": 0.095836,
+        "perception_hz": 52.820867349712984,
+        "perception_jitter_ms_p50": 4.5525,
+        "perception_jitter_ms_p95": 11.170324999999998,
+        "perception_jitter_ms_p99": 11.215985,
+        "perception_period_ms_p50": 16.009349999999998,
+        "perception_period_ms_p95": 31.170325,
+        "perception_period_ms_p99": 31.215985,
+        "perception_processing_latency_ms_p50": 0.0107,
+        "perception_processing_latency_ms_p95": 0.015239999999999998,
+        "perception_processing_latency_ms_p99": 0.016328,
+        "publish_hz": 52.820867349712984,
+        "publish_jitter_ms_p50": 4.55765,
+        "publish_jitter_ms_p95": 11.201075,
+        "publish_jitter_ms_p99": 11.313814999999998,
+        "publish_period_ms_p50": 16.03575,
+        "publish_period_ms_p95": 31.201075,
+        "publish_period_ms_p99": 31.313814999999998,
+        "publish_processing_latency_ms_p50": 0.0137,
+        "publish_processing_latency_ms_p95": 0.022119999999999987,
+        "publish_processing_latency_ms_p99": 0.032103999999999994,
+        "scheduler_exceptions": 0,
+        "stale_events": 0,
+        "watchdog_hz": 52.820867349712984,
+        "watchdog_jitter_ms_p50": 4.51315,
+        "watchdog_jitter_ms_p95": 11.1792,
+        "watchdog_jitter_ms_p99": 11.305200000000001,
+        "watchdog_period_ms_p50": 16.0409,
+        "watchdog_period_ms_p95": 31.1792,
+        "watchdog_period_ms_p99": 31.3052,
+        "watchdog_processing_latency_ms_p50": 0.0612,
+        "watchdog_processing_latency_ms_p95": 0.12051999999999992,
+        "watchdog_processing_latency_ms_p99": 0.196424
+      },
+      "stop_ack_gaps_ms": [
+        14.8795,
+        16.0606,
+        31.3409,
+        16.1079,
+        15.3202,
+        31.1537,
+        16.0882,
+        15.9435,
+        15.7181,
+        27.7586,
+        15.6455,
+        15.161
+      ],
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": null,
+          "kind": "prime_attempt",
+          "source_ns": null,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "perception priming requires a frame and monotonic time",
+          "source_ns": null,
+          "timestamp_ns": 1000000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "missing_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "prime_attempt",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "perception priming frame is invalid, future, or stale",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "invalid_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "prime_attempt",
+          "source_ns": 1000000001,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "perception priming frame is invalid, future, or stale",
+          "source_ns": 1000000001,
+          "timestamp_ns": 1000000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "future_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "prime_attempt",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1100000001
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "perception priming frame is invalid, future, or stale",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1100000001
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "stale_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": -1,
+          "kind": "prime_attempt",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "invalid perception priming frame",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "malformed_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "prime_attempt",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "kind": "prime_rejected",
+          "reason": "invalid perception priming frame",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "nan_prime",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": null,
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1000000000,
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 1,
+          "stop": false,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "frame_id": 1,
+          "kind": "cache_prime",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1005000000
+        },
+        {
+          "kind": "run_rejected",
+          "reason": "primed perception expired before scheduler start",
+          "timestamp_ns": 1100000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 0,
+        "first_fault_control_ns": null,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": []
+      },
+      "name": "delayed_start",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": null
+    },
+    {
+      "arbiter_latch_reason": "fault_stale_neural",
+      "dropped_neural": 7,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1000000000,
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 1,
+          "stop": false,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "frame_id": 1,
+          "kind": "cache_prime",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1005000000
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1020000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1020000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 2,
+          "stop": false,
+          "timestamp_ns": 1020000000
+        },
+        {
+          "ack_ns": 1021000000,
+          "action": "robot.move",
+          "call_ns": 1020000000,
+          "intent_timestamp_ns": 1020000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1020000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1040000000
+        },
+        {
+          "age_ns": 40000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1040000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 3,
+          "stop": false,
+          "timestamp_ns": 1040000000
+        },
+        {
+          "ack_ns": 1041000000,
+          "action": "robot.move",
+          "call_ns": 1040000000,
+          "intent_timestamp_ns": 1040000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1040000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_dropped",
+          "timestamp_ns": 1060000000
+        },
+        {
+          "age_ns": 60000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1060000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 4,
+          "stop": false,
+          "timestamp_ns": 1060000000
+        },
+        {
+          "ack_ns": 1061000000,
+          "action": "robot.move",
+          "call_ns": 1060000000,
+          "intent_timestamp_ns": 1060000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1060000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1080000000
+        },
+        {
+          "age_ns": 80000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1080000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 5,
+          "stop": false,
+          "timestamp_ns": 1080000000
+        },
+        {
+          "ack_ns": 1081000000,
+          "action": "robot.move",
+          "call_ns": 1080000000,
+          "intent_timestamp_ns": 1080000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1080000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_dropped",
+          "timestamp_ns": 1100000000
+        },
+        {
+          "age_ns": 100000000,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1100000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 6,
+          "stop": false,
+          "timestamp_ns": 1100000000
+        },
+        {
+          "ack_ns": 1101000000,
+          "action": "robot.move",
+          "call_ns": 1100000000,
+          "intent_timestamp_ns": 1100000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1100000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1120000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1120000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1121000000,
+          "action": "robot.move",
+          "call_ns": 1120000000,
+          "intent_timestamp_ns": 1120000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1120000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1140000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1140000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1141000000,
+          "action": "robot.move",
+          "call_ns": 1140000000,
+          "intent_timestamp_ns": 1140000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1140000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_dropped",
+          "timestamp_ns": 1160000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1160000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1161000000,
+          "action": "robot.move",
+          "call_ns": 1160000000,
+          "intent_timestamp_ns": 1160000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1160000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1180000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1180000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1181000000,
+          "action": "robot.move",
+          "call_ns": 1180000000,
+          "intent_timestamp_ns": 1180000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1180000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_dropped",
+          "timestamp_ns": 1200000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1200000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1201000000,
+          "action": "robot.move",
+          "call_ns": 1200000000,
+          "intent_timestamp_ns": 1200000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": false,
+          "timestamp_ns": 1200000000,
+          "transport": "robot_move_ack",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1220000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1220000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1221000000,
+          "action": "robot.stop",
+          "call_ns": 1220000000,
+          "intent_timestamp_ns": 1220000000,
+          "kind": "command_ack",
+          "stale_reason": "stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "stale_neural",
+          "stop": true,
+          "timestamp_ns": 1220000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1240000000
+        },
+        {
+          "age_ns": null,
+          "frame_id": null,
+          "input_none": true,
+          "kind": "neural_input",
+          "source_ns": null,
+          "timestamp_ns": 1240000000,
+          "valid": null
+        },
+        {
+          "ack_ns": 1241000000,
+          "action": "robot.stop",
+          "call_ns": 1240000000,
+          "intent_timestamp_ns": 1240000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1240000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "frame_id": 2,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1250000000,
+          "source_ns": 1260000000,
+          "timestamp_ns": 1260000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1260000000,
+          "timestamp_ns": 1260000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 7,
+          "stop": false,
+          "timestamp_ns": 1260000000
+        },
+        {
+          "ack_ns": 1261000000,
+          "action": "robot.stop",
+          "call_ns": 1260000000,
+          "intent_timestamp_ns": 1260000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1260000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1280000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 2,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1260000000,
+          "timestamp_ns": 1280000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 8,
+          "stop": false,
+          "timestamp_ns": 1280000000
+        },
+        {
+          "ack_ns": 1281000000,
+          "action": "robot.stop",
+          "call_ns": 1280000000,
+          "intent_timestamp_ns": 1280000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1280000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "frame_id": 3,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1300000000,
+          "source_ns": 1300000000,
+          "timestamp_ns": 1300000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1300000000,
+          "timestamp_ns": 1300000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 9,
+          "stop": false,
+          "timestamp_ns": 1300000000
+        },
+        {
+          "ack_ns": 1301000000,
+          "action": "robot.stop",
+          "call_ns": 1300000000,
+          "intent_timestamp_ns": 1300000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1300000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1320000000
+        },
+        {
+          "age_ns": 20000000,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1300000000,
+          "timestamp_ns": 1320000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 10,
+          "stop": false,
+          "timestamp_ns": 1320000000
+        },
+        {
+          "ack_ns": 1321000000,
+          "action": "robot.stop",
+          "call_ns": 1320000000,
+          "intent_timestamp_ns": 1320000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1320000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "visual_not_due",
+          "timestamp_ns": 1340000000
+        },
+        {
+          "age_ns": 40000000,
+          "frame_id": 3,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1300000000,
+          "timestamp_ns": 1340000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 11,
+          "stop": false,
+          "timestamp_ns": 1340000000
+        },
+        {
+          "ack_ns": 1341000000,
+          "action": "robot.stop",
+          "call_ns": 1340000000,
+          "intent_timestamp_ns": 1340000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_stale_neural",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_stale_neural",
+          "stop": true,
+          "timestamp_ns": 1340000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "arbiter_latch_reason": "fault_stale_neural",
+          "fault_latch": null,
+          "kind": "fault_provenance",
+          "timestamp_ns": 1340000000
+        }
+      ],
+      "fault_latch": null,
+      "metrics": {
+        "armed_age_ms": [
+          20.0,
+          40.0,
+          60.0,
+          80.0,
+          100.0,
+          0.0,
+          20.0,
+          0.0,
+          20.0,
+          40.0
+        ],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 7,
+        "armed_neural_ticks": 17,
+        "command_ack_count": 17,
+        "first_fault_control_ns": 1220000000,
+        "first_invalid_neural_ns": 1120000000,
+        "frame_gaps_ms": [
+          260.0,
+          40.0
+        ],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": [
+          20.0,
+          20.0,
+          20.0,
+          20.0,
+          20.0,
+          20.0
+        ]
+      },
+      "name": "visual_drop_stale_neural_persistence",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": "stale_neural"
+    },
+    {
+      "arbiter_latch_reason": "fault_camera_loss",
+      "dropped_neural": 0,
+      "events": [
+        {
+          "frame_id": 1,
+          "kind": "visual_frame",
+          "scheduled_due_ns": 1000000000,
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "age_ns": 0,
+          "frame_id": 1,
+          "input_none": false,
+          "kind": "neural_input",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1000000000,
+          "valid": true
+        },
+        {
+          "kind": "neural_update",
+          "runtime_healthy": true,
+          "sequence": 1,
+          "stop": false,
+          "timestamp_ns": 1000000000
+        },
+        {
+          "frame_id": 1,
+          "kind": "cache_prime",
+          "source_ns": 1000000000,
+          "timestamp_ns": 1005000000
+        },
+        {
+          "kind": "healthy_neural_stop_candidate",
+          "sequence": 2,
+          "timestamp_ns": 1020000000
+        },
+        {
+          "ack_ns": 1021000000,
+          "action": "robot.stop",
+          "call_ns": 1020000000,
+          "intent_timestamp_ns": 1020000000,
+          "kind": "command_ack",
+          "stale_reason": null,
+          "vx": 0.0,
+          "watchdog_state": "healthy"
+        },
+        {
+          "kind": "control",
+          "stale_reason": null,
+          "stop": true,
+          "timestamp_ns": 1020000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "healthy"
+        },
+        {
+          "fault_latch": {
+            "detected_ns": 1040000000,
+            "last_healthy_neural_ns": null,
+            "last_healthy_sensor_ns": null,
+            "planned": true,
+            "reason": "camera_loss"
+          },
+          "kind": "fault_latched",
+          "timestamp_ns": 1040000000
+        },
+        {
+          "ack_ns": 1041000000,
+          "action": "robot.stop",
+          "call_ns": 1040000000,
+          "intent_timestamp_ns": 1040000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_camera_loss",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_camera_loss",
+          "stop": true,
+          "timestamp_ns": 1040000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "ack_ns": 1061000000,
+          "action": "robot.stop",
+          "call_ns": 1060000000,
+          "intent_timestamp_ns": 1060000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_camera_loss",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_camera_loss",
+          "stop": true,
+          "timestamp_ns": 1060000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "ack_ns": 1081000000,
+          "action": "robot.stop",
+          "call_ns": 1080000000,
+          "intent_timestamp_ns": 1080000000,
+          "kind": "command_ack",
+          "stale_reason": "fault_camera_loss",
+          "vx": 0.0,
+          "watchdog_state": "safe_stop"
+        },
+        {
+          "kind": "control",
+          "stale_reason": "fault_camera_loss",
+          "stop": true,
+          "timestamp_ns": 1080000000,
+          "transport": "robot_stop_refreshed",
+          "update_none": false,
+          "watchdog_state": "safe_stop"
+        }
+      ],
+      "fault_latch": {
+        "detected_ns": 1040000000,
+        "last_healthy_neural_ns": null,
+        "last_healthy_sensor_ns": null,
+        "planned": true,
+        "reason": "camera_loss"
+      },
+      "metrics": {
+        "armed_age_ms": [],
+        "armed_invalid_count": 0,
+        "armed_missing_count": 0,
+        "armed_neural_ticks": 0,
+        "command_ack_count": 4,
+        "first_fault_control_ns": 1040000000,
+        "first_invalid_neural_ns": null,
+        "frame_gaps_ms": [],
+        "post_stop_positive_moves": 0,
+        "stop_ack_gaps_ms": [
+          20.0,
+          20.0,
+          20.0
+        ]
+      },
+      "name": "fault_supersedes_neural_stop",
+      "result": "PASS",
+      "scheduler_exceptions": 0,
+      "watchdog_stop_reason": "fault_camera_loss"
+    }
+  ],
+  "config_hashes": {
+    "motion_adapter_v1.json": {
+      "committed_sha256": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+      "execution_sha256": "575148f275b27c6140995e314fee964244c8245b04a5d1137ad8c0f74ed867a7",
+      "normalized_execution_equals_committed": true
+    },
+    "p8_r3_visual_scheduler_v1.json": {
+      "committed_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+      "execution_sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5",
+      "normalized_execution_equals_committed": true
+    },
+    "watchdog_v1.json": {
+      "committed_sha256": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10",
+      "execution_sha256": "904a5aa41d7e996d0202de5edcc3ec9d74d471903af417f801adfae42e948d22",
+      "normalized_execution_equals_committed": true
+    }
+  },
+  "group_a": {
+    "case_names": [
+      "normal_handoff",
+      "real_worker_start_and_stop_refresh"
+    ],
+    "group": "A_healthy_startup",
+    "healthy_missing_count": 0,
+    "passed": 2,
+    "planned": 2,
+    "result": "PASS"
+  },
+  "group_b": {
+    "case_names": [
+      "missing_prime",
+      "invalid_prime",
+      "future_prime",
+      "stale_prime",
+      "malformed_prime",
+      "nan_prime",
+      "delayed_start",
+      "visual_drop_stale_neural_persistence",
+      "fault_supersedes_neural_stop"
+    ],
+    "group": "B_intentional_fault",
+    "injected_missing_count": 7,
+    "passed": 9,
+    "planned": 9,
+    "result": "PASS"
+  },
+  "hostname": "Min-Desktop",
+  "limits": [
+    "manual cases use deterministic 20 ms ticks and 1 ms fake ACK latency",
+    "threaded case measures wall-clock scheduler and immediate fake ACKs",
+    "no official robotd, MuJoCo, or pose-derived robot evidence"
+  ],
+  "python_version": "3.13.15",
+  "result": "PASS",
+  "schema_version": "p8-r3-v24-startup-gate-v1",
+  "scope": "separate healthy zero-skip startup and deliberate fault safety; local or Thor threaded scheduler plus deterministic ticks, fake robotd ACKs, no simulator or official seed",
+  "source_hashes": {
+    "microduck_connectome/motion_adapter.py": {
+      "committed_sha256": "6a3cb5d6536a1bc21a941dfa06b1bbf093a578d5c4a33db166d084e39028f527",
+      "execution_sha256": "4b8b6af632a019b1435bfa9096258e340af6e180c2f2732f077b2b550238b23c",
+      "normalized_execution_equals_committed": true
+    },
+    "microduck_connectome/neural_stop_arbiter.py": {
+      "committed_sha256": "d4359aa2c666a0b4bc4cc625b0492932f3ffe208bcf5a7918e394c9419dcda73",
+      "execution_sha256": "c0c574a60b3bbaf0534806ff275444db2856173622267784e5f94c1bfea3a8f7",
+      "normalized_execution_equals_committed": true
+    },
+    "microduck_connectome/neural_stop_scheduler.py": {
+      "committed_sha256": "cd494855f6d17c6db4cb2f673d1ae8be9ddacaf2317b2590676da3d0b4724b09",
+      "execution_sha256": "c0fede222e5ba1e7191be7638ff09ae62a33d885456a58e0d196d08e016d15ee",
+      "normalized_execution_equals_committed": true
+    },
+    "microduck_connectome/watchdog.py": {
+      "committed_sha256": "994d8e878bcee28caed44fa1d1dcf7ec894cd461b96fa9ebb90d43275e221e46",
+      "execution_sha256": "4cf7ff2f4f8b804fa797c700c46486a1b784773474665354117b59d2be918c6e",
+      "normalized_execution_equals_committed": true
+    },
+    "scripts/p8_r3_official_trial.py": {
+      "committed_sha256": "3a5be13d58748c796c49537eaa0bf2879646a28d059f51f44439a13ed94e8479",
+      "execution_sha256": "14abceaea4ced9aaf0fd6b966433ebca9b80aa2b734fff351e9d356573f69e94",
+      "normalized_execution_equals_committed": true
+    },
+    "scripts/p8_r3_v24_startup_gate.py": {
+      "committed_sha256": "0a058ab14158f61e9766532893352d3c7336f6b1ea74452b52e800b22dad4c34",
+      "execution_sha256": "0a058ab14158f61e9766532893352d3c7336f6b1ea74452b52e800b22dad4c34",
+      "normalized_execution_equals_committed": true
+    }
+  },
+  "source_head": "eea4eac492ed9210c7a756947f3f2e88e56410c3"
+}

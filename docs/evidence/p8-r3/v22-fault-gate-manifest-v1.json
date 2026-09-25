@@ -1,0 +1,84 @@
+{
+  "schema_version": "p8-r3-v22-fault-gate-manifest-v1",
+  "result": "PASS",
+  "source_branch": "feature/p8-r3-resolution-independent-looming",
+  "source_commit": "65122a8977c64f1f24ca92eeae18f9717100cd87",
+  "command": "python -m unittest tests.test_neural_stop_persistence tests.test_p8_r3_official_harness tests.test_fault_stop -v",
+  "files": [
+    {
+      "path": "docs/evidence/p8-r3/v22-fault-gate-raw-v1.json",
+      "working_execution": {
+        "sha256": "f30c181f9531615fb3cec5b5cc3144a8ff4ac6a5a54a692d8826142370d65f39",
+        "bytes": 7402
+      },
+      "committed_git_blob": {
+        "sha256": "254301db081093433411b9b90d7d44eaa14287bd13eb8cda7273f481d3187166",
+        "bytes": 7199
+      },
+      "crlf_normalized_equivalent": true
+    }
+  ],
+  "source_files": [
+    {
+      "path": "microduck_connectome/neural_stop_arbiter.py",
+      "working_execution": {
+        "sha256": "c0c574a60b3bbaf0534806ff275444db2856173622267784e5f94c1bfea3a8f7",
+        "bytes": 3595
+      },
+      "committed_git_blob": {
+        "sha256": "d4359aa2c666a0b4bc4cc625b0492932f3ffe208bcf5a7918e394c9419dcda73",
+        "bytes": 3537
+      },
+      "crlf_normalized_equivalent": true
+    },
+    {
+      "path": "microduck_connectome/neural_stop_scheduler.py",
+      "working_execution": {
+        "sha256": "fa4e03ab7671c783b54de398631e4dd7ba177930474e40db34f743145cbfcd5e",
+        "bytes": 2224
+      },
+      "committed_git_blob": {
+        "sha256": "6b2d1ba089bd05859fc13d5ab8bc39b952e2c1f66abf40ac76b4cad6770d6360",
+        "bytes": 2197
+      },
+      "crlf_normalized_equivalent": true
+    },
+    {
+      "path": "microduck_connectome/watchdog.py",
+      "working_execution": {
+        "sha256": "4cf7ff2f4f8b804fa797c700c46486a1b784773474665354117b59d2be918c6e",
+        "bytes": 9618
+      },
+      "committed_git_blob": {
+        "sha256": "994d8e878bcee28caed44fa1d1dcf7ec894cd461b96fa9ebb90d43275e221e46",
+        "bytes": 9369
+      },
+      "crlf_normalized_equivalent": true
+    },
+    {
+      "path": "microduck_connectome/fault_stop.py",
+      "working_execution": {
+        "sha256": "fb26d5a8fdd019a527c7b97d4aa9ebc722cea05f37b518c4e2ad90e75dfaecc1",
+        "bytes": 10408
+      },
+      "committed_git_blob": {
+        "sha256": "62a759a2cdc61e9135e2ef7405e01afcbb4eca910cb5279d1d4c70620fa4af41",
+        "bytes": 10161
+      },
+      "crlf_normalized_equivalent": true
+    },
+    {
+      "path": "tests/test_neural_stop_persistence.py",
+      "working_execution": {
+        "sha256": "c06b18694b9c62b62e1d37a325046350f3c6ba6ec5369fa087bbdda159088ff9",
+        "bytes": 8823
+      },
+      "committed_git_blob": {
+        "sha256": "c06b18694b9c62b62e1d37a325046350f3c6ba6ec5369fa087bbdda159088ff9",
+        "bytes": 8823
+      },
+      "crlf_normalized_equivalent": true
+    }
+  ],
+  "byte_forms": "working_execution hashes are Windows checkout bytes used by local Python; committed_git_blob hashes are git show HEAD:path bytes for the unchanged raw gate and committed source files. The updated summary and this manifest are metadata awaiting commit."
+}

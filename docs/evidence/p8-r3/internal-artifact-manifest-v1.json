@@ -1,0 +1,80 @@
+{
+  "files": [
+    {
+      "bytes": 1120178,
+      "path": "docs/evidence/p8-r3/internal-development-raw-v1.json",
+      "record_count": 54,
+      "sha256": "7d88b0a8607a55bea7ee5c2316b43924088c591e7e83a0eaf972cac533cfb969"
+    },
+    {
+      "bytes": 3317,
+      "path": "docs/evidence/p8-r3/internal-development-summary-v1.md",
+      "record_count": null,
+      "sha256": "74c8a571c143ce2374bdb7fd14848245fe7bbb478ce1fdccdb3b8bb3e595e620"
+    },
+    {
+      "bytes": 1073,
+      "path": "docs/evidence/p8-r3/internal-attempt-1-infrastructure-failure.md",
+      "record_count": null,
+      "sha256": "d4f772d54fef31699e660ee8624bc59901225600507e8c11ae9fa93d6f1ce917"
+    },
+    {
+      "bytes": 5004,
+      "path": "microduck_connectome/looming_v2.py",
+      "record_count": null,
+      "sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0"
+    },
+    {
+      "bytes": 7598,
+      "path": "scripts/p8_r3_internal_compare.py",
+      "record_count": null,
+      "sha256": "3909ef8da28e4c38634da7d9cc16e97d5d4bb8dcaa3d2e91a92bad960162dee6"
+    },
+    {
+      "bytes": 10786,
+      "path": "docs/tasks/P8-R3-DEVELOPMENT-PROTOCOL.md",
+      "record_count": null,
+      "sha256": "d5b22e320ca2221218330ef394fa1b720672657e6935e36ebabf3f0d39d52779"
+    },
+    {
+      "bytes": 1133,
+      "path": "config/looming_scenario_v1.json",
+      "record_count": null,
+      "sha256": "0020354549e3bfcd6e91c82153af2a3db9b91a5522f70ea4d027148883eae735"
+    },
+    {
+      "bytes": 564,
+      "path": "config/neural_model_v1.json",
+      "record_count": null,
+      "sha256": "b61f3f0cf1672eb158af58013b7636097511cd27ff5363377beb93b4efbc9d7f"
+    },
+    {
+      "bytes": 9177,
+      "path": "config/sensory_mapping_v1.json",
+      "record_count": null,
+      "sha256": "2d05a63f7514712402ef87a63455e159cdebcf6fe8b0d5b52afbf76f19581179"
+    },
+    {
+      "bytes": 221,
+      "path": "config/escape_decoder_v1.json",
+      "record_count": null,
+      "sha256": "80c9363098e136226bff97e0ddbdac9f8cde6588e3d08674d5980586c60f6121"
+    },
+    {
+      "bytes": 321,
+      "path": "config/safety_envelope_v1.json",
+      "record_count": null,
+      "sha256": "d96bd819f4d127d1c8786af9f42ff86c9954a4a0808d5c600bc074c240fb9437"
+    },
+    {
+      "bytes": 228,
+      "path": "config/watchdog_v1.json",
+      "record_count": null,
+      "sha256": "904a5aa41d7e996d0202de5edcc3ec9d74d471903af417f801adfae42e948d22"
+    }
+  ],
+  "freeze_commit": "1e6f0abf47ebd97683bdcae403eb2200f2d7c290",
+  "graph_v2_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "schema_version": "p8-r3-internal-artifact-manifest-v1",
+  "scope": "development-only internal 54-case RGB-to-graph-v2 comparison; no official body or robotd"
+}

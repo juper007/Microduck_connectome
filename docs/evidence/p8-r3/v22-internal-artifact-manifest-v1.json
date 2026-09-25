@@ -1,0 +1,171 @@
+{
+  "config_byte_provenance_note": "All config/*.json file entries retain Windows CRLF working-copy bytes/hash; their per-entry committed LF bytes/hash are from frozen source 65122a8. CRLF normalization and parsed JSON equivalence were checked. The visual scheduler config was not loaded by the internal comparison script.",
+  "execution": {
+    "command": "$env:PYTHONPATH='.'; python scripts/p8_r3_v22_internal_compare.py --graph-artifact 'C:\\Users\\juper\\AppData\\Local\\Temp\\p8-r3-graph-v2\\c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json' --output docs/evidence/p8-r3/v22-internal-development-raw-v1.json",
+    "cwd": "C:\\projects\\Microduck_connectome\\.worktrees\\p8-r3-looming-encoder",
+    "graph_artifact": {
+      "bytes": 14326846,
+      "path": "C:\\Users\\juper\\AppData\\Local\\Temp\\p8-r3-graph-v2\\c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json",
+      "sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc"
+    },
+    "prior_failed_attempt": "Invocation without PYTHONPATH=. failed import before any seed execution",
+    "python_version": "3.13.15",
+    "shell": "powershell"
+  },
+  "files": [
+    {
+      "bytes": 562760,
+      "path": "docs/evidence/p8-r3/v22-internal-development-raw-v1.json",
+      "record_count": 18,
+      "sha256": "f5bd155a82c308f1d5eee8e95ca41e05ed009494f9795c910d44617d7a089f60"
+    },
+    {
+      "bytes": 4360,
+      "path": "docs/evidence/p8-r3/v22-internal-development-summary-v1.md",
+      "record_count": null,
+      "sha256": "f9554a7b5bd13119cacb57ccb5da7f6cf5f4627064b0a5f79e3e088371736a56"
+    },
+    {
+      "bytes": 11032,
+      "path": "docs/tasks/P8-R3-V2_2-DEVELOPMENT-PROTOCOL.md",
+      "record_count": null,
+      "sha256": "cb1b548dc82e78123e4cf3a59098b8ee198e3f2865afbfd49b784aaf40c68d3e"
+    },
+    {
+      "bytes": 9186,
+      "path": "scripts/p8_r3_v22_internal_compare.py",
+      "record_count": null,
+      "sha256": "d6775aa7141250000bfd39265f7b56008fec81aba164ef672d5e9c2d5ce86b00"
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 1133,
+      "committed_lf_bytes": 1104,
+      "committed_lf_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+      "crlf_line_count": 29,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/looming_scenario_v1.json",
+      "record_count": null,
+      "sha256": "0020354549e3bfcd6e91c82153af2a3db9b91a5522f70ea4d027148883eae735",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 564,
+      "committed_lf_bytes": 545,
+      "committed_lf_sha256": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+      "crlf_line_count": 19,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/neural_model_v1.json",
+      "record_count": null,
+      "sha256": "b61f3f0cf1672eb158af58013b7636097511cd27ff5363377beb93b4efbc9d7f",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 9177,
+      "committed_lf_bytes": 8666,
+      "committed_lf_sha256": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+      "crlf_line_count": 511,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/sensory_mapping_v1.json",
+      "record_count": null,
+      "sha256": "2d05a63f7514712402ef87a63455e159cdebcf6fe8b0d5b52afbf76f19581179",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 221,
+      "committed_lf_bytes": 214,
+      "committed_lf_sha256": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+      "crlf_line_count": 7,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/escape_decoder_v1.json",
+      "record_count": null,
+      "sha256": "80c9363098e136226bff97e0ddbdac9f8cde6588e3d08674d5980586c60f6121",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 321,
+      "committed_lf_bytes": 311,
+      "committed_lf_sha256": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+      "crlf_line_count": 10,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/safety_envelope_v1.json",
+      "record_count": null,
+      "sha256": "d96bd819f4d127d1c8786af9f42ff86c9954a4a0808d5c600bc074c240fb9437",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 228,
+      "committed_lf_bytes": 221,
+      "committed_lf_sha256": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10",
+      "crlf_line_count": 7,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/watchdog_v1.json",
+      "record_count": null,
+      "sha256": "904a5aa41d7e996d0202de5edcc3ec9d74d471903af417f801adfae42e948d22",
+      "working_hash_matches_committed_hash": false
+    },
+    {
+      "bytes": 4883,
+      "path": "microduck_connectome/fractional_rgb_v21.py",
+      "record_count": null,
+      "sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6"
+    },
+    {
+      "bytes": 5004,
+      "path": "microduck_connectome/looming_v2.py",
+      "record_count": null,
+      "sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0"
+    },
+    {
+      "byte_identity": "Windows CRLF working copy at internal execution",
+      "bytes": 239,
+      "committed_lf_bytes": 229,
+      "committed_lf_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+      "crlf_line_count": 10,
+      "crlf_to_lf_exact_committed": true,
+      "parsed_json_equal_committed": true,
+      "path": "config/p8_r3_visual_scheduler_v1.json",
+      "record_count": null,
+      "sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5",
+      "working_hash_matches_committed_hash": false
+    }
+  ],
+  "freeze_commit": "65122a8977c64f1f24ca92eeae18f9717100cd87",
+  "graph_v2_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "original_origin_main_base": "e4ade0276e5e3f67381f4ca3da9f181077387fa1",
+  "raw_case_count": 18,
+  "raw_neural_step_count": 1338,
+  "raw_visual_frame_count": 546,
+  "scenario_provenance": {
+    "committed_lf_bytes": 1104,
+    "committed_lf_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+    "crlf_to_lf_exact_committed": true,
+    "internal_raw_hash_role": "Windows CRLF working-file bytes loaded by internal script",
+    "parsed_json_equal": true,
+    "raw_hash_matches_committed_bytes": false,
+    "working_bytes": 1133,
+    "working_sha256": "0020354549e3bfcd6e91c82153af2a3db9b91a5522f70ea4d027148883eae735"
+  },
+  "schema_version": "p8-r3-v22-internal-artifact-manifest-v1",
+  "scope": "development-only 18-case paired 20 Hz fractional RGB-to-graph-v2 screen; no moving body or robotd",
+  "visual_scheduler_provenance": {
+    "committed_lf_bytes": 229,
+    "committed_lf_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+    "crlf_to_lf_exact_committed": true,
+    "internal_script_input": false,
+    "official_run_requires_fresh_pinned_hash_and_timing_check": true,
+    "working_crlf_bytes": 239,
+    "working_crlf_sha256": "852070e80957646de2a144a934420bec6b6caef1e536e77a28dbce0893869cb5"
+  }
+}

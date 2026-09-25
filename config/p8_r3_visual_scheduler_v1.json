@@ -1,0 +1,10 @@
+{
+  "behavior_intent_ttl_ms": 100,
+  "control_hz": 50,
+  "neural_hz": 50,
+  "neural_readout_ttl_ms": 100,
+  "perception_hz": 50,
+  "perception_ttl_ms": 100,
+  "schema_version": "scheduler-v1",
+  "source": "male-cns-controller"
+}
