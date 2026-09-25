@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--sim-state", type=Path, required=True)
     ap.add_argument("--body-port", type=int, required=True)
+    ap.add_argument("--protocol-version", type=int, choices=(1, 2), default=1)
     ap.add_argument("--development-probe", action="store_true",
                     help="run all development-only arm variants; never P8 final evidence")
     a = ap.parse_args()
@@ -57,10 +58,10 @@ def main():
     if not a.development_probe and subprocess.check_output(
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("batch requires clean committed source")
-    protocol_path = root / "config/p8_early_trigger_probe_v1.json"
+    protocol_path = root / f"config/p8_early_trigger_probe_v{a.protocol_version}.json"
     protocol = json.loads(protocol_path.read_text())
     if not a.development_probe and protocol_path.read_bytes() != subprocess.check_output([
-        "git", "-C", str(root), "show", "HEAD:config/p8_early_trigger_probe_v1.json"]):
+        "git", "-C", str(root), "show", f"HEAD:config/p8_early_trigger_probe_v{a.protocol_version}.json"]):
         raise RuntimeError("uncommitted protocol bytes")
     a.output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ)
@@ -114,6 +115,7 @@ def main():
                 command = [
                     sys.executable, str(root / "scripts/p8_early_trigger_probe_trial.py"),
                     "--root", str(root), "--trial-index", str(index),
+                    "--protocol-version", str(a.protocol_version),
                     "--socket", str(a.sim_state / "duck-a.sock"),
                     "--body-port", str(a.body_port),
                     "--microduck", str(a.microduck), "--microduck-rl", str(a.microduck_rl),

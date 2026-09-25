@@ -153,7 +153,8 @@ class LoomingChain(FullChain):
 def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
-    if protocol["schema_version"] != "p8-v2-early-trigger-development-v1":
+    if protocol["schema_version"] not in ("p8-v2-early-trigger-development-v1",
+                                          "p8-v2-early-trigger-development-v2"):
         raise ValueError("protocol version mismatch")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
@@ -164,7 +165,7 @@ def verify_protocol(root, protocol_path, protocol, args):
         raise RuntimeError("final trial requires a clean source checkout")
     if not args.development_probe:
         committed = subprocess.check_output(["git", "-C", str(root), "show",
-                                             "HEAD:config/p8_early_trigger_probe_v1.json"])
+                                             f"HEAD:config/p8_early_trigger_probe_v{args.protocol_version}.json"])
         if protocol_path.read_bytes() != committed:
             raise RuntimeError("protocol differs from committed bytes")
     manifest_path = root / "data/manifests/controller-graph-v2.json"
@@ -232,7 +233,7 @@ def robot_state_record(state, received_ns, pose, pose_ns, publish_started_ns=Non
 
 def run(args):
     root = args.root.resolve()
-    protocol_path = root / "config/p8_early_trigger_probe_v1.json"
+    protocol_path = root / f"config/p8_early_trigger_probe_v{args.protocol_version}.json"
     protocol = json.loads(protocol_path.read_text())
     manifest, graph_path, scenario = verify_protocol(root, protocol_path, protocol, args)
     seed = protocol["scenario_seeds"][args.trial_index]
@@ -1050,6 +1051,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
     ap.add_argument("--trial-index", type=int, choices=(0, 1, 2), required=True)
+    ap.add_argument("--protocol-version", type=int, choices=(1, 2), default=1)
     ap.add_argument("--socket", required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--microduck", type=Path, required=True)
