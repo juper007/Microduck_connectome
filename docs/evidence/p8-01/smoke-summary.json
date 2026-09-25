@@ -1,0 +1,77 @@
+{
+  "base_origin_main": "367fed5522c4b4ca974c170fb9972fea2c0627f9",
+  "config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+  "files": {
+    "final-down.log": {
+      "bytes": 17,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/final-down.log",
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    "final-status.log": {
+      "bytes": 400,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/final-status.log",
+      "sha256": "f90be708b853c6577c719c32f9c63b28153ef07d0c3c620c7e82c83795a04106"
+    },
+    "reset1-down.log": {
+      "bytes": 17,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset1-down.log",
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    "reset1-summary.json": {
+      "bytes": 3751,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset1-summary.json",
+      "sha256": "cd548435b5da77745a83be901a116fde51be67998d34f6eed419cd797fc16974"
+    },
+    "reset1.jsonl": {
+      "bytes": 122707,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset1.jsonl",
+      "sha256": "867e1a3f92ef08a2147a81c5bbbe2f0b1c2904ac6f57384a1139c50f3a83a97c"
+    },
+    "reset2-command.log": {
+      "bytes": 820,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset2-command.log",
+      "sha256": "0b3d129bc29348113e01c7c6f1384e0c037166b8825326132e2a49b4aca0fa51"
+    },
+    "reset2-summary.json": {
+      "bytes": 3752,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset2-summary.json",
+      "sha256": "855bbc5c716e52f82850b4dadfee1f04c38636d9a626659ffc033d5412e0595e"
+    },
+    "reset2-up.log": {
+      "bytes": 1071,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset2-up.log",
+      "sha256": "b58aeb408b4fa3109c1f684f730caef509ba50ea3a59b915ffc1311d36ab2baa"
+    },
+    "reset2.jsonl": {
+      "bytes": 122693,
+      "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-01/20260924T-scenario-smoke/reset2.jsonl",
+      "sha256": "7dfc8752e45df0c46ac2a7c3b6f6b55cb6b91d658b39137642d9d14026148505"
+    }
+  },
+  "final_down_port_closed": true,
+  "frames_per_reset": 123,
+  "frozen_boundary_center_distance_m": 0.25,
+  "manifest_sha256": "00e73e09902a59da52c27f940292df53f1d8a454825c39d9b25771097a7849c7",
+  "official_microduck_head": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "official_port": 7888,
+  "official_rl_head": "cb70b792312d559a4da09064d92009079671815f",
+  "official_scene_sha256": "9a85461121ba8273083c482c166f27e143ca386993b3ec8f8d97eb09aa257d31",
+  "official_state_dir": "/tmp/p801-looming-state",
+  "pose_between_reset_first_trial_delta": {
+    "heading_rad": 0.001715551338008367,
+    "trunk_z_m": 3.909406596558362e-06,
+    "x_m": 0.00014442147600002286,
+    "y_m": 0.0003100665456019715
+  },
+  "reset_indices": [
+    1,
+    2
+  ],
+  "robot_nominal_planar_extent_m": 0.11623916449620342,
+  "scenario_source_head": "71ccff579c4a446d97f6a5a10d23f91352e40e56",
+  "schema_version": "p8-01-scenario-evidence-v1",
+  "scope": "Synthetic RGB world-anchored virtual sphere; official MuJoCo trunk pose and robotd; no MuJoCo obstacle contact and no robot.stop trial",
+  "status": "SMOKE_PASS_REVIEW_PENDING",
+  "trials_per_reset": 3,
+  "virtual_sphere_radius_m": 0.07
+}
