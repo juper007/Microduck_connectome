@@ -1,0 +1,80 @@
+{
+  "files": [
+    {
+      "bytes": 779698,
+      "path": "docs/evidence/p8-r3/v21-internal-development-raw-v1.json",
+      "record_count": 36,
+      "sha256": "55e4f9e2db6fda448e89114d46ebcabae6532fc853e8b7d00e72a482ee3d1050"
+    },
+    {
+      "bytes": 2584,
+      "path": "docs/evidence/p8-r3/v21-internal-development-summary-v1.md",
+      "record_count": null,
+      "sha256": "d607f9c277d379fce8df5bd2c95a2310272e0fcdc7ad986b8d561f822cfae0ad"
+    },
+    {
+      "bytes": 4883,
+      "path": "microduck_connectome/fractional_rgb_v21.py",
+      "record_count": null,
+      "sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6"
+    },
+    {
+      "bytes": 5004,
+      "path": "microduck_connectome/looming_v2.py",
+      "record_count": null,
+      "sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0"
+    },
+    {
+      "bytes": 8273,
+      "path": "scripts/p8_r3_v21_internal_compare.py",
+      "record_count": null,
+      "sha256": "c5ad9ea17643247d2b1d2c06c96c26d2345d3c472fad68d85f921c90ecdb5441"
+    },
+    {
+      "bytes": 10988,
+      "path": "docs/tasks/P8-R3-V2_1-DEVELOPMENT-PROTOCOL.md",
+      "record_count": null,
+      "sha256": "47c502c9415defc46bfc956325ddb8df8abdfd2222d712d7118d84563c3608f1"
+    },
+    {
+      "bytes": 1133,
+      "path": "config/looming_scenario_v1.json",
+      "record_count": null,
+      "sha256": "0020354549e3bfcd6e91c82153af2a3db9b91a5522f70ea4d027148883eae735"
+    },
+    {
+      "bytes": 564,
+      "path": "config/neural_model_v1.json",
+      "record_count": null,
+      "sha256": "b61f3f0cf1672eb158af58013b7636097511cd27ff5363377beb93b4efbc9d7f"
+    },
+    {
+      "bytes": 9177,
+      "path": "config/sensory_mapping_v1.json",
+      "record_count": null,
+      "sha256": "2d05a63f7514712402ef87a63455e159cdebcf6fe8b0d5b52afbf76f19581179"
+    },
+    {
+      "bytes": 221,
+      "path": "config/escape_decoder_v1.json",
+      "record_count": null,
+      "sha256": "80c9363098e136226bff97e0ddbdac9f8cde6588e3d08674d5980586c60f6121"
+    },
+    {
+      "bytes": 321,
+      "path": "config/safety_envelope_v1.json",
+      "record_count": null,
+      "sha256": "d96bd819f4d127d1c8786af9f42ff86c9954a4a0808d5c600bc074c240fb9437"
+    },
+    {
+      "bytes": 228,
+      "path": "config/watchdog_v1.json",
+      "record_count": null,
+      "sha256": "904a5aa41d7e996d0202de5edcc3ec9d74d471903af417f801adfae42e948d22"
+    }
+  ],
+  "freeze_commit": "f96569629200f1bc07defea7ed860861ce297011",
+  "graph_v2_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "schema_version": "p8-r3-v21-internal-artifact-manifest-v1",
+  "scope": "development-only 36-case paired binary/fractional RGB-to-graph-v2 comparison; no official body or robotd"
+}
