@@ -1,0 +1,21 @@
+{
+  "schema_version": "controller-graph-artifact-v2",
+  "dataset": "male-cns:v1.0",
+  "selection_config": "config/graph_v2.json",
+  "selection_code_commit": "7a6e45aa3c555ca2616b5455594b5c3251bcb3b5",
+  "source_manifest": "data/manifests/pathway-source-v1.json",
+  "source_annotations_sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+  "source_weights_sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1",
+  "selection_rule": "all exact-type seed and readout cells for LC10a to DNa02 and LPLC2 to DNp01; all annotated distinct intermediates on directed two-edge paths for either pair; retain all induced source edges",
+  "maximum_path_edges": 2,
+  "normalization": "full retained-confidence source outgoing weight sum before subgraph target selection; no renormalization of surviving edges",
+  "input_populations": {"LC10a": 275, "LPLC2": 185},
+  "output_populations": {"DNa02": 2, "DNp01": 2},
+  "node_count": 1098,
+  "edge_count": 72782,
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "reachability_report_sha256": "ffb8ad507bfe2ef4ce66d69546d4ff23577c237f2a1c57b47bacb1de3e461410",
+  "thor_artifact": "/home/juper007/projects/microduck-connectome-thor/evidence/g8-r1/graph-v2/c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json",
+  "rebuild_command": "python -m microduck_connectome.rebuild_mvp_graph --annotations /home/juper007/projects/microduck-connectome-thor/connectome/data/cache/body-annotations.feather --weights /home/juper007/projects/microduck-connectome-thor/connectome/data/cache/connectome-weights.feather --output-dir results/g8-r1-rebuild --code-commit 7a6e45aa3c555ca2616b5455594b5c3251bcb3b5",
+  "rebuild_reproducibility": "two full pinned-source builds; graph and reachability report byte-identical"
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": "mvp-path-selection-v2",
+  "dataset": "male-cns:v1.0",
+  "created_utc": "2026-09-25T00:00:00Z",
+  "path_pairs": [
+    {"seed_type": "LC10a", "readout_type": "DNa02", "max_edges": 2},
+    {"seed_type": "LPLC2", "readout_type": "DNp01", "max_edges": 2}
+  ],
+  "selection": "all exact-type seed and readout cells for both declared pairs, plus every annotated distinct intermediate on a directed two-edge path for either pair; retain all induced source edges",
+  "normalization": "all source outgoing rows for each selected node including unannotated and unselected targets; no weight threshold",
+  "side_authority": "official annotation somaSide; never numeric body ID order"
+}
