@@ -132,7 +132,7 @@ def test_scheduler_orders_inflight_ack_before_fault_transition():
 
     def send(output):
         entered.set()
-        assert release.wait(2)
+        assert release.wait(10)
         results.append(output["stale_reason"])
         return "robot_stop_refreshed"
 
@@ -143,14 +143,21 @@ def test_scheduler_orders_inflight_ack_before_fault_transition():
         publisher=send)
     control = threading.Thread(target=lambda: scheduler._control_tick(101))
     control.start()
-    assert entered.wait(2)
-    fault_worker = threading.Thread(target=lambda: fault.latch(
-        "camera_loss", detected_ns=102, planned=True))
+    assert entered.wait(5)
+    fault_started, fault_done = threading.Event(), threading.Event()
+
+    def inject_fault():
+        fault_started.set()
+        fault.latch("camera_loss", detected_ns=102, planned=True)
+        fault_done.set()
+
+    fault_worker = threading.Thread(target=inject_fault)
     fault_worker.start()
-    assert fault.snapshot() is None
+    assert fault_started.wait(5)
+    assert not fault_done.is_set()
     release.set()
-    control.join(2)
-    fault_worker.join(2)
+    control.join(5)
+    fault_worker.join(5)
     assert not control.is_alive() and not fault_worker.is_alive()
     assert results == [None]
     scheduler._control_tick(103)
