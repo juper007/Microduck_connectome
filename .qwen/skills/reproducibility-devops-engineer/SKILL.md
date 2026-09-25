@@ -1,6 +1,6 @@
 ---
 name: reproducibility-devops-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome reproducibility-devops-engineer repository skill.
+description: Make builds and experiments reproducible. Use for version pinning, environments, CI, config schemas, manifests, seeds, structured telemetry, artifact naming, clean-machine setup, or release reproduction.
 ---
 
 # Qwen adapter: reproducibility-devops-engineer
