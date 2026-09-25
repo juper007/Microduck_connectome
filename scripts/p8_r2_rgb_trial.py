@@ -164,7 +164,7 @@ class LoomingChain(FullChain):
 def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
-    if protocol["schema_version"] != "p8-r2-rgb-resolution-development-v2":
+    if protocol["schema_version"] != "p8-r2-rgb-resolution-development-v3":
         raise ValueError("protocol version mismatch")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
@@ -174,7 +174,7 @@ def verify_protocol(root, protocol_path, protocol, args):
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("development trial requires a clean frozen source checkout")
     committed = subprocess.check_output(["git", "-C", str(root), "show",
-                                         "HEAD:config/p8_r2_rgb_resolution_dev_v2.json"])
+                                         "HEAD:config/p8_r2_rgb_resolution_dev_v3.json"])
     if protocol_path.read_bytes() != committed:
         raise RuntimeError("protocol differs from committed bytes")
     manifest_path = root / "data/manifests/controller-graph-v2.json"
@@ -320,7 +320,7 @@ def precondition_deadman_after_motion(rows, motion_confirmed_ns):
 
 def run(args):
     root = args.root.resolve()
-    protocol_path = root / "config/p8_r2_rgb_resolution_dev_v2.json"
+    protocol_path = root / "config/p8_r2_rgb_resolution_dev_v3.json"
     protocol = json.loads(protocol_path.read_text())
     manifest, graph_path, scenario = verify_protocol(root, protocol_path, protocol, args)
     row = protocol["ordered_official_runs"][args.trial_index]
@@ -1079,7 +1079,7 @@ def run(args):
     args.events.write_text("".join(json.dumps(row, sort_keys=True, separators=(",", ":"),
                                         allow_nan=False) + "\n" for row in events), encoding="ascii")
     summary = {
-        "schema_version": "p8-r2-rgb-resolution-development-trial-v2", "result": result,
+        "schema_version": "p8-r2-rgb-resolution-development-trial-v3", "result": result,
         "behavior_result": behavior_result,
         "r2_primary_screen_result": primary_screen_result,
         "r2_primary_screen_checks": primary_screen_checks,
@@ -1241,7 +1241,7 @@ def run(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
-    ap.add_argument("--trial-index", type=int, choices=(0, 1, 2), required=True)
+    ap.add_argument("--trial-index", type=int, choices=range(6), required=True)
     ap.add_argument("--socket", required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--microduck", type=Path, required=True)
