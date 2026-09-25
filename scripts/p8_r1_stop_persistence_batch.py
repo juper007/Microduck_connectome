@@ -55,12 +55,12 @@ def main():
     if subprocess.check_output(
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("batch requires clean committed source")
-    protocol_path = root / "config/p8_r1_dev_v1.json"
+    protocol_path = root / "config/p8_r1_dev_v2.json"
     protocol = json.loads(protocol_path.read_text())
-    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v1":
+    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v2":
         raise ValueError("protocol version mismatch before simulator launch")
     if protocol_path.read_bytes() != subprocess.check_output([
-        "git", "-C", str(root), "show", "HEAD:config/p8_r1_dev_v1.json"]):
+        "git", "-C", str(root), "show", "HEAD:config/p8_r1_dev_v2.json"]):
         raise RuntimeError("uncommitted protocol bytes")
     a.output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ)
@@ -163,7 +163,7 @@ def main():
                             and "failure" not in final_down
                             and "sha256" in final_down) else "FAIL"
     report = {
-        "schema_version": "p8-r1-stop-persistence-development-batch-v1",
+        "schema_version": "p8-r1-stop-persistence-development-batch-v2",
         "evidence_role": "development_probe",
         "result": result, "execution_target": "Thor",
         "source_head": head, "protocol_sha256": sha(protocol_path),
@@ -189,7 +189,7 @@ def main():
         })
     manifest_path = a.output / "raw-manifest.json"
     manifest_path.write_text(json.dumps({
-        "schema_version": "p8-r1-raw-manifest-v1", "source_head": head,
+        "schema_version": "p8-r1-raw-manifest-v2", "source_head": head,
         "protocol_sha256": sha(protocol_path), "files": files,
     }, sort_keys=True, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(json.dumps({"result": result, "completed_trials": len(rows),

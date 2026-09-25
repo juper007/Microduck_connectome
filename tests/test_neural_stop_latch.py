@@ -6,11 +6,19 @@ from types import SimpleNamespace
 
 from microduck_connectome.control_contracts import make_behavior_intent
 from microduck_connectome.neural_stop_latch import NeuralStopIntentLatch
+from microduck_connectome.neural_stop_scheduler import NeuralStopRefreshScheduler
 from microduck_connectome.p8_probe_motion_arbiter import ProbeMotionArbiter
+from microduck_connectome.fault_stop import FaultStopLatch
 from microduck_connectome.safety_clamp import SafetyClamp
 from microduck_connectome.scheduler import NeuralUpdate
 from microduck_connectome.watchdog import ControllerWatchdog
-from scripts.p8_r1_stop_persistence_trial import neural_stop_origin
+from scripts.p8_r1_stop_persistence_trial import (
+    ensure_healthy_neutral_priming, last_pre_stop_state, neural_stop_origin,
+)
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 WATCHDOG_CONFIG = {"neural_readout_ttl_ms": 100, "behavior_intent_ttl_ms": 100}
@@ -253,6 +261,114 @@ def test_nonstop_publish_finishes_before_concurrent_neural_latch():
     assert ordering == ["send_start", "send_end", "latch"]
 
 
+def test_scheduler_publishes_candidate_before_control_reads_latest():
+    arbiter = ProbeMotionArbiter()
+    fault = FaultStopLatch()
+    watchdog = ControllerWatchdog(WATCHDOG_CONFIG)
+    candidate_ready = threading.Event()
+    release_candidate = threading.Event()
+    outputs = []
+    old = _readout(100, 1, 0.0)
+    new = _readout(120, 2, 0.6)
+    old_update = NeuralUpdate(old, _decoded(old, False), {})
+    candidate = NeuralUpdate(new, _decoded(new, True),
+                             {"neural_stop_latch": {"source": "healthy_neural_escape"}})
+
+    def neural_step(frame, now_ns):
+        result = arbiter.neural_step(lambda: candidate)
+        candidate_ready.set()
+        assert release_candidate.wait(1)
+        return result
+
+    def publish(output):
+        outputs.append(output)
+        return arbiter.publish(output,
+            lambda current: "robot_stop_refreshed" if current["intent"]["stop"] else "move")
+
+    scheduler = NeuralStopRefreshScheduler(
+        motion_arbiter=arbiter, fault_latch=fault,
+        config=ROOT / "config/scheduler_v1.json", watchdog=watchdog,
+        perception_step=lambda now_ns: None, neural_step=neural_step,
+        publisher=publish,
+    )
+    scheduler._perception.put({"timestamp_ns": 120}, 120)
+    scheduler._neural.put(old_update, 100)
+    neural_thread = threading.Thread(target=lambda: scheduler._neural_tick(120))
+    neural_thread.start()
+    assert candidate_ready.wait(1) and arbiter.latched.is_set()
+    control_thread = threading.Thread(target=lambda: scheduler._control_tick(121))
+    control_thread.start()
+    release_candidate.set()
+    neural_thread.join(1)
+    control_thread.join(1)
+    assert not neural_thread.is_alive() and not control_thread.is_alive()
+    assert len(outputs) == 1
+    assert outputs[0]["watchdog_state"] == "healthy"
+    assert outputs[0]["intent"]["stop"]
+    assert arbiter.first_stop_ack_ns is not None
+    assert scheduler._neural.get()[0] is candidate
+
+
+def test_fault_before_ack_overrides_pending_neural_attribution():
+    arbiter = ProbeMotionArbiter()
+    fault = FaultStopLatch()
+    latch = NeuralStopIntentLatch(escape_threshold=0.5)
+    safety = SafetyClamp()
+    watchdog = ControllerWatchdog(WATCHDOG_CONFIG)
+    readout = _readout(120, 2, 0.6)
+    _, safe, _ = latch.apply(readout=readout,
+        decoded_intent=_decoded(readout, True), safety=safety,
+        now_ns=120, graph_runtime_step=2)
+    update = NeuralUpdate(readout, safe["intent"],
+        {"neural_stop_latch": {"source": "healthy_neural_escape"}})
+    arbiter.neural_step(lambda: update)
+    observed = []
+
+    def observe(source, output, result):
+        observed.append(output)
+        latch.confirm(output=output, transport_result=result,
+                      ack_ns=122, source_neural_sequence=source.readout["sequence"],
+                      source_intent_stop=source.behavior_intent["stop"])
+
+    scheduler = NeuralStopRefreshScheduler(
+        motion_arbiter=arbiter, fault_latch=fault,
+        config=ROOT / "config/scheduler_v1.json", watchdog=watchdog,
+        perception_step=lambda now_ns: None, neural_step=lambda frame, now_ns: None,
+        publisher=lambda output: arbiter.publish(output,
+            lambda current: "robot_stop_refreshed"),
+        control_observer=observe,
+    )
+    scheduler._neural.put(update, 120)
+    fault.latch("camera_loss", detected_ns=121, planned=True)
+    scheduler._control_tick(121)
+    assert len(observed) == 1
+    assert observed[0]["watchdog_state"] == "safe_stop"
+    assert observed[0]["stale_reason"] == "fault_camera_loss"
+    assert latch.snapshot().first_healthy_stop_ack_ns is None
+
+
+def test_priming_stop_is_invalid_before_scheduler_handoff():
+    latch = NeuralStopIntentLatch(escape_threshold=0.5)
+    chain = SimpleNamespace(neural_stop_latch=latch)
+    healthy = _readout(100, 1, 0.0)
+    ensure_healthy_neutral_priming(chain, NeuralUpdate(
+        healthy, _decoded(healthy, False), {}))
+    with unittest.TestCase().assertRaisesRegex(RuntimeError, "during priming"):
+        ensure_healthy_neutral_priming(chain, NeuralUpdate(
+            healthy, _decoded(healthy, True), {}))
+    unhealthy = dict(healthy, runtime_healthy=False)
+    with unittest.TestCase().assertRaisesRegex(RuntimeError, "during priming"):
+        ensure_healthy_neutral_priming(chain, NeuralUpdate(
+            unhealthy, _decoded(healthy, False), {}))
+
+
+def test_pre_stop_state_excludes_late_arriving_sample():
+    history = [{"state_received_ns": 90, "state": "prior"},
+               {"state_received_ns": 101, "state": "after_stop_call"}]
+    assert last_pre_stop_state(history, 100)["state"] == "prior"
+    assert last_pre_stop_state(history, 89) is None
+
+
 class NeuralStopLatchTests(unittest.TestCase):
     def test_healthy_escape_persists(self):
         test_healthy_escape_persists_through_fresh_safety_and_watchdog_updates()
@@ -271,3 +387,15 @@ class NeuralStopLatchTests(unittest.TestCase):
 
     def test_publish_race(self):
         test_nonstop_publish_finishes_before_concurrent_neural_latch()
+
+    def test_scheduler_handoff_race(self):
+        test_scheduler_publishes_candidate_before_control_reads_latest()
+
+    def test_fault_before_ack(self):
+        test_fault_before_ack_overrides_pending_neural_attribution()
+
+    def test_priming_stop(self):
+        test_priming_stop_is_invalid_before_scheduler_handoff()
+
+    def test_pre_stop_sample_order(self):
+        test_pre_stop_state_excludes_late_arriving_sample()

@@ -25,8 +25,9 @@ from microduck_connectome.g8_r5d_metrics import (
 from microduck_connectome.g8_r5d_fixture import (
     IsolatedStopPublisher, SUPPRESSED_NEUTRAL,
 )
-from microduck_connectome.fault_stop import FaultStopLatch, FaultStopRefreshScheduler
+from microduck_connectome.fault_stop import FaultStopLatch
 from microduck_connectome.neural_stop_latch import NeuralStopIntentLatch
+from microduck_connectome.neural_stop_scheduler import NeuralStopRefreshScheduler
 from microduck_connectome.p8_probe_motion_arbiter import ProbeMotionArbiter, MotionLatched
 from microduck_connectome.graph import ConnectomeGraph
 from microduck_connectome.looming_scenario import load_config, make_trial, render_pixels, pixels_sha256
@@ -163,7 +164,7 @@ class LoomingChain(FullChain):
 def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
-    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v1":
+    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v2":
         raise ValueError("protocol version mismatch")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
@@ -173,7 +174,7 @@ def verify_protocol(root, protocol_path, protocol, args):
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("development trial requires a clean frozen source checkout")
     committed = subprocess.check_output(["git", "-C", str(root), "show",
-                                         "HEAD:config/p8_r1_dev_v1.json"])
+                                         "HEAD:config/p8_r1_dev_v2.json"])
     if protocol_path.read_bytes() != committed:
         raise RuntimeError("protocol differs from committed bytes")
     manifest_path = root / "data/manifests/controller-graph-v2.json"
@@ -280,9 +281,24 @@ def neural_stop_origin(chain, ack_record, *, threshold):
     return record, origin, lineage_source
 
 
+def ensure_healthy_neutral_priming(chain, update):
+    """Reject a stop before the atomic scheduler/motion-refresh phase begins."""
+    if (update is None or not update.readout["runtime_healthy"]
+            or update.behavior_intent["stop"]
+            or chain.neural_stop_latch.snapshot() is not None):
+        raise RuntimeError("neural stop or fault arose during priming before atomic scheduler handoff")
+
+
+def last_pre_stop_state(history, stop_call_ns):
+    """Only a state received before the stop call can prove pre-stop motion."""
+    candidates = [sample for sample in history
+                  if sample["state_received_ns"] <= stop_call_ns]
+    return candidates[-1] if candidates else None
+
+
 def run(args):
     root = args.root.resolve()
-    protocol_path = root / "config/p8_r1_dev_v1.json"
+    protocol_path = root / "config/p8_r1_dev_v2.json"
     protocol = json.loads(protocol_path.read_text())
     manifest, graph_path, scenario = verify_protocol(root, protocol_path, protocol, args)
     seed = protocol["scenario_seeds"][args.trial_index]
@@ -326,6 +342,7 @@ def run(args):
     stop_refreshes = []
     scheduler_errors = []
     last_motion = {}
+    pre_stop_state_history = []
     motion_refresh_errors = []
     motion_refreshes = []
     sphere_bound = None
@@ -404,6 +421,11 @@ def run(args):
                     last_motion.update({"state": state, "pose": pose,
                                         "state_received_ns": received_ns,
                                         "pose_sample_ns": pose_ns})
+                    pre_stop_state_history.append({
+                        "state": state, "pose": pose,
+                        "state_received_ns": received_ns,
+                        "pose_sample_ns": pose_ns,
+                    })
                     continue
                 telemetry.append(
                     trial_id=trial_id, scenario="stop",
@@ -416,9 +438,12 @@ def run(args):
                 )
                 record = telemetry.records()[-1]
                 if record["robot_facing_stop"] and not first_stop:
-                    first_stop.update({"record": record, "state_before": last_motion.get("state"),
-                                       "state_before_received_ns": last_motion.get("state_received_ns"),
-                                       "pose_before": last_motion.get("pose")})
+                    before = last_pre_stop_state(pre_stop_state_history, call_ns)
+                    first_stop.update({"record": record,
+                                       "state_before": before["state"] if before else None,
+                                       "state_before_received_ns": (before["state_received_ns"]
+                                                                    if before else None),
+                                       "pose_before": before["pose"] if before else None})
                     origin = neural_stop_origin(
                         chain, record, threshold=protocol["escape_threshold"])
                     if origin is not None:
@@ -480,13 +505,8 @@ def run(args):
             events.append({"timestamp_ns": ack_ns, "kind": "continuous_visual_after_stop_ack",
                            "visual_producer_continues_until_actual_stop": True})
 
-    class ProbeScheduler(FaultStopRefreshScheduler):
-        def _fail(self, worker, error):
-            super()._fail(worker, error)
-            arbiter.latch(f"scheduler_{worker}_fault")
-
-    scheduler = ProbeScheduler(
-        fault_latch=fault_latch,
+    scheduler = NeuralStopRefreshScheduler(
+        fault_latch=fault_latch, motion_arbiter=arbiter,
         config=root / "config/scheduler_v1.json", watchdog=watchdog,
         perception_step=chain.perception, neural_step=chain.neural,
         publisher=publish, control_observer=observe,
@@ -569,6 +589,7 @@ def run(args):
         transition("NEURAL_OBSERVATION_ARMED", phase_started_ns)
         first_frame = chain.perception(phase_started_ns)
         first_update = chain.neural(first_frame, phase_started_ns)
+        ensure_healthy_neutral_priming(chain, first_update)
         if not watchdog.observe_neural(first_update.readout) or not watchdog.observe_behavior(first_update.behavior_intent):
             raise RuntimeError("cannot prime healthy watchdog at neural phase handoff")
 
@@ -663,10 +684,10 @@ def run(args):
         before_decoder = [row for row in pose_speeds(
             pose_rows, window_ms=metric["speed_window_ms"],
             max_window_ms=metric["speed_window_max_ms"])
-            if row["timestamp_ns"] < first_record["pre_safety_intent"]["timestamp_ns"]
+            if row["timestamp_ns"] < origin_now[0].neural_timestamp_ns
             and row["pose_speed_mps"] is not None]
         if (not before_decoder
-                or first_record["pre_safety_intent"]["timestamp_ns"]
+                or origin_now[0].neural_timestamp_ns
                    - before_decoder[-1]["timestamp_ns"]
                    > metric["maximum_gap_before_neural_stop_ms"] * 1_000_000
                 or before_decoder[-1]["pose_speed_mps"] < metric["moving_threshold_mps"]):
@@ -1010,7 +1031,7 @@ def run(args):
     args.events.write_text("".join(json.dumps(row, sort_keys=True, separators=(",", ":"),
                                         allow_nan=False) + "\n" for row in events), encoding="ascii")
     summary = {
-        "schema_version": "p8-r1-stop-persistence-development-trial-v1", "result": result,
+        "schema_version": "p8-r1-stop-persistence-development-trial-v2", "result": result,
         "behavior_result": behavior_result,
         "transport_checks": transport_checks,
         "evidence_role": "development_probe",
@@ -1132,6 +1153,7 @@ def run(args):
         "safety_limit_violations": violation_count, "scheduler_exceptions": scheduler_exceptions,
         "scheduler_result_available": scheduler_result is not None,
         "fixture_exceptions": [e["error"] for e in events if e["kind"] == "fixture_error"],
+        "scheduler_errors": scheduler_errors,
         "scheduler": scheduler_result, "checks": checks,
         "health_before": health_before, "health_after": health_after,
         "observer_errors": observer_errors,
