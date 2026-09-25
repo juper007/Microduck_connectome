@@ -1,0 +1,203 @@
+{
+  "schema_version": "p8-r3-v22-fault-gate-v1",
+  "result": "PASS",
+  "scope": "deterministic local component gate; no simulator or official seed executed",
+  "command": "python -m unittest tests.test_neural_stop_persistence tests.test_p8_r3_official_harness tests.test_fault_stop -v",
+  "python_tests": 25,
+  "failures": 0,
+  "errors": 0,
+  "control_period_ns": 20000000,
+  "cases": [
+    {
+      "test": "test_transient_stale_then_fresh_updates_refresh_stop_at_50_hz",
+      "command_ack_order": [
+        "initial move",
+        "stale_neural robot.stop ACK",
+        "five later robot.stop ACKs"
+      ],
+      "checks": [
+        "later fresh neural outputs cannot resume movement",
+        "all five post-latch stop call gaps are 20000000 ns",
+        "zero scheduler exceptions",
+        "precondition move rejected after latch"
+      ]
+    },
+    {
+      "test": "test_later_external_fault_is_recorded_and_remains_stop_only",
+      "command_ack_order": [
+        "watchdog robot.stop ACK",
+        "persistent robot.stop ACK",
+        "camera_loss latch",
+        "three later robot.stop ACKs"
+      ],
+      "checks": [
+        "FaultStopLatch retains camera_loss",
+        "arbiter effective reason becomes fault_camera_loss",
+        "all robot-facing commands are stop",
+        "zero scheduler exceptions"
+      ]
+    },
+    {
+      "test": "test_neural_then_fault_priority_with_nonstop_update",
+      "command_ack_order": [
+        "healthy neural robot.stop ACK",
+        "tof_loss latch",
+        "fault robot.stop ACK"
+      ],
+      "checks": [
+        "fault_tof_loss supersedes healthy_neural_escape",
+        "fresh non-stop update cannot publish movement"
+      ]
+    },
+    {
+      "test": "test_watchdog_safe_stop_supersedes_healthy_neural_latch",
+      "command_ack_order": [
+        "healthy neural robot.stop ACK",
+        "stale_neural robot.stop ACK",
+        "persistent robot.stop ACK"
+      ],
+      "checks": [
+        "fault_stale_neural supersedes healthy_neural_escape",
+        "later fresh non-stop update cannot publish movement"
+      ]
+    },
+    {
+      "test": "test_fault_during_inflight_move_ack_orders_stop_after_move",
+      "command_ack_order": [
+        "move RPC begins",
+        "camera_loss latch",
+        "move ACK",
+        "fault robot.stop ACK"
+      ],
+      "checks": [
+        "move ACK precedes first stop ACK",
+        "no robot-facing move after stop latch",
+        "later precondition move rejected"
+      ]
+    },
+    {
+      "test": "test_fault_waits_for_inflight_stop_ack_then_refreshes",
+      "command_ack_order": [
+        "robot.stop RPC begins",
+        "camera_loss latch waits for transport guard",
+        "first stop ACK",
+        "camera_loss latch",
+        "second stop ACK"
+      ],
+      "checks": [
+        "no overlapping publication",
+        "fault_camera_loss becomes arbiter reason",
+        "all robot-facing commands are stop"
+      ]
+    }
+  ],
+  "limits": [
+    "50 Hz spacing is deterministic scheduler tick input, not measured wall-clock cadence",
+    "robot.stop ACKs come from the fake robotd adapter, not the official simulator",
+    "ControllerWatchdog first-fault-wins stale_reason can retain an earlier synthetic stale reason after a later external fault; FaultStopLatch and arbiter retain current fault provenance"
+  ],
+  "source_commit": "65122a8977c64f1f24ca92eeae18f9717100cd87",
+  "observed_tests": [
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_fault_during_inflight_move_ack_orders_stop_after_move",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_fault_waits_for_inflight_stop_ack_then_refreshes",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_later_external_fault_is_recorded_and_remains_stop_only",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_neural_then_fault_priority_with_nonstop_update",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_transient_stale_then_fresh_updates_refresh_stop_at_50_hz",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_neural_stop_persistence.NeuralStopPersistenceTests.test_watchdog_safe_stop_supersedes_healthy_neural_latch",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.ArtifactTests.test_retained_raw_artifacts_must_match_hash_and_folder",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.CadenceTests.test_frozen_visual_rates_on_50hz_scheduler_ticks",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.NeuralChainIntegrationTests.test_fault_before_ack_takes_priority_over_harness_neural_candidate",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.NeuralChainIntegrationTests.test_priming_escape_and_post_ack_held_stop_follow_one_safety_path",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_failed_v1_stays_blocked_and_v21_selection_is_frozen",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_frozen_candidate_and_cadence_are_exact",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_official_seed_matrix_cannot_be_replaced",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_v21_frozen_preflight_rejects_source_hash_and_output_drift",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_v21_requires_fractional_detector_and_log_area",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_v21_selected_material_and_hashes_match_repository",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_p8_r3_official_harness.OfficialSelectionTests.test_v22_draft_blocks_execution_and_freeze_requires_20hz_ttl_margin",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_authentic_stop_refresh",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_inflight_move",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_latch",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_neural_freeze",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_sensor_faults",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_unexpected_worker_retains_full_chained_traceback",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_watchdog_freeze_preemption",
+      "outcome": "PASS"
+    },
+    {
+      "id": "tests.test_fault_stop.FaultStopTests.test_worker_failure_tail",
+      "outcome": "PASS"
+    }
+  ],
+  "python_version": "3.13.15"
+}

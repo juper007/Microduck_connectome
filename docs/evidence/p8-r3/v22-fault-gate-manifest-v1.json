@@ -1,0 +1,46 @@
+{
+  "schema_version": "p8-r3-v22-fault-gate-manifest-v1",
+  "result": "PASS",
+  "source_branch": "feature/p8-r3-resolution-independent-looming",
+  "source_commit": "65122a8977c64f1f24ca92eeae18f9717100cd87",
+  "command": "python -m unittest tests.test_neural_stop_persistence tests.test_p8_r3_official_harness tests.test_fault_stop -v",
+  "files": [
+    {
+      "path": "docs/evidence/p8-r3/v22-fault-gate-raw-v1.json",
+      "sha256": "f30c181f9531615fb3cec5b5cc3144a8ff4ac6a5a54a692d8826142370d65f39",
+      "bytes": 7402
+    },
+    {
+      "path": "docs/evidence/p8-r3/v22-fault-gate-summary-v1.md",
+      "sha256": "edd3bfe2e4c79af3c6b2eb0bce46365fb2dee28cc83612669b3117c003bb11cc",
+      "bytes": 1380
+    }
+  ],
+  "source_files": [
+    {
+      "path": "microduck_connectome/neural_stop_arbiter.py",
+      "sha256": "c0c574a60b3bbaf0534806ff275444db2856173622267784e5f94c1bfea3a8f7",
+      "bytes": 3595
+    },
+    {
+      "path": "microduck_connectome/neural_stop_scheduler.py",
+      "sha256": "fa4e03ab7671c783b54de398631e4dd7ba177930474e40db34f743145cbfcd5e",
+      "bytes": 2224
+    },
+    {
+      "path": "microduck_connectome/watchdog.py",
+      "sha256": "4cf7ff2f4f8b804fa797c700c46486a1b784773474665354117b59d2be918c6e",
+      "bytes": 9618
+    },
+    {
+      "path": "microduck_connectome/fault_stop.py",
+      "sha256": "fb26d5a8fdd019a527c7b97d4aa9ebc722cea05f37b518c4e2ad90e75dfaecc1",
+      "bytes": 10408
+    },
+    {
+      "path": "tests/test_neural_stop_persistence.py",
+      "sha256": "c06b18694b9c62b62e1d37a325046350f3c6ba6ec5369fa087bbdda159088ff9",
+      "bytes": 8823
+    }
+  ]
+}
