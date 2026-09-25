@@ -17,7 +17,7 @@
     "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
   },
   "deadman_timeout_ms": 500,
-  "development_reason": "Prospective V2.4 criterion repair after retained V2.3 pre-execution review FAIL; separate healthy zero-skipped gate and injected-fault safe-stop gate. New local/Thor gate and official 885721-723 pending; V2.3 priming runtime semantics unchanged.",
+  "development_reason": "Prospective V2.4 criterion repair after retained V2.3 pre-execution FAIL. Frozen source eea4eac; local and Thor Group A healthy 2/2 and Group B injected safety 9/9 independently verified. Fresh official 885721-723 moving-body recertification pending.",
   "escape_threshold": 0.5,
   "evidence_role": "development_probe_only",
   "execution_target": "Thor official MicroDuck robotd and MuJoCo",
@@ -74,7 +74,7 @@
     "speed_window_max_ms": 140,
     "speed_window_ms": 100
   },
-  "official_freeze_status": "DRAFT",
+  "official_freeze_status": "FROZEN",
   "official_seed_status": "RESERVED_UNUSED",
   "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
   "ordered_official_runs": [
@@ -132,14 +132,14 @@
     "window_ms": 200
   },
   "selected_visual_period_ms": 50,
-  "source_freeze_relationship": "TBD: versioned V2.4 gate source freeze precedes new group-separated gate evidence and official config",
-  "source_freeze_sha": "0000000000000000000000000000000000000000",
+  "source_freeze_relationship": "Frozen V2.4 group-separated gate and official preflight source eea4eac precedes both local/Thor gate evidence and this official config; no runtime or extractor source changes after freeze",
+  "source_freeze_sha": "eea4eac492ed9210c7a756947f3f2e88e56410c3",
   "sphere_entry_safety_margin_ms": 100,
   "startup_gate_artifact_path": "docs/evidence/p8-r3/v24-startup-gate-raw-v1.json",
-  "startup_gate_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "startup_gate_status": "PENDING",
+  "startup_gate_artifact_sha256": "c2236ad27fc6d530b404eb589e5cff36be895aa9758318a8ae4fcb29873446f7",
+  "startup_gate_status": "PASS",
   "startup_gate_thor_artifact_path": "docs/evidence/p8-r3/v24-startup-gate-thor-raw-v1.json",
-  "startup_gate_thor_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "startup_gate_thor_artifact_sha256": "7e133e748be2dbac9adfa6284dbc5570ebc148a666c151f691cc45c06b8b2a85",
   "stop_transport": "robot_stop",
   "stopped_metric": {
     "require_confirmation_before_cleanup_stop": true,
