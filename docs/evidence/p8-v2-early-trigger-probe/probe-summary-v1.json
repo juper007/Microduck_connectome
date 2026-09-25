@@ -1,0 +1,76 @@
+{
+  "schema_version": "p8-v2-early-trigger-probe-summary-v1",
+  "evidence_role": "development_only_not_p8_02_final",
+  "task_id": "P8-V2-EARLY-TRIGGER-PROBE",
+  "base_origin_main": "34b48af891c508f83bf50eb9f8accd1f0a57bd22",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "frozen_boundary_center_distance_m": 0.25,
+  "final_result": "FAIL",
+  "observation_trials_planned": 6,
+  "observation_trials_started": 6,
+  "healthy_neural_stops_before_boundary": 0,
+  "healthy_neural_stops_after_boundary": 1,
+  "no_neural_stop_within_window": 5,
+  "safety_limit_violations": 0,
+  "deadman_limiter_before_stopped_confirmation": 1,
+  "pretrial_infrastructure_attempts": [
+    {
+      "kind": "v2_output_directory_precreated",
+      "source_head": "186ed8a9f8c2774334907589e84cc86fa53e4d51",
+      "raw_manifest": "v2-launch-raw-manifest.json",
+      "neural_observation_trials_started": 0
+    },
+    {
+      "kind": "v3_trial_verifier_rejected_protocol_version",
+      "source_head": "9d1fe840fc0775fecca89daa6b63e97532fa6c6c",
+      "raw_manifest": "v3-preflight-raw-manifest.json",
+      "official_fresh_resets": 2,
+      "neural_observation_trials_started": 0
+    }
+  ],
+  "runs": [
+    {
+      "version": 1,
+      "source_head": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+      "protocol_sha256": "7e9b06db255a1852d87e58062b00e004249c7848d3d8b8c3e15ccb339acc53e8",
+      "raw_manifest": "v1-raw-manifest.json",
+      "trial_outcomes": [
+        {"seed": 880901, "arm_s": 2.4, "result": "no_neural_stop"},
+        {"seed": 880902, "arm_s": 2.6, "result": "no_neural_stop"},
+        {"seed": 880903, "arm_s": 2.8, "result": "no_neural_stop"}
+      ]
+    },
+    {
+      "version": 2,
+      "source_head": "186ed8a9f8c2774334907589e84cc86fa53e4d51",
+      "protocol_sha256": "58ba4764f43bc2013da002323aa5449388d9e881c4f8f8fd78a95fbfec91d538",
+      "raw_manifest": "v2-raw-manifest.json",
+      "trial_outcomes": [
+        {"seed": 880904, "arm_s": 2.0, "result": "no_neural_stop", "first_lplc2_boundary_margin_m": 0.24790303506668904}
+      ]
+    },
+    {
+      "version": 3,
+      "source_head": "666b3b1680663d66dcc5d6c69cf17781f730b740",
+      "protocol_sha256": "4ffa630cccd979705862f4812ff25e6679e32673832af39be83c462cd06a651b",
+      "raw_manifest": "v3-raw-manifest.json",
+      "trial_outcomes": [
+        {
+          "seed": 880905,
+          "arm_s": 3.0,
+          "result": "late_neural_stop_then_stop_refresh_failure",
+          "first_lplc2_boundary_margin_m": 0.07470558245692205,
+          "neural_stop_boundary_margin_m": -0.03812210820210127,
+          "stop_ack_boundary_margin_m": -0.03949209330915726,
+          "robot_move_request_after_latch_count": 0,
+          "robot_move_ack_after_first_stop_ack_count": 0,
+          "non_stop_watchdog_publish_rejected_after_stop_count": 1,
+          "deadman_limiter_before_stopped_confirmation": true
+        },
+        {"seed": 880906, "arm_s": 3.1, "result": "no_neural_stop", "first_lplc2_boundary_margin_m": 0.07042266561940297}
+      ]
+    }
+  ],
+  "interpretation": "Current unchanged 65x33 presentation has not shown preboundary neural stop; persistent stop latch while RGB continues needs separate versioned remediation.",
+  "p8_v2_final_protocol_ready": false
+}

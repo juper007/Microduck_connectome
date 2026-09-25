@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "bytes": 731,
+      "path": "../dev-v2-186ed8a-20260925-1-run.log",
+      "records": null,
+      "sha256": "878914a1a37dfb315922f7c6dd47f3823aa1b9a4c43bb2d927f1483130933b2d"
+    }
+  ],
+  "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-v2-186ed8a-20260925-1",
+  "schema_version": "p8-v2-early-probe-raw-manifest-v1",
+  "source_head": "186ed8a9f8c2774334907589e84cc86fa53e4d51"
+}

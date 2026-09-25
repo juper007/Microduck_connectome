@@ -1,0 +1,205 @@
+{
+  "files": [
+    {
+      "bytes": 39967,
+      "path": "batch-summary.json",
+      "records": null,
+      "sha256": "195491f7610b2d9e38b4a49ccee4ad23e8819c863d649329112607d8f4b6fba9"
+    },
+    {
+      "bytes": 17,
+      "path": "final-down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 17,
+      "path": "trial-01-880901/down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 152016,
+      "path": "trial-01-880901/events.jsonl",
+      "records": 183,
+      "sha256": "c216816438745a3294d740d7cd9341f4238a8fbec3ffe406d88ec7d2d6fa5ad3"
+    },
+    {
+      "bytes": 23856,
+      "path": "trial-01-880901/neural-ledger.jsonl",
+      "records": 34,
+      "sha256": "f33be468a808af374968268ce9c3e343cb1455bc1c237a7c7918c0f696dcd6cd"
+    },
+    {
+      "bytes": 1786,
+      "path": "trial-01-880901/policy-readback.json",
+      "records": null,
+      "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+    },
+    {
+      "bytes": 235,
+      "path": "trial-01-880901/policy_load.log",
+      "records": null,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 10421,
+      "path": "trial-01-880901/summary.json",
+      "records": null,
+      "sha256": "b2343922ac61fe9b802ee71bb3f40cfd1f1888af1bcdd1a98205388fffcf3409"
+    },
+    {
+      "bytes": 3175,
+      "path": "trial-01-880901/trace.jsonl",
+      "records": 1,
+      "sha256": "20a241a1046da537fcc78a1a85e3c9766dd9d38fffb87f674d968a6e3bfd63ce"
+    },
+    {
+      "bytes": 943,
+      "path": "trial-01-880901/trial.log",
+      "records": null,
+      "sha256": "ba07d47e0e8ac59cee8af11d38dc0ed649388ae4729278875009185942f6af4d"
+    },
+    {
+      "bytes": 1169,
+      "path": "trial-01-880901/up.log",
+      "records": null,
+      "sha256": "d3d9214945dff52f8b5687e3460b2bbf92c7d4909cbfbbbd3e6529ec4da3b801"
+    },
+    {
+      "bytes": 3960,
+      "path": "trial-01-880901/visual-frames.jsonl",
+      "records": 18,
+      "sha256": "b1b4b92ed5c454e54c9f380eb9ec7f9dab8779a7a9a0d39f04bbc6e5671608b7"
+    },
+    {
+      "bytes": 17,
+      "path": "trial-02-880902/down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 151962,
+      "path": "trial-02-880902/events.jsonl",
+      "records": 183,
+      "sha256": "b2557f018071c3e43c6dda92eb432949927578aec2da26596fbb67fee4df96a7"
+    },
+    {
+      "bytes": 23876,
+      "path": "trial-02-880902/neural-ledger.jsonl",
+      "records": 34,
+      "sha256": "47320e392f0dffaa9fc53328cb7787711811e1a4975ade082ff20323b70a422a"
+    },
+    {
+      "bytes": 1786,
+      "path": "trial-02-880902/policy-readback.json",
+      "records": null,
+      "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+    },
+    {
+      "bytes": 235,
+      "path": "trial-02-880902/policy_load.log",
+      "records": null,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 10434,
+      "path": "trial-02-880902/summary.json",
+      "records": null,
+      "sha256": "358aa6b2183945df2c9ab1276ded87cc01251fc4962ebe0df2c8f40489257a42"
+    },
+    {
+      "bytes": 3127,
+      "path": "trial-02-880902/trace.jsonl",
+      "records": 1,
+      "sha256": "afcf6bac0e5504198caf1cdeb97c3943eb710ed400fdc364a1f918632b4142a4"
+    },
+    {
+      "bytes": 943,
+      "path": "trial-02-880902/trial.log",
+      "records": null,
+      "sha256": "957618df0a9b5684d6b5bc81a95839802b2368c7efe6260b1f7918e073687fbc"
+    },
+    {
+      "bytes": 1072,
+      "path": "trial-02-880902/up.log",
+      "records": null,
+      "sha256": "e4d75a00d7a397ec0a46b4911b8a5380348c297088d37a72943628ef765fde01"
+    },
+    {
+      "bytes": 3960,
+      "path": "trial-02-880902/visual-frames.jsonl",
+      "records": 18,
+      "sha256": "ef43011fff2d5b7273b4b3a6431b083d6ebeda8364604a6fbc187d1e29bb55eb"
+    },
+    {
+      "bytes": 17,
+      "path": "trial-03-880903/down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 152309,
+      "path": "trial-03-880903/events.jsonl",
+      "records": 183,
+      "sha256": "6d84004a5f06511ed76034ccbb4b35aad595b64714d6d19ce6333c4f10bdf718"
+    },
+    {
+      "bytes": 24046,
+      "path": "trial-03-880903/neural-ledger.jsonl",
+      "records": 34,
+      "sha256": "0d1d8b601912a3de5bfc8ff01225d65e73ffe93c6edae4234b50952f3eb3d696"
+    },
+    {
+      "bytes": 1786,
+      "path": "trial-03-880903/policy-readback.json",
+      "records": null,
+      "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+    },
+    {
+      "bytes": 235,
+      "path": "trial-03-880903/policy_load.log",
+      "records": null,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 10424,
+      "path": "trial-03-880903/summary.json",
+      "records": null,
+      "sha256": "379d08b212740fff1dc1c4dec176f345ebf53dfdebeb3051a27849c441289ab6"
+    },
+    {
+      "bytes": 3131,
+      "path": "trial-03-880903/trace.jsonl",
+      "records": 1,
+      "sha256": "a55b12502d32f25bea9d9ab406fe8035002323599b2e5816a5906fbe0827efdb"
+    },
+    {
+      "bytes": 943,
+      "path": "trial-03-880903/trial.log",
+      "records": null,
+      "sha256": "4c8341fbf0f9bff186cfd1da62251bf27376268f335d9552059d7370d217928f"
+    },
+    {
+      "bytes": 1071,
+      "path": "trial-03-880903/up.log",
+      "records": null,
+      "sha256": "52b698f32813107c7cfb88c2e856acc80eea7ebd5481a5d3b2b7ddb2fae1688f"
+    },
+    {
+      "bytes": 3988,
+      "path": "trial-03-880903/visual-frames.jsonl",
+      "records": 18,
+      "sha256": "1a1cccf18d067403395b40db826a504a62a564d113aa9cf9bebedcf15ffc584f"
+    },
+    {
+      "bytes": 190,
+      "path": "../dev-8a06506-20260925-1-run.log",
+      "records": null,
+      "sha256": "7b23aa067922ce2cc32ae9ba3bee7450034a4d99b9fd829645d092aa88c50a00"
+    }
+  ],
+  "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1",
+  "schema_version": "p8-v2-early-probe-raw-manifest-v1",
+  "source_head": "8a065068ef621a3ec5f9e57ab759bee4213d4e03"
+}

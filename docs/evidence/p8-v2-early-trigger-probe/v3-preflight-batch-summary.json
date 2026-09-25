@@ -1,0 +1,81 @@
+{
+  "batch_error": null,
+  "completed_trials": 2,
+  "ended_utc": "2026-09-25T19:57:10Z",
+  "evidence_role": "development_probe",
+  "execution_target": "Thor",
+  "final_sim_down": {
+    "exit": 0,
+    "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+  },
+  "historical_failed_pr_60_untouched": true,
+  "historical_failed_pr_61_untouched": true,
+  "planned_trials": 2,
+  "protocol_sha256": "f3b4752ec058d47a288a1950126fd9ef2fbf651daa2f299aad078800cf8b524a",
+  "result": "DEVELOPMENT_PROBE",
+  "schema_version": "p8-v2-early-trigger-development-batch-v1",
+  "source_head": "9d1fe840fc0775fecca89daa6b63e97532fa6c6c",
+  "started_utc": "2026-09-25T19:56:50Z",
+  "trials": [
+    {
+      "failure": "trial_exited_without_summary",
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1786,
+          "exit": 0,
+          "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+        },
+        "up": {
+          "bytes": 1071,
+          "exit": 0,
+          "sha256": "4a0112fdda14d409d9de8dcfb3fa8991b139cd3ccdfdec55dd0405bd1a9f6dcc"
+        }
+      },
+      "seed": 880905,
+      "trial_exit": 1,
+      "trial_index": 0,
+      "trial_log_sha256": "5919cfa38beea2895cab1aa4105c36b72cba7fe68ff54e2056b17550f3830004",
+      "trial_started": true
+    },
+    {
+      "failure": "trial_exited_without_summary",
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1786,
+          "exit": 0,
+          "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+        },
+        "up": {
+          "bytes": 1071,
+          "exit": 0,
+          "sha256": "457b44325336dea395b0db9cc288853738b1da6b84bd9ec4247fda4681501cad"
+        }
+      },
+      "seed": 880906,
+      "trial_exit": 1,
+      "trial_index": 1,
+      "trial_log_sha256": "5919cfa38beea2895cab1aa4105c36b72cba7fe68ff54e2056b17550f3830004",
+      "trial_started": true
+    }
+  ]
+}

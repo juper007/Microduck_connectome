@@ -1,0 +1,85 @@
+{
+  "files": [
+    {
+      "bytes": 14518,
+      "path": "batch-summary.json",
+      "records": null,
+      "sha256": "4233b9d649d60841f7351aaa655264bbdecbb5a169aebda4debaee20e061dd99"
+    },
+    {
+      "bytes": 17,
+      "path": "final-down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 17,
+      "path": "trial-01-880904/down.log",
+      "records": null,
+      "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+    },
+    {
+      "bytes": 198791,
+      "path": "trial-01-880904/events.jsonl",
+      "records": 237,
+      "sha256": "0dc70db380a7e457d70f856fde7871b3f27c8966e958cf1cfbecbc39aafc953e"
+    },
+    {
+      "bytes": 36902,
+      "path": "trial-01-880904/neural-ledger.jsonl",
+      "records": 52,
+      "sha256": "f3267731a256d53cd1b7af81a22bc5450b487b14fe4e6f84df5aaeeddf6b9277"
+    },
+    {
+      "bytes": 1786,
+      "path": "trial-01-880904/policy-readback.json",
+      "records": null,
+      "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+    },
+    {
+      "bytes": 235,
+      "path": "trial-01-880904/policy_load.log",
+      "records": null,
+      "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+    },
+    {
+      "bytes": 11050,
+      "path": "trial-01-880904/summary.json",
+      "records": null,
+      "sha256": "63c5242251c632b56d1603f796d483d7f308b0d8d476723c7cb925732de107d6"
+    },
+    {
+      "bytes": 3131,
+      "path": "trial-01-880904/trace.jsonl",
+      "records": 1,
+      "sha256": "673c254d1f0e37554770dd143a1344cd3981526b8164b905bc20a99f5c5256e7"
+    },
+    {
+      "bytes": 943,
+      "path": "trial-01-880904/trial.log",
+      "records": null,
+      "sha256": "e4c3a00e6755cbd2aaf8ca3a3bffa30b42ad0ae006a3c6b0e938e9cbc3a8690a"
+    },
+    {
+      "bytes": 1071,
+      "path": "trial-01-880904/up.log",
+      "records": null,
+      "sha256": "f33d70758704af8a39054c541daeb3dd59b9a7f1757e627368d384f8f83e66cf"
+    },
+    {
+      "bytes": 5931,
+      "path": "trial-01-880904/visual-frames.jsonl",
+      "records": 27,
+      "sha256": "87725d817bc9c094fb1caff4ec2504fa365801ad3bac944955de69fdc9aa58b6"
+    },
+    {
+      "bytes": 174,
+      "path": "../dev-v2-186ed8a-20260925-2-run.log",
+      "records": null,
+      "sha256": "9dc09affbe7cafc9d189ea74534f5442d4239acf00518e98dfe3ab5014c667a7"
+    }
+  ],
+  "raw_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-v2-186ed8a-20260925-2",
+  "schema_version": "p8-v2-early-probe-raw-manifest-v1",
+  "source_head": "186ed8a9f8c2774334907589e84cc86fa53e4d51"
+}

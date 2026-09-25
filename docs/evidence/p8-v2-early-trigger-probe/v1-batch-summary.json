@@ -1,0 +1,941 @@
+{
+  "batch_error": null,
+  "completed_trials": 3,
+  "ended_utc": "2026-09-25T19:42:55Z",
+  "evidence_role": "development_probe",
+  "execution_target": "Thor",
+  "final_sim_down": {
+    "exit": 0,
+    "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+  },
+  "historical_failed_pr_60_untouched": true,
+  "historical_failed_pr_61_untouched": true,
+  "planned_trials": 3,
+  "protocol_sha256": "9f12eac79a8d5591dba9e2400fb78663f1f1034c3e41ca3f2406f813e38e2e66",
+  "result": "DEVELOPMENT_PROBE",
+  "schema_version": "p8-v2-early-trigger-development-batch-v1",
+  "source_head": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+  "started_utc": "2026-09-25T19:41:29Z",
+  "trials": [
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1786,
+          "exit": 0,
+          "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+        },
+        "up": {
+          "bytes": 1169,
+          "exit": 0,
+          "sha256": "d3d9214945dff52f8b5687e3460b2bbf92c7d4909cbfbbbd3e6529ec4da3b801"
+        }
+      },
+      "seed": 880901,
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 2.4,
+        "boundary_at_decoder_stop": null,
+        "boundary_at_stop_ack": null,
+        "boundary_at_stopped_confirmation": null,
+        "bounded_neural_lineage": {
+          "age_ms": 0.0,
+          "observed_steps": [
+            34
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 18,
+          "source_step": 34,
+          "stop_frame_id": 18,
+          "stop_step": 34,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": false,
+          "bounded_temporal_neural_lineage": false,
+          "continuous_visual_after_stop_ack": false,
+          "deadman_excluded": false,
+          "healthy_neural_stop_first": false,
+          "neutral_only_suppression": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": false,
+          "pre_stop_body_still_moving": false,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": false,
+          "robot_stop_ack": false,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": false,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": false,
+          "timing_reconstructible": false,
+          "trigger_before_frozen_boundary": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": null,
+        "complete_transition_observed": false,
+        "deadman_limiter_seen_before_stopped": null,
+        "deadman_margin_ms": null,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": null,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": null,
+        "events_artifact": {
+          "bytes": 152016,
+          "end_timestamp_ns": 1806866457334228,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-01-880901/events.jsonl",
+          "record_count": 183,
+          "sha256": "c216816438745a3294d740d7cd9341f4238a8fbec3ffe406d88ec7d2d6fa5ad3",
+          "start_timestamp_ns": 1806864277288601
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "first_applied_vx_near_zero_at_ns": null,
+        "first_applied_vx_reduction_at_ns": null,
+        "first_stop_source": "safe_stop",
+        "first_stopped_state_at_ns": null,
+        "fixture_exceptions": [
+          "RuntimeError: no robot.stop ACK before frozen neural observation deadline"
+        ],
+        "geometry_max_forward_displacement_m": 0.02308850233338144,
+        "geometry_min_surface_clearance_m": 0.2519912796634669,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 50.02438134398844,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 582
+          },
+          "cpu_temp_c": 43.437,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 50.04188869132461,
+            "last_tick_age_ms": 1,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 473
+          },
+          "cpu_temp_c": 43.593,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+          "run_id": "p8-early-probe-01-880901",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": null,
+        "last_motion_call_to_stop_ack_ms": null,
+        "last_nonzero_velocity_at_ns": null,
+        "last_precondition_move_ack_at_ns": 1806866420863595,
+        "last_precondition_move_request_call_started_at_ns": 1806866420748595,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1806865991253581,
+        "looming_phase_started_at_ns": 1806865782308616,
+        "lplc2_first_nonzero_at_ns": 1806865994137061,
+        "max_stop_refresh_gap_ms": null,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "mean_stop_refresh_gap_ms": null,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1806866434109541,
+        "motion_arbiter_latch_reason": "neural_observation_timeout",
+        "motion_confirmed_at_ns": 1806864696837022,
+        "motion_first_observed_at_ns": 1806864496115442,
+        "motion_refresh_count": 32,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 24.23959,
+        "motion_stop_latency_ms": null,
+        "neural_ledger_artifact": {
+          "bytes": 23856,
+          "end_timestamp_ns": 1806866434134541,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-01-880901/neural-ledger.jsonl",
+          "record_count": 34,
+          "sha256": "f33be468a808af374968268ce9c3e343cb1455bc1c237a7c7918c0f696dcd6cd",
+          "start_timestamp_ns": 1806865782308616
+        },
+        "neural_stop_count": 0,
+        "neutral_publish_suppressed_count": 33,
+        "observer_errors": [],
+        "peak_dn_escape": 0.0,
+        "peak_looming": 0.6526855478222612,
+        "peak_lplc2_stimulus": 0.6526855478222612,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 0,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": null,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": null,
+        "pre_stop_pose_speed_mps": null,
+        "pre_stop_robot_state_applied_vx_mps": 0.0699999999976077,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": null,
+        "pre_stop_robot_state_sample_at_ns": 1806866440151910,
+        "pre_stop_speed_sample_age_ms": null,
+        "pre_stop_speed_sample_at_ns": null,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.0979546996322862,
+          "motion_confirmed_at_ns": 1806864696837022,
+          "motion_first_observed_at_ns": 1806864496115442,
+          "precondition_displacement_m": 0.04324482201680202,
+          "precondition_peak_pose_speed_mps": 0.1500094460889643,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 20.058539,
+        "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+        "protocol_sha256": "9f12eac79a8d5591dba9e2400fb78663f1f1034c3e41ca3f2406f813e38e2e66",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": null,
+        "robot_stop_rpc_call_started_ns": null,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scheduler": null,
+        "scheduler_exceptions": null,
+        "scheduler_result_available": false,
+        "schema_version": "p8-v2-early-trigger-development-trial-v1",
+        "seed": 880901,
+        "source_checkout_uncommitted": true,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 1748.2313523195994
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1806866441299126
+        ],
+        "stop_refresh_count": 1,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1806866441299126,
+            "sent_at_ns": 1806866441127505,
+            "sequence": 34,
+            "source": "safe_stop",
+            "stale_reason": "decoder_crash"
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": null,
+        "stopped_confirmed_at_ns": null,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3175,
+          "end_timestamp_ns": 1806866441105848,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-01-880901/trace.jsonl",
+          "record_count": 1,
+          "sha256": "20a241a1046da537fcc78a1a85e3c9766dd9d38fffb87f674d968a6e3bfd63ce",
+          "start_timestamp_ns": 1806866441105848
+        },
+        "trial_id": "p8-early-probe-01-880901",
+        "unexpected_nonzero_publish_count": 0,
+        "visual_after_ack_count": null,
+        "visual_frame_artifact": {
+          "bytes": 3960,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-01-880901/visual-frames.jsonl",
+          "record_count": 18,
+          "sha256": "b1b4b92ed5c454e54c9f380eb9ec7f9dab8779a7a9a0d39f04bbc6e5671608b7"
+        },
+        "visual_frame_count": 18,
+        "visual_max_frame_gap_ms": 40.065655,
+        "visual_mean_frame_gap_ms": 38.173068058823524,
+        "walking_policy_readback_sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": null
+      },
+      "summary_sha256": "b2343922ac61fe9b802ee71bb3f40cfd1f1888af1bcdd1a98205388fffcf3409",
+      "trial_exit": 1,
+      "trial_index": 0,
+      "trial_log_sha256": "ba07d47e0e8ac59cee8af11d38dc0ed649388ae4729278875009185942f6af4d",
+      "trial_started": true
+    },
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1786,
+          "exit": 0,
+          "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+        },
+        "up": {
+          "bytes": 1072,
+          "exit": 0,
+          "sha256": "e4d75a00d7a397ec0a46b4911b8a5380348c297088d37a72943628ef765fde01"
+        }
+      },
+      "seed": 880902,
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 2.6,
+        "boundary_at_decoder_stop": null,
+        "boundary_at_stop_ack": null,
+        "boundary_at_stopped_confirmation": null,
+        "bounded_neural_lineage": {
+          "age_ms": 62.738042,
+          "observed_steps": [
+            31,
+            32,
+            33,
+            34
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 16,
+          "source_step": 31,
+          "stop_frame_id": 18,
+          "stop_step": 34,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": false,
+          "bounded_temporal_neural_lineage": false,
+          "continuous_visual_after_stop_ack": false,
+          "deadman_excluded": false,
+          "healthy_neural_stop_first": false,
+          "neutral_only_suppression": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": false,
+          "pre_stop_body_still_moving": false,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": false,
+          "robot_stop_ack": false,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": false,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": false,
+          "timing_reconstructible": false,
+          "trigger_before_frozen_boundary": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": null,
+        "complete_transition_observed": false,
+        "deadman_limiter_seen_before_stopped": null,
+        "deadman_margin_ms": null,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": null,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": null,
+        "events_artifact": {
+          "bytes": 151962,
+          "end_timestamp_ns": 1806880584330334,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-02-880902/events.jsonl",
+          "record_count": 183,
+          "sha256": "b2557f018071c3e43c6dda92eb432949927578aec2da26596fbb67fee4df96a7",
+          "start_timestamp_ns": 1806878414533278
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "first_applied_vx_near_zero_at_ns": null,
+        "first_applied_vx_reduction_at_ns": null,
+        "first_stop_source": "safe_stop",
+        "first_stopped_state_at_ns": null,
+        "fixture_exceptions": [
+          "RuntimeError: no robot.stop ACK before frozen neural observation deadline"
+        ],
+        "geometry_max_forward_displacement_m": 0.025830786203420976,
+        "geometry_min_surface_clearance_m": 0.19695839472990073,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.98069804242422,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 582
+          },
+          "cpu_temp_c": 43.156,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 50.032198613827326,
+            "last_tick_age_ms": 11,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 473
+          },
+          "cpu_temp_c": 43.375,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+          "run_id": "p8-early-probe-02-880902",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": null,
+        "last_motion_call_to_stop_ack_ms": null,
+        "last_nonzero_velocity_at_ns": null,
+        "last_precondition_move_ack_at_ns": 1806880559091807,
+        "last_precondition_move_request_call_started_at_ns": 1806880558982491,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1806880129351060,
+        "looming_phase_started_at_ns": 1806879919711275,
+        "lplc2_first_nonzero_at_ns": 1806880149498081,
+        "max_stop_refresh_gap_ms": null,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "mean_stop_refresh_gap_ms": null,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1806880572202345,
+        "motion_arbiter_latch_reason": "neural_observation_timeout",
+        "motion_confirmed_at_ns": 1806878843413095,
+        "motion_first_observed_at_ns": 1806878623080342,
+        "motion_refresh_count": 32,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 25.354722,
+        "motion_stop_latency_ms": null,
+        "neural_ledger_artifact": {
+          "bytes": 23876,
+          "end_timestamp_ns": 1806880572232410,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-02-880902/neural-ledger.jsonl",
+          "record_count": 34,
+          "sha256": "47320e392f0dffaa9fc53328cb7787711811e1a4975ade082ff20323b70a422a",
+          "start_timestamp_ns": 1806879919711275
+        },
+        "neural_stop_count": 0,
+        "neutral_publish_suppressed_count": 33,
+        "observer_errors": [],
+        "peak_dn_escape": 0.2,
+        "peak_looming": 0.0,
+        "peak_lplc2_stimulus": 0.0,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 0,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": null,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": null,
+        "pre_stop_pose_speed_mps": null,
+        "pre_stop_robot_state_applied_vx_mps": 0.05599999999808616,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": null,
+        "pre_stop_robot_state_sample_at_ns": 1806880582509374,
+        "pre_stop_speed_sample_age_ms": null,
+        "pre_stop_speed_sample_at_ns": null,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.12178928245018959,
+          "motion_confirmed_at_ns": 1806878843413095,
+          "motion_first_observed_at_ns": 1806878623080342,
+          "precondition_displacement_m": 0.042745595388942986,
+          "precondition_peak_pose_speed_mps": 0.16662101577580962,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 20.070337,
+        "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+        "protocol_sha256": "9f12eac79a8d5591dba9e2400fb78663f1f1034c3e41ca3f2406f813e38e2e66",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": null,
+        "robot_stop_rpc_call_started_ns": null,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scheduler": null,
+        "scheduler_exceptions": null,
+        "scheduler_result_available": false,
+        "schema_version": "p8-v2-early-trigger-development-trial-v1",
+        "seed": 880902,
+        "source_checkout_uncommitted": true,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 1472.599335514839
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1806880579570153
+        ],
+        "stop_refresh_count": 1,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1806880579570153,
+            "sent_at_ns": 1806880579359087,
+            "sequence": 34,
+            "source": "safe_stop",
+            "stale_reason": "decoder_crash"
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": null,
+        "stopped_confirmed_at_ns": null,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3127,
+          "end_timestamp_ns": 1806880579334300,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-02-880902/trace.jsonl",
+          "record_count": 1,
+          "sha256": "afcf6bac0e5504198caf1cdeb97c3943eb710ed400fdc364a1f918632b4142a4",
+          "start_timestamp_ns": 1806880579334300
+        },
+        "trial_id": "p8-early-probe-02-880902",
+        "unexpected_nonzero_publish_count": 0,
+        "visual_after_ack_count": null,
+        "visual_frame_artifact": {
+          "bytes": 3960,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-02-880902/visual-frames.jsonl",
+          "record_count": 18,
+          "sha256": "ef43011fff2d5b7273b4b3a6431b083d6ebeda8364604a6fbc187d1e29bb55eb"
+        },
+        "visual_frame_count": 18,
+        "visual_max_frame_gap_ms": 40.067042,
+        "visual_mean_frame_gap_ms": 38.21382829411765,
+        "walking_policy_readback_sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": null
+      },
+      "summary_sha256": "358aa6b2183945df2c9ab1276ded87cc01251fc4962ebe0df2c8f40489257a42",
+      "trial_exit": 1,
+      "trial_index": 1,
+      "trial_log_sha256": "957618df0a9b5684d6b5bc81a95839802b2368c7efe6260b1f7918e073687fbc",
+      "trial_started": true
+    },
+    {
+      "pretrial_logs": {
+        "down": {
+          "bytes": 17,
+          "exit": 0,
+          "sha256": "d3f4afe57114c117d294acd158e7e26c1e0555df5b2145a4933c323f20891b7c"
+        },
+        "policy_load": {
+          "bytes": 235,
+          "exit": 0,
+          "sha256": "a3759c8fe5431205185f7da6682c0703832d04a33db02903c3d40dcb5f41e9d7"
+        },
+        "policy_readback": {
+          "bytes": 1786,
+          "exit": 0,
+          "sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076"
+        },
+        "up": {
+          "bytes": 1071,
+          "exit": 0,
+          "sha256": "52b698f32813107c7cfb88c2e856acc80eea7ebd5481a5d3b2b7ddb2fae1688f"
+        }
+      },
+      "seed": 880903,
+      "summary": {
+        "applied_vx_near_zero_threshold_mps": 0.008,
+        "arm_elapsed_s": 2.8,
+        "boundary_at_decoder_stop": null,
+        "boundary_at_stop_ack": null,
+        "boundary_at_stopped_confirmation": null,
+        "bounded_neural_lineage": {
+          "age_ms": 40.238763,
+          "observed_steps": [
+            32,
+            33,
+            34
+          ],
+          "reason": "bounded_temporal_visual_lineage",
+          "source_frame_id": 16,
+          "source_step": 32,
+          "stop_frame_id": 17,
+          "stop_step": 34,
+          "valid": true
+        },
+        "checks": {
+          "actual_stopped_confirmed": false,
+          "bounded_temporal_neural_lineage": false,
+          "continuous_visual_after_stop_ack": false,
+          "deadman_excluded": false,
+          "healthy_neural_stop_first": false,
+          "neutral_only_suppression": true,
+          "no_move_after_neural_latch": true,
+          "positive_motion_refresh_cadence": true,
+          "post_ack_transport_stop_only": false,
+          "pre_stop_body_still_moving": false,
+          "precondition_cadence_and_deadman": true,
+          "precondition_motion_confirmed": true,
+          "production_stop_refresh_cadence": false,
+          "robot_stop_ack": false,
+          "robotd_healthy": true,
+          "safety_bounds": true,
+          "scheduler_healthy": false,
+          "sphere_clearance_and_body_displacement": true,
+          "sphere_horizon_safe": true,
+          "state_machine_complete": false,
+          "timing_reconstructible": false,
+          "trigger_before_frozen_boundary": false,
+          "within_frozen_trial_duration": true
+        },
+        "complete_transition_at_ns": null,
+        "complete_transition_observed": false,
+        "deadman_limiter_seen_before_stopped": null,
+        "deadman_margin_ms": null,
+        "deadman_timeout_ms": 500,
+        "decoder_stop_created_at_ns": null,
+        "discarded_visual_after_ack": [],
+        "dn_escape_threshold_crossed_at_ns": null,
+        "events_artifact": {
+          "bytes": 152309,
+          "end_timestamp_ns": 1806894670105332,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-03-880903/events.jsonl",
+          "record_count": 183,
+          "sha256": "6d84004a5f06511ed76034ccbb4b35aad595b64714d6d19ce6333c4f10bdf718",
+          "start_timestamp_ns": 1806892500179512
+        },
+        "evidence_role": "development_probe",
+        "execution_target": "Thor",
+        "first_applied_vx_near_zero_at_ns": null,
+        "first_applied_vx_reduction_at_ns": null,
+        "first_stop_source": "safe_stop",
+        "first_stopped_state_at_ns": null,
+        "fixture_exceptions": [
+          "RuntimeError: no robot.stop ACK before frozen neural observation deadline"
+        ],
+        "geometry_max_forward_displacement_m": 0.020738279467213065,
+        "geometry_min_surface_clearance_m": 0.1726140090651923,
+        "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+        "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+        "health_after": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.993077808467405,
+            "last_tick_age_ms": 2,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 579
+          },
+          "cpu_temp_c": 43.125,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "health_before": {
+          "battery": {
+            "percent": 50.00000000000006,
+            "volts": 7.4
+          },
+          "bus": {
+            "consecutive_errors": 0,
+            "startup_failures": 0
+          },
+          "control_loop": {
+            "achieved_hz": 49.991258244319376,
+            "last_tick_age_ms": 11,
+            "missed": 0,
+            "target_hz": 50.0,
+            "ticks": 470
+          },
+          "cpu_temp_c": 43.812,
+          "healthy": true,
+          "imu": {
+            "consecutive_stale_blocks": 0,
+            "ready": true,
+            "stale_blocks": 0
+          },
+          "motors": {
+            "hottest": "left_hip_yaw",
+            "max_c": 32.0,
+            "mean_c": 32.0
+          }
+        },
+        "identity": {
+          "config_hashes": {
+            "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+            "escape": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+            "integration": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+            "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+            "safety": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+            "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+            "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+            "steering": "bc1f61557a39d7b4bc808950719b19609a611e05ddde31858f4832bf711727ce",
+            "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+          },
+          "dataset_version": "male-cns:v1.0",
+          "graph_identity": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+          "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+          "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+          "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+          "run_id": "p8-early-probe-03-880903",
+          "steering_yaw_sign": -1,
+          "stop_transport": "robot_stop"
+        },
+        "last_motion_ack_to_stop_ack_ms": null,
+        "last_motion_call_to_stop_ack_ms": null,
+        "last_nonzero_velocity_at_ns": null,
+        "last_precondition_move_ack_at_ns": 1806894645383419,
+        "last_precondition_move_request_call_started_at_ns": 1806894645272762,
+        "last_precondition_move_result": {
+          "accepted": true
+        },
+        "later_deadman_events": [],
+        "looming_first_nonzero_at_ns": 1806894094901931,
+        "looming_phase_started_at_ns": 1806894005238182,
+        "lplc2_first_nonzero_at_ns": 1806894115048489,
+        "max_stop_refresh_gap_ms": null,
+        "maximum_allowed_stop_refresh_gap_ms": 100,
+        "mean_stop_refresh_gap_ms": null,
+        "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+        "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+        "motion_arbiter_latch_at_ns": 1806894663286146,
+        "motion_arbiter_latch_reason": "neural_observation_timeout",
+        "motion_confirmed_at_ns": 1806892929009130,
+        "motion_first_observed_at_ns": 1806892708893895,
+        "motion_refresh_count": 32,
+        "motion_refresh_errors": [],
+        "motion_refresh_max_call_gap_ms": 26.162352,
+        "motion_stop_latency_ms": null,
+        "neural_ledger_artifact": {
+          "bytes": 24046,
+          "end_timestamp_ns": 1806894658052631,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-03-880903/neural-ledger.jsonl",
+          "record_count": 34,
+          "sha256": "0d1d8b601912a3de5bfc8ff01225d65e73ffe93c6edae4234b50952f3eb3d696",
+          "start_timestamp_ns": 1806894005238182
+        },
+        "neural_stop_count": 0,
+        "neutral_publish_suppressed_count": 33,
+        "observer_errors": [],
+        "peak_dn_escape": 0.2,
+        "peak_looming": 0.0,
+        "peak_lplc2_stimulus": 0.0,
+        "positive_move_ack_after_first_stop_ack_count": 0,
+        "positive_move_after_latch_count": 0,
+        "post_ack_robot_facing_command_count_before_complete": 0,
+        "post_ack_virtual_center": null,
+        "post_stop_confirmed_pose_speed_mps": null,
+        "post_stop_robot_move_count": 0,
+        "pre_stop_displacement_m": null,
+        "pre_stop_pose_speed_mps": null,
+        "pre_stop_robot_state_applied_vx_mps": 0.05599999999808616,
+        "pre_stop_robot_state_limited_by": [],
+        "pre_stop_robot_state_sample_age_ms": null,
+        "pre_stop_robot_state_sample_at_ns": 1806894668471773,
+        "pre_stop_speed_sample_age_ms": null,
+        "pre_stop_speed_sample_at_ns": null,
+        "precondition": {
+          "handoff_pose_speed_mps": 0.08487089835491717,
+          "motion_confirmed_at_ns": 1806892929009130,
+          "motion_first_observed_at_ns": 1806892708893895,
+          "precondition_displacement_m": 0.04143977347642951,
+          "precondition_peak_pose_speed_mps": 0.14853121534894134,
+          "walk_policy_observed": true
+        },
+        "precondition_deadman_limited": false,
+        "precondition_max_command_call_gap_ms": 20.076984,
+        "project_commit": "8a065068ef621a3ec5f9e57ab759bee4213d4e03",
+        "protocol_sha256": "9f12eac79a8d5591dba9e2400fb78663f1f1034c3e41ca3f2406f813e38e2e66",
+        "result": "FAIL",
+        "robot_stop_rpc_ack_returned_ns": null,
+        "robot_stop_rpc_call_started_ns": null,
+        "robot_stop_rpc_exact_socket_write_ns": null,
+        "safety_limit_violations": 0,
+        "scheduler": null,
+        "scheduler_exceptions": null,
+        "scheduler_result_available": false,
+        "schema_version": "p8-v2-early-trigger-development-trial-v1",
+        "seed": 880903,
+        "source_checkout_uncommitted": true,
+        "sphere_entry_bound": {
+          "safe": true,
+          "time_to_camera_entry_lower_bound_ms": 1329.6370332532608
+        },
+        "stop_refresh_ack_timestamps_ns": [
+          1806894665900209
+        ],
+        "stop_refresh_count": 1,
+        "stop_refresh_requests": [
+          {
+            "ack_at_ns": 1806894665900209,
+            "sent_at_ns": 1806894665689505,
+            "sequence": 34,
+            "source": "safe_stop",
+            "stale_reason": "decoder_crash"
+          }
+        ],
+        "stop_refresh_tail_to_stopped_ms": null,
+        "stopped_confirmed_at_ns": null,
+        "timing_limits": [
+          "request-form precondition robot.move has official acknowledgement",
+          "exact robot.stop socket-write instant unavailable; call start and ACK return bracket it",
+          "robot.state odometry velocity unavailable; official MuJoCo pose-derived speed is primary"
+        ],
+        "trace_artifact": {
+          "bytes": 3131,
+          "end_timestamp_ns": 1806894665661227,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-03-880903/trace.jsonl",
+          "record_count": 1,
+          "sha256": "a55b12502d32f25bea9d9ab406fe8035002323599b2e5816a5906fbe0827efdb",
+          "start_timestamp_ns": 1806894665661227
+        },
+        "trial_id": "p8-early-probe-03-880903",
+        "unexpected_nonzero_publish_count": 0,
+        "visual_after_ack_count": null,
+        "visual_frame_artifact": {
+          "bytes": 3988,
+          "path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-early-trigger-probe/dev-8a06506-20260925-1/trial-03-880903/visual-frames.jsonl",
+          "record_count": 18,
+          "sha256": "1a1cccf18d067403395b40db826a504a62a564d113aa9cf9bebedcf15ffc584f"
+        },
+        "visual_frame_count": 18,
+        "visual_max_frame_gap_ms": 40.068393,
+        "visual_mean_frame_gap_ms": 38.21537176470588,
+        "walking_policy_readback_sha256": "7e9004b9ea77388fa99083506c8642a2a0c140f647a8a79d5b7d0b2e0d471076",
+        "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+        "watchdog_stop_created_at_ns": null
+      },
+      "summary_sha256": "379d08b212740fff1dc1c4dec176f345ebf53dfdebeb3051a27849c441289ab6",
+      "trial_exit": 1,
+      "trial_index": 2,
+      "trial_log_sha256": "4c8341fbf0f9bff186cfd1da62251bf27376268f335d9552059d7370d217928f",
+      "trial_started": true
+    }
+  ]
+}
