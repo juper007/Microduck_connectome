@@ -1,6 +1,6 @@
 ---
 name: connectome-data-engineer
-description: Qwen Code adapter for the canonical MicroDuck Connectome connectome-data-engineer repository skill.
+description: Build reproducible MaleCNS ingestion, neuPrint queries, schemas, caches, graph extraction, and provenance. Use when pinned connectome sources must become deterministic local data/graph artifacts.
 ---
 
 # Qwen adapter: connectome-data-engineer
