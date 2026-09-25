@@ -164,7 +164,7 @@ class LoomingChain(FullChain):
 def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
-    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v2":
+    if protocol["schema_version"] != "p8-r1-stop-persistence-development-v3":
         raise ValueError("protocol version mismatch")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
@@ -174,7 +174,7 @@ def verify_protocol(root, protocol_path, protocol, args):
             ["git", "-C", str(root), "status", "--porcelain"], text=True).strip():
         raise RuntimeError("development trial requires a clean frozen source checkout")
     committed = subprocess.check_output(["git", "-C", str(root), "show",
-                                         "HEAD:config/p8_r1_dev_v2.json"])
+                                         "HEAD:config/p8_r1_dev_v3.json"])
     if protocol_path.read_bytes() != committed:
         raise RuntimeError("protocol differs from committed bytes")
     manifest_path = root / "data/manifests/controller-graph-v2.json"
@@ -296,9 +296,28 @@ def last_pre_stop_state(history, stop_call_ns):
     return candidates[-1] if candidates else None
 
 
+def precondition_deadman_after_motion(rows, motion_confirmed_ns):
+    """Detect deadman after established motion using the robot state's sample time.
+
+    The first readback can still describe robotd's state from before the first
+    acknowledged move. Preserve that startup marker in raw evidence, but do
+    not attribute it to the later moving interval.
+    """
+    for row in rows:
+        state = row["robot_state"]
+        if not any("deadman" in str(reason).lower()
+                   for reason in state["limited_by"]):
+            continue
+        sampled_ns = state.get("robot_t_ns")
+        if (motion_confirmed_ns is None or sampled_ns is None
+                or sampled_ns >= motion_confirmed_ns):
+            return True
+    return False
+
+
 def run(args):
     root = args.root.resolve()
-    protocol_path = root / "config/p8_r1_dev_v2.json"
+    protocol_path = root / "config/p8_r1_dev_v3.json"
     protocol = json.loads(protocol_path.read_text())
     manifest, graph_path, scenario = verify_protocol(root, protocol_path, protocol, args)
     seed = protocol["scenario_seeds"][args.trial_index]
@@ -879,9 +898,17 @@ def run(args):
         (b["request_call_started_at_ns"] - a["request_call_started_at_ns"]) / 1e6
         for a, b in zip(precondition_rows, precondition_rows[1:])]
     max_precondition_call_gap_ms = max(precondition_call_gaps_ms, default=None)
-    precondition_deadman_limited = any(
-        "deadman" in str(reason).lower()
-        for row in precondition_rows for reason in row["robot_state"]["limited_by"])
+    precondition_deadman_limited = precondition_deadman_after_motion(
+        precondition_rows,
+        precondition_status["motion_confirmed_at_ns"] if precondition_status else None)
+    startup_deadman_markers = sum(
+        1 for row in precondition_rows
+        if any("deadman" in str(reason).lower()
+               for reason in row["robot_state"]["limited_by"])
+        and precondition_status is not None
+        and row["robot_state"].get("robot_t_ns") is not None
+        and row["robot_state"]["robot_t_ns"]
+            < precondition_status["motion_confirmed_at_ns"])
     deadman = deadman_timing(
         last_motion.get("request_call_ns"), last_motion.get("ack_ns"), stop_ack_ns,
         timeout_ms=protocol["deadman_timeout_ms"],
@@ -1031,7 +1058,7 @@ def run(args):
     args.events.write_text("".join(json.dumps(row, sort_keys=True, separators=(",", ":"),
                                         allow_nan=False) + "\n" for row in events), encoding="ascii")
     summary = {
-        "schema_version": "p8-r1-stop-persistence-development-trial-v2", "result": result,
+        "schema_version": "p8-r1-stop-persistence-development-trial-v3", "result": result,
         "behavior_result": behavior_result,
         "transport_checks": transport_checks,
         "evidence_role": "development_probe",
@@ -1048,6 +1075,7 @@ def run(args):
         "identity": identity, "precondition": precondition_status,
         "precondition_max_command_call_gap_ms": max_precondition_call_gap_ms,
         "precondition_deadman_limited": precondition_deadman_limited,
+        "precondition_startup_deadman_marker_count": startup_deadman_markers,
         "motion_confirmed_at_ns": precondition_status["motion_confirmed_at_ns"] if precondition_status else None,
         "motion_first_observed_at_ns": precondition_status["motion_first_observed_at_ns"] if precondition_status else None,
         "last_precondition_move_request_call_started_at_ns": last_motion.get("request_call_ns"),
