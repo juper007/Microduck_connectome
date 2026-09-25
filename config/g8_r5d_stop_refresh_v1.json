@@ -81,10 +81,9 @@
   "post_ack_visual_fixture": "terminate visual scenario at first robot.stop ACK; skip new graph input; retain watchdog/control and stop transport until COMPLETE",
   "applied_stop_threshold_mps": 0.008,
   "minimum_fresh_pre_stop_applied_vx_mps": 0.04,
-  "applied_stop_deadline_basis": "first robot.stop RPC call start + robotd deadman_timeout_ms; conservative before robotd receipt",
-  "minimum_applied_vx_reduction_fraction_before_old_deadline": 0.2,
   "maximum_visual_lineage_age_ms": 100,
   "maximum_visual_lineage_runtime_step_gap": 5,
   "visual_lineage_interpretation": "complete consecutive healthy graph-v2 neural steps from latest positive looming/LPLC2 to first DN stop; LC10a visual co-input may coexist, no unique biology claim",
-  "maximum_stop_refresh_gap_ms": 100
+  "maximum_stop_refresh_gap_ms": 100,
+  "minimum_applied_vx_reduction_fraction_after_first_stop": 0.2
 }

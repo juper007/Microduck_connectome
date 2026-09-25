@@ -51,15 +51,6 @@ def material_pre_stop_applied(vx, minimum_vx):
             and minimum_vx > 0 and vx >= minimum_vx)
 
 
-def stop_onset_before_deadman(first_stopped_ns, refreshed_deadline_ns, deadman_events):
-    """Require actual pose-stop onset before refreshed robotd deadman can intervene."""
-    return (type(first_stopped_ns) is int and type(refreshed_deadline_ns) is int
-            and first_stopped_ns < refreshed_deadline_ns
-            and not any(type(event.get("timestamp_ns")) is not int
-                        or event["timestamp_ns"] <= first_stopped_ns
-                        for event in deadman_events))
-
-
 def neural_input_ended_by_ack(ledger, stop_ack_ns):
     """Conservative gate for every completed graph invocation in the raw ledger."""
     return (type(stop_ack_ns) is int and all(

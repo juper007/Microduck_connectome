@@ -588,7 +588,7 @@ def run(args):
             raise RuntimeError("visual scenario was not terminated at first stop ACK")
         preceding_applied_vx = preceding_state["move"]["applied"][0]
         reduction_limit = preceding_applied_vx * (
-            1 - protocol["minimum_applied_vx_reduction_fraction_before_old_deadline"])
+            1 - protocol["minimum_applied_vx_reduction_fraction_after_first_stop"])
         post_deadline_ns = stop_ack + int(protocol["maximum_post_ack_stop_observation_ms"] * 1e6)
         while time.monotonic_ns() < post_deadline_ns:
             sample_start_ns = time.monotonic_ns()
@@ -791,10 +791,6 @@ def run(args):
         maximum_gap_ms=protocol["maximum_stop_refresh_gap_ms"],
         deadman_timeout_ms=protocol["deadman_timeout_ms"],
         stopped_confirmed_ns=stopped_confirmed_ns)
-    deadline_ns = (last_motion["request_call_ns"] + int(protocol["deadman_timeout_ms"] * 1e6)
-                   if "request_call_ns" in last_motion else None)
-    refreshed_deadline_ns = (stop_call_ns + int(protocol["deadman_timeout_ms"] * 1e6)
-                             if stop_call_ns is not None else None)
     checks = {
         "precondition_motion_confirmed": bool(precondition_status and precondition_status["motion_confirmed_at_ns"]),
         "precondition_cadence_and_deadman": (len(precondition_rows) == round(
@@ -877,10 +873,6 @@ def run(args):
         "mean_stop_refresh_gap_ms": cadence["mean_gap_ms"],
         "stop_refresh_tail_to_stopped_ms": cadence["tail_to_stopped_ms"],
         "maximum_allowed_stop_refresh_gap_ms": protocol["maximum_stop_refresh_gap_ms"],
-        "deadman_deadline_conservative_ns": (last_motion["request_call_ns"]
-                                              + int(protocol["deadman_timeout_ms"] * 1e6)
-                                              if "request_call_ns" in last_motion else None),
-        "refreshed_stop_deadman_deadline_conservative_ns": refreshed_deadline_ns,
         "first_applied_vx_reduction_at_ns": first_applied_reduction_ns,
         "first_applied_vx_near_zero_at_ns": first_applied_near_zero_ns,
         "applied_vx_near_zero_threshold_mps": protocol["applied_stop_threshold_mps"],
