@@ -40,7 +40,7 @@ def fixture():
     return latch, watchdog, robot, adapter
 
 
-def test_latch_is_first_fault_wins_and_retains_last_healthy_timestamps():
+def check_latch_is_first_fault_wins_and_retains_last_healthy_timestamps():
     latch = FaultStopLatch()
     latch.observe_healthy("sensor", 10)
     latch.observe_healthy("neural", 20)
@@ -51,7 +51,7 @@ def test_latch_is_first_fault_wins_and_retains_last_healthy_timestamps():
     assert (first.last_healthy_sensor_ns, first.last_healthy_neural_ns) == (10, 20)
 
 
-def test_planned_sensor_fault_latches_and_cannot_be_cleared(reason):
+def check_planned_sensor_fault_latches_and_cannot_be_cleared(reason):
     latch = FaultStopLatch()
     now = 1_000_000_000
     healthy = make_perception_frame(timestamp_ns=now, frame_id=1)
@@ -85,7 +85,7 @@ def test_planned_sensor_fault_latches_and_cannot_be_cleared(reason):
     assert calls == 2
 
 
-def test_neural_freeze_and_planned_exception_are_distinct():
+def check_neural_freeze_and_planned_exception_are_distinct():
     now = 1_000_000_000
     latch = FaultStopLatch()
     wrapper = FaultAwareInputs(
@@ -108,7 +108,7 @@ def test_neural_freeze_and_planned_exception_are_distinct():
     assert other.snapshot().planned and other.snapshot().reason == "neural_freeze"
 
 
-def test_fault_stop_refreshes_authentic_watchdog_output_through_adapter():
+def check_fault_stop_refreshes_authentic_watchdog_output_through_adapter():
     latch, watchdog, robot, adapter = fixture()
     latch.latch("tof_loss", detected_ns=1, planned=True)
     scheduler = FaultStopRefreshScheduler(
@@ -125,7 +125,7 @@ def test_fault_stop_refreshes_authentic_watchdog_output_through_adapter():
                for a, b in zip(robot.calls, robot.calls[1:]))
 
 
-def test_inflight_move_finishes_before_fault_latch_then_only_stop():
+def check_inflight_move_finishes_before_fault_latch_then_only_stop():
     latch, watchdog, robot, adapter = fixture()
     entered = threading.Event()
     release = threading.Event()
@@ -182,7 +182,7 @@ def test_inflight_move_finishes_before_fault_latch_then_only_stop():
     assert not any(not intent["stop"] for _, intent, _ in robot.calls[1:])
 
 
-def test_expected_vs_unexpected_worker_failure_keeps_control_tail(planned):
+def check_expected_vs_unexpected_worker_failure_keeps_control_tail(planned):
     latch, watchdog, robot, adapter = fixture()
 
     def perception(now_ns):
@@ -227,7 +227,7 @@ def test_expected_vs_unexpected_worker_failure_keeps_control_tail(planned):
 
 class FaultStopTests(unittest.TestCase):
     def test_latch(self):
-        test_latch_is_first_fault_wins_and_retains_last_healthy_timestamps()
+        check_latch_is_first_fault_wins_and_retains_last_healthy_timestamps()
 
     def test_sensor_faults(self):
         for reason in (
@@ -235,18 +235,18 @@ class FaultStopTests(unittest.TestCase):
             "malformed_perception", "nan_feature", "inf_feature", "camera_stale",
         ):
             with self.subTest(reason=reason):
-                test_planned_sensor_fault_latches_and_cannot_be_cleared(reason)
+                check_planned_sensor_fault_latches_and_cannot_be_cleared(reason)
 
     def test_neural_freeze(self):
-        test_neural_freeze_and_planned_exception_are_distinct()
+        check_neural_freeze_and_planned_exception_are_distinct()
 
     def test_authentic_stop_refresh(self):
-        test_fault_stop_refreshes_authentic_watchdog_output_through_adapter()
+        check_fault_stop_refreshes_authentic_watchdog_output_through_adapter()
 
     def test_inflight_move(self):
-        test_inflight_move_finishes_before_fault_latch_then_only_stop()
+        check_inflight_move_finishes_before_fault_latch_then_only_stop()
 
     def test_worker_failure_tail(self):
         for planned in (True, False):
             with self.subTest(planned=planned):
-                test_expected_vs_unexpected_worker_failure_keeps_control_tail(planned)
+                check_expected_vs_unexpected_worker_failure_keeps_control_tail(planned)
