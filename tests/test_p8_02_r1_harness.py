@@ -48,6 +48,20 @@ class R1HarnessTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,"selected A controller"):
             validate_r1_material(ROOT,config)
 
+    def test_committed_d_b_material_accepts_exact_stage_text_only(self):
+        for stage in "db":
+            blob=subprocess.check_output(["git","-C",str(ROOT),"show",
+                f"HEAD:config/p8_02_r1_{stage}_execution_v1.json"])
+            config=json.loads(blob)
+            with mock.patch("scripts.p8_02_r1_trial.validate_frozen_material") as external:
+                validate_r1_material(ROOT,config)
+                external.assert_called_once()
+                for field in ("primary_screen","source_freeze_relationship"):
+                    altered=dict(config)
+                    altered[field]=config[field]+" changed"
+                    with self.assertRaisesRegex(RuntimeError,"stage-specific"):
+                        validate_r1_material(ROOT,altered)
+
     def test_fixed_planned_ids_reject_relabeling(self):
         for stage in "DB":
             data = json.loads(json.dumps(R1))

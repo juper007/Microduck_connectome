@@ -638,11 +638,28 @@ def validate_r1_material(root: Path, protocol: dict) -> None:
                "isolated_body_port", "isolated_sim_state", "maximum_neural_observation_ms_by_run",
                "ordered_official_runs", "r1_protocol_path", "r1_protocol_sha256", "r1_stage",
                "no_seed_gate_artifact_path",
+               "primary_screen", "source_freeze_relationship",
                "required_successful_independent_trials", "scenario_seeds", "schema_version"}
     if (set(protocol) - set(base) != {"r1_protocol_path", "r1_protocol_sha256", "r1_stage",
                                       "no_seed_gate_artifact_path"}
             or any(protocol.get(key) != value for key, value in base.items() if key not in allowed)):
         raise RuntimeError("R1 changed selected A controller, safety, or causal contract")
+    stage = protocol.get("r1_stage")
+    if stage not in ("D", "B"):
+        raise RuntimeError("R1 execution stage mismatch")
+    expected_primary = ("3 of 3 fixed D00-D02 independent official starts: healthy "
+        "DNp01/EscapeDecoder stop and first robot.stop request before the 0.25 m boundary "
+        "while body moving; all planned raw accounted and zero safety-limit violations."
+        if stage == "D" else
+        "at least 19 of 20 fixed B00-B19 independent official starts: healthy "
+        "DNp01/EscapeDecoder stop and first robot.stop request before the 0.25 m boundary "
+        "while body moving; all planned raw accounted and zero safety-limit violations.")
+    expected_source = ("Selected V2.4 runtime is an ancestor; exact clean P8-02 R1 "
+        "execution head and scorer must be independently reviewed and frozen before "
+        f"{stage}00.")
+    if (protocol.get("primary_screen") != expected_primary
+            or protocol.get("source_freeze_relationship") != expected_source):
+        raise RuntimeError("R1 stage-specific primary screen or source freeze text mismatch")
     inherited = dict(protocol)
     inherited["schema_version"] = "p8-r3-v24-official-development-v1"
     validate_frozen_material(root, inherited)
@@ -657,7 +674,8 @@ def validate_r1_material(root: Path, protocol: dict) -> None:
     if r1.get("schema_version") != "p8-02-r1-remediation-protocol-v1":
         raise RuntimeError("R1 protocol schema mismatch")
     official = r1["official_execution"]
-    gate_path = Path(official["preflight_audit_log_path"]).parent / "p8-02-r1-no-seed-gate-v1/gate.json"
+    gate_path = (PurePosixPath(official["preflight_audit_log_path"]).parent /
+                 "p8-02-r1-no-seed-gate-v1/gate.json")
     if (protocol["isolated_body_port"] != official["isolated_body_port"]
             or protocol["isolated_sim_state"] != official["isolated_sim_state"]
             or protocol["no_seed_gate_artifact_path"] != str(gate_path)
