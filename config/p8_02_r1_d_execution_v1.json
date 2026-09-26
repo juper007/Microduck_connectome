@@ -78,6 +78,7 @@
     "speed_window_max_ms": 140,
     "speed_window_ms": 100
   },
+  "no_seed_gate_artifact_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-no-seed-gate-v1/gate.json",
   "official_freeze_status": "FROZEN",
   "official_seed_status": "RESERVED_UNUSED",
   "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
@@ -110,9 +111,9 @@
     "vy_mps": 0.0,
     "vyaw_radps": 0.0
   },
-  "primary_screen": "At least 19 of 20 fixed A00-A19 independent official starts: healthy DNp01/EscapeDecoder stop and first robot.stop request before the 0.25 m boundary while body moving; all 20 raw accounted and zero safety-limit violations.",
+  "primary_screen": "3 of 3 fixed D00-D02 independent official starts: healthy DNp01/EscapeDecoder stop and first robot.stop request before the 0.25 m boundary while body moving; all planned raw accounted and zero safety-limit violations.",
   "r1_protocol_path": "config/p8_02_r1_protocol_v1.json",
-  "r1_protocol_sha256": "0197d7f40d2e48a3257e4999eed075cefbe2d1d37bba877c380d59454780837b",
+  "r1_protocol_sha256": "63d42a9bbd0808a7c4f507b04319bef7616fabe0fef8f37a3cdd4eb6a70de1dd",
   "r1_stage": "D",
   "required_successful_independent_trials": 3,
   "safety_limit_violations_max": 0,
@@ -139,7 +140,7 @@
     "window_ms": 200
   },
   "selected_visual_period_ms": 50,
-  "source_freeze_relationship": "Selected V2.4 runtime is an ancestor; exact clean P8-02 execution head and scorer must be independently reviewed and frozen before A00.",
+  "source_freeze_relationship": "Selected V2.4 runtime is an ancestor; exact clean P8-02 R1 execution head and scorer must be independently reviewed and frozen before D00.",
   "source_freeze_sha": "eea4eac492ed9210c7a756947f3f2e88e56410c3",
   "sphere_entry_safety_margin_ms": 100,
   "startup_gate_artifact_path": "docs/evidence/p8-r3/v24-startup-gate-raw-v1.json",

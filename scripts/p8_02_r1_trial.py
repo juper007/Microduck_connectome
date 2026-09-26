@@ -637,22 +637,30 @@ def validate_r1_material(root: Path, protocol: dict) -> None:
     allowed = {"arm_elapsed_s", "development_reason", "evidence_role", "frozen_output_dir",
                "isolated_body_port", "isolated_sim_state", "maximum_neural_observation_ms_by_run",
                "ordered_official_runs", "r1_protocol_path", "r1_protocol_sha256", "r1_stage",
+               "no_seed_gate_artifact_path",
                "required_successful_independent_trials", "scenario_seeds", "schema_version"}
-    if (set(protocol) - set(base) != {"r1_protocol_path", "r1_protocol_sha256", "r1_stage"}
+    if (set(protocol) - set(base) != {"r1_protocol_path", "r1_protocol_sha256", "r1_stage",
+                                      "no_seed_gate_artifact_path"}
             or any(protocol.get(key) != value for key, value in base.items() if key not in allowed)):
         raise RuntimeError("R1 changed selected A controller, safety, or causal contract")
     inherited = dict(protocol)
     inherited["schema_version"] = "p8-r3-v24-official-development-v1"
     validate_frozen_material(root, inherited)
     r1path = (root / protocol["r1_protocol_path"]).resolve()
-    if not r1path.is_relative_to(root / "config") or sha(r1path) != protocol["r1_protocol_sha256"]:
+    if not r1path.is_relative_to(root / "config"):
+        raise RuntimeError("R1 protocol path escapes source config")
+    committed_r1 = subprocess.check_output([
+        "git", "-C", str(root), "show", f"HEAD:{r1path.relative_to(root).as_posix()}"])
+    if hashlib.sha256(committed_r1).hexdigest() != protocol["r1_protocol_sha256"]:
         raise RuntimeError("R1 protocol path/hash mismatch")
     r1 = json.loads(r1path.read_text())
     if r1.get("schema_version") != "p8-02-r1-remediation-protocol-v1":
         raise RuntimeError("R1 protocol schema mismatch")
     official = r1["official_execution"]
+    gate_path = Path(official["preflight_audit_log_path"]).parent / "p8-02-r1-no-seed-gate-v1/gate.json"
     if (protocol["isolated_body_port"] != official["isolated_body_port"]
             or protocol["isolated_sim_state"] != official["isolated_sim_state"]
+            or protocol["no_seed_gate_artifact_path"] != str(gate_path)
             or protocol["frozen_output_dir"] != (official["development_output_dir"]
                 if protocol["r1_stage"] == "D" else official["output_dir"])):
         raise RuntimeError("R1 execution output/state differs from prospective protocol")

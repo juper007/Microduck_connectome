@@ -22,6 +22,13 @@ from scripts.p8_02_r1_trial import validate_r1_material, validate_r1_selection
 FROZEN_PREFLIGHT_AUDIT = Path(
     "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/"
     "p8-02-r1-preflight-audit.jsonl")
+FROZEN_NO_SEED_GATE = FROZEN_PREFLIGHT_AUDIT.parent / "p8-02-r1-no-seed-gate-v1/gate.json"
+NO_SEED_CASES = {
+    "wrong_operator_path": "test_wrong_operator_path_aborts_before_output_or_ids_and_audits",
+    "wrong_audit_path": "test_correct_source_wrong_audit_inside_output_aborts_zero_ids",
+    "sigint_checkpoint": "test_sigint_checkpoints_stop_then_down_and_probe_without_next_id",
+    "sigkill_audit_only": "test_checkpoint_manifest_and_recovery_never_modify_raw",
+}
 
 
 def sha(path: Path) -> str:
@@ -103,7 +110,8 @@ def planned_rows(r1: dict, stage: str) -> list[dict]:
 
 
 def require_development_gate(dev: Path, r1: dict, expected_head: str,
-                             expected_execution_sha: str) -> None:
+                             expected_execution_sha: str,
+                             expected_no_seed_gate_sha: str) -> None:
     journal = json.loads((dev / "batch-journal.json").read_text())
     summary = json.loads((dev / "batch-summary.json").read_text())
     require(journal.get("stage") == "D" and summary.get("stage") == "D",
@@ -113,6 +121,10 @@ def require_development_gate(dev: Path, r1: dict, expected_head: str,
     require(journal["source_head"] == expected_head and
             journal["execution_sha256"] == expected_execution_sha,
             "D gate source/config changed before B")
+    require(journal.get("preflight_hashes", {}).get("no_seed_gate_artifact") ==
+            expected_no_seed_gate_sha and
+            summary.get("no_seed_gate_artifact_sha256") == expected_no_seed_gate_sha,
+            "D gate no-seed demonstration hash changed before B")
     official = r1["official_execution"]
     require(journal.get("preflight_hashes", {}).get("graph") == official["graph_artifact_sha256"]
             and journal.get("preflight_hashes", {}).get("policy") == official["walking_policy_sha256"]
@@ -124,6 +136,46 @@ def require_development_gate(dev: Path, r1: dict, expected_head: str,
             rescored == summary["score"], "D gate retained raw differs from score")
     require(summary["final_sim_down"]["state_probe_result"] == "PASS", "D cleanup invalid")
     require(verify_manifest(dev), "D manifest differs from retained bytes")
+
+
+def validate_no_seed_gate(path: Path, root: Path, reviewed_head: str,
+                          protocol_sha256: str) -> str:
+    """Recheck every preregistered demonstration and retained log before B00."""
+    require(path.resolve() == FROZEN_NO_SEED_GATE, "no-seed gate artifact path mismatch")
+    gate = json.loads(path.read_text())
+    require(gate.get("schema_version") == "p8-02-r1-no-seed-gate-v1"
+            and gate.get("result") == "PASS" and gate.get("source_head") == reviewed_head
+            and gate.get("source_path") == str(root.resolve())
+            and str(gate.get("host", "")).startswith("jetsonthor")
+            and str(gate.get("python", "")).startswith("3.12."),
+            "no-seed gate identity, source, or host mismatch")
+    expected_files = ("config/p8_02_r1_protocol_v1.json", "scripts/p8_02_r1_batch.py",
+        "scripts/p8_02_r1_trial.py", "scripts/p8_02_r1_score.py",
+        "scripts/p8_02_r1_no_seed_gate.py", "tests/test_p8_02_r1_harness.py")
+    expected_hashes = {relative: hashlib.sha256(subprocess.check_output([
+        "git", "-C", str(root), "show", f"HEAD:{relative}"])).hexdigest()
+        for relative in expected_files}
+    require(gate.get("committed_sha256") == expected_hashes
+            and expected_hashes[expected_files[0]] == protocol_sha256,
+            "no-seed gate committed source/protocol hash mismatch")
+    cases = gate.get("cases")
+    require(isinstance(cases, list) and len(cases) == len(NO_SEED_CASES),
+            "no-seed gate case count mismatch")
+    for row, (name, method) in zip(cases, NO_SEED_CASES.items()):
+        testcase = f"tests.test_p8_02_r1_harness.R1HarnessTests.{method}"
+        command = [gate.get("python_executable"), "-m", "unittest", testcase, "-v"]
+        log = path.parent / f"{name}.log"
+        require(row.get("name") == name and row.get("testcase") == testcase
+                and row.get("command") == command and row.get("exit") == 0
+                and row.get("result") == "PASS" and row.get("log") == log.name
+                and log.is_file(), f"no-seed {name} result/log mismatch")
+        payload = log.read_bytes()
+        require(row.get("log_sha256") == hashlib.sha256(payload).hexdigest()
+                and row.get("log_bytes") == len(payload)
+                and b"Ran 1 test" in payload and b"OK" in payload
+                and b"FAILED" not in payload,
+                f"no-seed {name} retained log hash/result mismatch")
+    return sha(path)
 
 
 def preflight(args) -> tuple[dict, dict, dict]:
@@ -150,7 +202,7 @@ def preflight(args) -> tuple[dict, dict, dict]:
         record["resolved"].update({k: str(v) for k, v in {
             "source": root, "protocol": protocol_path, "execution": execution_path,
             "microduck": upstream, "microduck_rl": upstream_rl,
-            "output": output, "state": state, "audit_requested": audit}.items()})
+            "output": output, "state": state, "audit_requested": args.audit.resolve()}.items()})
         require(socket.gethostname().startswith("jetsonthor") and
                 platform.python_version_tuple()[:2] == ("3", "12"), "Thor Python 3.12 required")
         require(len(args.reviewed_head) == 40 and all(c in "0123456789abcdef" for c in args.reviewed_head),
@@ -174,7 +226,7 @@ def preflight(args) -> tuple[dict, dict, dict]:
                                official["output_dir"]).resolve(), "operator output path mismatch")
         require(state == Path(official["isolated_sim_state"]).resolve() and
                 args.body_port == official["isolated_body_port"], "operator state/port mismatch")
-        require(audit == Path(official["preflight_audit_log_path"]).resolve(), "operator audit path mismatch")
+        require(args.audit.resolve() == audit, "operator audit path mismatch")
         require(Path(__file__).resolve() == root / "scripts/p8_02_r1_batch.py",
                 "R1 batch script is outside reviewed source")
         require(not output.exists(), "R1 output root already exists; never overwrite")
@@ -219,11 +271,14 @@ def preflight(args) -> tuple[dict, dict, dict]:
                 "execution run matrix mismatch")
         probe = probe_final_sim_state(state, args.body_port, phase="preflight")
         require(probe["result"] == "PASS", "isolated socket or body port occupied")
+        gate_sha = validate_no_seed_gate(Path(execution["no_seed_gate_artifact_path"]),
+                                         root, args.reviewed_head,
+                                         execution["r1_protocol_sha256"])
         if args.stage == "B":
             dev = Path(official["development_output_dir"]).resolve(strict=True)
             require(dev != output, "D/B roots must differ")
             require_development_gate(dev, r1, args.reviewed_head,
-                                     sha(root / "config/p8_02_r1_d_execution_v1.json"))
+                                     sha(root / "config/p8_02_r1_d_execution_v1.json"), gate_sha)
         record["resolved"] = {k: str(v) for k, v in {"source":root,"protocol":protocol_path,
             "execution":execution_path,"microduck":upstream,"microduck_rl":upstream_rl,
             "graph":graph,"policy":policy,"sim":sim,"output":output,"state":state,"audit":audit}.items()}
@@ -232,11 +287,13 @@ def preflight(args) -> tuple[dict, dict, dict]:
                             "batch_script":sha(root/"scripts/p8_02_r1_batch.py"),
                             "trial_script":sha(root/"scripts/p8_02_r1_trial.py"),
                             "score_script":sha(root/"scripts/p8_02_r1_score.py")}
+        record["hashes"]["no_seed_gate_artifact"] = gate_sha
         record["commits"] = {"source":git_head(root),"microduck":git_head(upstream),
                              "microduck_rl":git_head(upstream_rl)}
         record["checks"] = ["host_python", "reviewed_clean_source", "resolved_paths", "upstream_heads",
                             "graph_policy_hash", "committed_execution", "selected_material",
-                            "fixed_seed_matrix", "isolated_state_probe"] + (["development_gate"] if args.stage == "B" else [])
+                            "fixed_seed_matrix", "isolated_state_probe", "no_seed_gate_raw_logs"] + (
+                            ["development_gate"] if args.stage == "B" else [])
         record["result"] = "PASS"
         return r1, execution, record
     except BaseException as error:
@@ -283,6 +340,41 @@ def emergency_stop(socket_path: Path) -> dict:
     except BaseException as error:
         result["error"] = f"{type(error).__name__}: {error}"
     return result
+
+
+def batch_pass(journal: dict, score: dict, final: dict, interrupted: bool) -> bool:
+    """D is 3/3; B permits one fully audited safe armed causal failure."""
+    stage = journal["stage"]
+    ids = journal["ids"]
+    planned = 3 if stage == "D" else 20 if stage == "B" else 0
+    if (interrupted or len(ids) != planned or score.get("result") != "PASS"
+            or not isinstance(journal.get("preflight_hashes", {}).get("no_seed_gate_artifact"), str)
+            or score.get("stage") != stage or score.get("planned") != planned
+            or score.get("successes", -1) < (3 if stage == "D" else 19)
+            or score.get("all_raw_accounted") is not True
+            or score.get("zero_safety_limit_violations") is not True
+            or final.get("exit") != 0 or final.get("interrupted") is not False
+            or final.get("state_probe_result") != "PASS"):
+        return False
+    trials = score.get("trials", [])
+    if len(trials) != planned or sum(t.get("success") is True for t in trials) != score["successes"]:
+        return False
+    for item, trial in zip(ids, trials):
+        attempts = item.get("attempts", [])
+        if (item.get("status") != "ARMED_COMPLETE" or not 1 <= len(attempts) <= 3
+                or attempts[-1].get("armed") is not True
+                or type(attempts[-1].get("trial_exit")) is not int
+                or item.get("trial_id") != trial.get("trial_id")
+                or item.get("seed") != trial.get("seed")
+                or trial.get("raw_accounted") is not True
+                or trial.get("safety_limit_violations") != 0):
+            return False
+        if stage == "D" and (trial.get("success") is not True
+                             or attempts[-1]["trial_exit"] != 0):
+            return False
+        if stage == "B" and trial.get("success") is True and attempts[-1]["trial_exit"] != 0:
+            return False
+    return True
 
 
 def run_child(command: list[str], log: Path, env: dict, progress=None) -> tuple[int, bool]:
@@ -332,9 +424,11 @@ def run_child(command: list[str], log: Path, env: dict, progress=None) -> tuple[
 
 def run(args) -> dict:
     if args.recover_only:
+        require(args.audit.resolve() == FROZEN_PREFLIGHT_AUDIT,
+                "recovery audit must use frozen external path")
         root = args.output.resolve(strict=True)
         report = recover_only(root)
-        append_audit(args.audit.resolve(), report)
+        append_audit(FROZEN_PREFLIGHT_AUDIT, report)
         return report
     r1, execution, preflight_record = preflight(args)
     root = args.root.resolve()
@@ -345,7 +439,7 @@ def run(args) -> dict:
                "result":"RUNNING","source_path":str(root),"source_head":args.reviewed_head,
                "protocol_sha256":preflight_record["hashes"]["protocol"],
                "execution_sha256":preflight_record["hashes"]["execution"],
-               "preflight_audit_sha256":sha(args.audit.resolve()),
+               "preflight_audit_sha256":sha(FROZEN_PREFLIGHT_AUDIT),
                "preflight_hashes":preflight_record["hashes"],
                "preflight_commits":preflight_record["commits"],
                "preflight_resolved_paths":preflight_record["resolved"],
@@ -498,17 +592,29 @@ def run(args) -> dict:
         score={"schema_version":"p8-02-r1-score-v1","result":"FAIL",
                "error":f"{type(exc).__name__}: {exc}"}
     atomic_json(output/"score.json",score)
-    journal["result"]="PASS" if (not interrupted and all(i["status"]=="ARMED_COMPLETE"
-        and len(i["attempts"])<=3 and i["attempts"][-1].get("trial_exit")==0
-        for i in journal["ids"]) and score["result"]=="PASS" and final.get("exit")==0
-        and final.get("interrupted") is False
-        and final.get("state_probe_result")=="PASS") else "FAIL"
+    try:
+        final_gate_sha=validate_no_seed_gate(Path(execution["no_seed_gate_artifact_path"]),
+            root,args.reviewed_head,execution["r1_protocol_sha256"])
+        gate_integrity=(final_gate_sha==journal["preflight_hashes"]["no_seed_gate_artifact"])
+    except BaseException as exc:
+        gate_integrity=False
+        journal["no_seed_gate_error"]=f"{type(exc).__name__}: {exc}"
+    journal["result"]="PASS" if (gate_integrity and
+        batch_pass(journal,score,final,interrupted)) else "FAIL"
     checkpoint(output,journal)
     summary={"schema_version":"p8-02-r1-batch-summary-v1","stage":args.stage,
              "result":journal["result"],"source_head":args.reviewed_head,
+             "no_seed_gate_artifact_sha256":journal["preflight_hashes"].get("no_seed_gate_artifact"),
              "score":score,"final_sim_down":final,"error":error}
     atomic_json(output/"batch-summary.json",summary)
     checkpoint(output,journal)
+    if not verify_manifest(output):
+        journal["result"]="FAIL"
+        journal["manifest_error"]="final manifest differs from retained files"
+        summary["result"]="FAIL"
+        summary["manifest_error"]=journal["manifest_error"]
+        atomic_json(output/"batch-summary.json",summary)
+        checkpoint(output,journal)
     return summary
 
 
