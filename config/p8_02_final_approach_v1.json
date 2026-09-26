@@ -42,7 +42,7 @@
   "fault_gate_artifact_sha256": "254301db081093433411b9b90d7d44eaa14287bd13eb8cda7273f481d3187166",
   "fault_gate_status": "PASS",
   "final_protocol_path": "config/p8_v2_final_protocol_v1.json",
-  "final_protocol_sha256": "2324bca3372365e77cd9a3022cee1361d9f592a1abb169aeea4479f21fd5ddb7",
+  "final_protocol_sha256": "d281d239b9d080027d4c2662f889f76e68e04ef06599d78bb0cd644dcf515e42",
   "fixture_neutral_transport": "suppress exact zero non-stop watchdog output before first neural stop; fail unexpected nonzero",
   "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
   "frozen_output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-approach-v1",

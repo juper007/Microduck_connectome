@@ -264,7 +264,9 @@ def validate_frozen_material(root: Path, protocol: dict) -> None:
         final_bytes = subprocess.check_output([
             "git", "-C", str(root), "show", f"HEAD:{final_path.relative_to(root).as_posix()}"])
         if (hashlib.sha256(final_bytes).hexdigest() != protocol["final_protocol_sha256"]
-                or final_path.read_bytes() != final_bytes):
+                or subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD",
+                                   "--", final_path.relative_to(root).as_posix()],
+                                  check=False).returncode != 0):
             raise RuntimeError("final preregistration bytes/hash changed")
         final = json.loads(final_bytes)
         expected_runs = final["batches"]["P8-02"]["runs"]
