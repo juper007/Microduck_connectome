@@ -1,0 +1,28 @@
+version: 1
+name: P8R3
+owner: perception
+support:
+  - neural
+  - behavior
+  - integration
+  - safety
+  - eval
+  - repro
+review: reviewer
+pm: auto
+wf: std
+ctx: lazy
+base: latest
+scope: task
+keep:
+  - graph:v2
+  - escape:0.5
+  - boundary:0.25m
+  - stop:robot.stop
+  - motor:robotd
+merge: pass
+fail:
+  - retain
+  - newver
+  - retry
+evidence: full

@@ -1,0 +1,15 @@
+version: 1
+name: P8FINAL
+pm: auto
+wf: std
+ctx: lazy
+base: latest
+scope: phase
+review: reviewer
+continue: G8
+merge: pass
+fail:
+  - retain
+  - newver
+  - retry
+evidence: full

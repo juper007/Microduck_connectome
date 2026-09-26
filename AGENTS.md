@@ -110,3 +110,31 @@ Every handoff must state:
 - completion/gate status.
 
 Use `$independent-phase-reviewer` before declaring a phase gate complete.
+
+
+## Compact Task DSL
+
+Short task invocations may use `docs/MICRODUCK_TASK_DSL.md`.
+
+Example:
+
+```text
+@run P8-R3
+profile=P8R3
+continue=G8
+```
+
+The DSL is only a compact reference layer. It does not replace or weaken this file, selected repo-scoped `SKILL.md` contracts, task/phase acceptance criteria, Git/review rules, safety constraints, scientific traceability, or reproducibility requirements.
+
+For DSL tasks:
+
+1. Parse only syntax explicitly defined in `docs/MICRODUCK_TASK_DSL.md`.
+2. Resolve `base=latest` by freshly fetching `origin/main`; never use conversation memory as the base.
+3. Resolve the task packet/profile, then load only this file, the actual owner `SKILL.md`, and minimum task-specific context first.
+4. `owner` and `support` aliases require actual use of the corresponding repo-scoped skills; aliases are not descriptive labels.
+5. `wf=std` means the complete mandatory Git/review workflow in this file.
+6. `review=independent` requires a separate `$independent-phase-reviewer`; the authoring agent/session cannot self-satisfy independent review.
+7. Existing normative acceptance criteria override abbreviated DSL gates or profile defaults.
+8. Unknown or ambiguous DSL tokens must not be guessed.
+9. Durable task state belongs in Git, PRs, task packets, manifests, and evidence rather than the invoking prompt.
+10. Compact prompting never reduces required test, evidence, safety, or scientific rigor.
