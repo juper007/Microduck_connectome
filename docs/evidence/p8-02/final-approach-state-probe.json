@@ -1,0 +1,11 @@
+{
+  "body_port": 7892,
+  "body_port_connectable": false,
+  "phase": "final_down",
+  "result": "PASS",
+  "robotd_socket_connectable": false,
+  "robotd_socket_path": "/tmp/p8-02-final-state/duck-a.sock",
+  "robotd_socket_path_exists": false,
+  "schema_version": "p8-02-final-sim-state-probe-v1",
+  "timestamp_utc": "2026-09-26T01:04:02Z"
+}

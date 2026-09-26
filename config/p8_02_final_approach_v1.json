@@ -1,0 +1,297 @@
+{
+  "applied_stop_threshold_mps": 0.008,
+  "arm_elapsed_s": [
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6,
+    3.0,
+    2.0,
+    2.6
+  ],
+  "config_sha256": {
+    "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+    "escape_decoder": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+    "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+    "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+    "safety_envelope": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+    "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+    "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+    "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+    "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+  },
+  "deadman_timeout_ms": 500,
+  "development_reason": "P8-02 final 20-run execution adapter for the preregistered selected V2.4 controller; no selected runtime or safety change.",
+  "escape_threshold": 0.5,
+  "evidence_role": "final_phase8_approach",
+  "execution_target": "Thor official MicroDuck robotd and MuJoCo",
+  "fault_gate_artifact_path": "docs/evidence/p8-r3/v22-fault-gate-raw-v1.json",
+  "fault_gate_artifact_sha256": "254301db081093433411b9b90d7d44eaa14287bd13eb8cda7273f481d3187166",
+  "fault_gate_status": "PASS",
+  "final_protocol_path": "config/p8_v2_final_protocol_v1.json",
+  "final_protocol_sha256": "d281d239b9d080027d4c2662f889f76e68e04ef06599d78bb0cd644dcf515e42",
+  "fixture_neutral_transport": "suppress exact zero non-stop watchdog output before first neural stop; fail unexpected nonzero",
+  "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
+  "frozen_output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-approach-v1",
+  "isolated_body_port": 7892,
+  "isolated_sim_state": "/tmp/p8-02-final-state",
+  "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "initial_internal_gate_artifact_path": "docs/evidence/p8-r3/v21-internal-development-raw-v1.json",
+  "initial_internal_gate_artifact_sha256": "55e4f9e2db6fda448e89114d46ebcabae6532fc853e8b7d00e72a482ee3d1050",
+  "internal_gate_artifact_path": "docs/evidence/p8-r3/v22-internal-development-raw-v1.json",
+  "internal_gate_artifact_sha256": "f5bd155a82c308f1d5eee8e95ca41e05ed009494f9795c910d44617d7a089f60",
+  "internal_gate_manifest_path": "docs/evidence/p8-r3/v22-internal-artifact-manifest-v1.json",
+  "internal_gate_manifest_sha256": "a5e17d4aea2700b607a22598ef4b93ad93444f6b29c46401c86321102bdcec9d",
+  "internal_gate_script_path": "scripts/p8_r3_v22_internal_compare.py",
+  "internal_gate_script_sha256": "d6775aa7141250000bfd39265f7b56008fec81aba164ef672d5e9c2d5ce86b00",
+  "internal_gate_status": "PASS",
+  "invalid_stop_sources": [
+    "startup_watchdog",
+    "manual_stop",
+    "deadman",
+    "connection_loss",
+    "fixture_timeout",
+    "scheduler_shutdown"
+  ],
+  "looming_v2_module_sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0",
+  "maximum_last_motion_ack_to_stop_ack_ms": 400,
+  "maximum_neural_observation_ms_by_run": [
+    1000,
+    750,
+    550,
+    1000,
+    750,
+    550,
+    1000,
+    750,
+    550,
+    1000,
+    750,
+    550,
+    1000,
+    750,
+    550,
+    1000,
+    750,
+    550,
+    1000,
+    750
+  ],
+  "maximum_official_visual_frame_gap_ms": 100,
+  "maximum_post_ack_stop_observation_ms": 1000,
+  "maximum_robot_forward_displacement_m": 0.1,
+  "maximum_stop_refresh_gap_ms": 100,
+  "maximum_total_trial_duration_s": 7.5,
+  "maximum_visual_lineage_age_ms": 100,
+  "maximum_visual_lineage_runtime_step_gap": 5,
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "minimum_applied_vx_reduction_fraction_after_first_stop": 0.2,
+  "minimum_center_clearance_after_ack_m": 0.015,
+  "minimum_deadman_margin_ms": 100,
+  "minimum_fresh_pre_stop_applied_vx_mps": 0.04,
+  "motion_metric": {
+    "maximum_gap_before_neural_stop_ms": 100,
+    "moving_confirmation_ms": 200,
+    "moving_threshold_mps": 0.015,
+    "source": "official MuJoCo trunk x/y; robot.state odometry velocity unavailable in development probe",
+    "speed_window_max_ms": 140,
+    "speed_window_ms": 100
+  },
+  "official_freeze_status": "FROZEN",
+  "official_seed_status": "RESERVED_UNUSED",
+  "on_failed_trial": "Retain all raw data; complete planned fresh resets only after safe official simulator down/up; never replace a started failure",
+  "ordered_official_runs": [
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A00",
+      "seed": 880000
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A01",
+      "seed": 880001
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A02",
+      "seed": 880002
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A03",
+      "seed": 880003
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A04",
+      "seed": 880004
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A05",
+      "seed": 880005
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A06",
+      "seed": 880006
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A07",
+      "seed": 880007
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A08",
+      "seed": 880008
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A09",
+      "seed": 880009
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A10",
+      "seed": 880010
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A11",
+      "seed": 880011
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A12",
+      "seed": 880012
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A13",
+      "seed": 880013
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A14",
+      "seed": 880014
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A15",
+      "seed": 880015
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A16",
+      "seed": 880016
+    },
+    {
+      "arm_elapsed_s": 3.0,
+      "run_id": "A17",
+      "seed": 880017
+    },
+    {
+      "arm_elapsed_s": 2.0,
+      "run_id": "A18",
+      "seed": 880018
+    },
+    {
+      "arm_elapsed_s": 2.6,
+      "run_id": "A19",
+      "seed": 880019
+    }
+  ],
+  "post_ack_visual_fixture": "continue original approaching RGB and neural input through stopped confirmation; latch official stop transport",
+  "precondition": {
+    "command_period_ms": 20,
+    "duration_s": 1.5,
+    "interface": "official robotd robot.move high-level JSON-RPC request with acknowledgement",
+    "maximum_command_call_gap_ms": 100,
+    "minimum_trunk_displacement_m": 0.01,
+    "source_label": "precondition_motion; engineering test setup, not MaleCNS output",
+    "vx_mps": 0.07,
+    "vy_mps": 0.0,
+    "vyaw_radps": 0.0
+  },
+  "primary_screen": "At least 19 of 20 fixed A00-A19 independent official starts: healthy DNp01/EscapeDecoder stop and first robot.stop request before the 0.25 m boundary while body moving; all 20 raw accounted and zero safety-limit violations.",
+  "required_successful_independent_trials": 19,
+  "safety_limit_violations_max": 0,
+  "sampling_gate_manifest_path": "docs/evidence/p8-r3/v21-sampling-artifact-manifest-v1.json",
+  "sampling_gate_manifest_sha256": "14f4a733a4aae79e800886cfa0a947ce7b92b8fb763c2118a42dcef4ddfcab2a",
+  "scenario_config_path": "config/looming_scenario_v1.json",
+  "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+  "scenario_image_height_px": 33,
+  "scenario_image_width_px": 65,
+  "scenario_motion": "approaching",
+  "scenario_seeds": [
+    880000,
+    880001,
+    880002,
+    880003,
+    880004,
+    880005,
+    880006,
+    880007,
+    880008,
+    880009,
+    880010,
+    880011,
+    880012,
+    880013,
+    880014,
+    880015,
+    880016,
+    880017,
+    880018,
+    880019
+  ],
+  "scenario_window_interpretation": "V2.4 unchanged V2.3 first-frame cache priming and V2.2 fractional RGB/A estimator at 20 Hz; separate gate denominators, unchanged 100 ms TTL and official zero-skipped rule.",
+  "scheduler_exceptions_max": 0,
+  "schema_version": "p8-02-final-approach-v1",
+  "selected_v2": {
+    "area_epsilon": 1e-06,
+    "full_scale_rate_per_s": 0.5,
+    "max_gap_ms": 150,
+    "method": "log_area",
+    "window_ms": 200
+  },
+  "selected_visual_period_ms": 50,
+  "source_freeze_relationship": "Selected V2.4 runtime is an ancestor; exact clean P8-02 execution head and scorer must be independently reviewed and frozen before A00.",
+  "source_freeze_sha": "eea4eac492ed9210c7a756947f3f2e88e56410c3",
+  "sphere_entry_safety_margin_ms": 100,
+  "startup_gate_artifact_path": "docs/evidence/p8-r3/v24-startup-gate-raw-v1.json",
+  "startup_gate_artifact_sha256": "c2236ad27fc6d530b404eb589e5cff36be895aa9758318a8ae4fcb29873446f7",
+  "startup_gate_status": "PASS",
+  "startup_gate_thor_artifact_path": "docs/evidence/p8-r3/v24-startup-gate-thor-raw-v1.json",
+  "startup_gate_thor_artifact_sha256": "7e133e748be2dbac9adfa6284dbc5570ebc148a666c151f691cc45c06b8b2a85",
+  "stop_transport": "robot_stop",
+  "stopped_metric": {
+    "require_confirmation_before_cleanup_stop": true,
+    "source": "official MuJoCo trunk x/y",
+    "stop_confirmation_ms": 200,
+    "stopped_threshold_mps": 0.008
+  },
+  "visual_hz": 20,
+  "visual_lineage_interpretation": "complete consecutive healthy graph-v2 neural steps from latest positive looming/LPLC2 to first DN stop; LC10a visual co-input may coexist, no unique biology claim",
+  "visual_representation": "fractional_rgb_v21",
+  "visual_scheduler_config_path": "config/p8_r3_visual_scheduler_v1.json",
+  "visual_scheduler_config_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+  "walking_policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a"
+}
