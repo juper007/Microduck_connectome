@@ -1,0 +1,547 @@
+{
+  "schema_version": "p8-02-r1-remediation-protocol-v1",
+  "task_id": "P8-02-R1",
+  "phase": 8,
+  "status": "PREREGISTERED_NO_B_SEEDS_RUN",
+  "fetched_origin_main_base": "dbade36ac62e065441c554b7715662410872122f",
+  "branch": "docs/p8-02-r1-remediation",
+  "relationship": {
+    "parent_protocol": "config/p8_v2_final_protocol_v1.json",
+    "prior_execution_config": "config/p8_02_final_approach_v1.json",
+    "retained_prior_gate": "FAIL",
+    "retained_prior_mechanical_result": "20/20 healthy preboundary trigger/request, zero safety violations; wrong upstream operator path on assigned A IDs plus missing aborted-batch journal/JSON manifest invalidated protocol",
+    "prior_A_seeds": [
+      880000,
+      880001,
+      880002,
+      880003,
+      880004,
+      880005,
+      880006,
+      880007,
+      880008,
+      880009,
+      880010,
+      880011,
+      880012,
+      880013,
+      880014,
+      880015,
+      880016,
+      880017,
+      880018,
+      880019
+    ],
+    "pool_A_with_R1": false,
+    "reason": "prospective remediation of preflight barrier and durable attempt accounting only"
+  },
+  "selected_pipeline": {
+    "visual_representation": "fractional_rgb_v21",
+    "renderer": "render_fractional_pixels_8x8",
+    "detector": "FractionalRedTargetDetector",
+    "looming_estimator": {
+      "area_epsilon": 1e-06,
+      "full_scale_rate_per_s": 0.5,
+      "max_gap_ms": 150,
+      "method": "log_area",
+      "window_ms": 200
+    },
+    "visual_hz": 20,
+    "neural_hz": 50,
+    "control_hz": 50,
+    "perception_ttl_ms": 100,
+    "neural_readout_ttl_ms": 100,
+    "behavior_intent_ttl_ms": 100,
+    "graph_v2_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+    "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+    "dataset_version": "male-cns:v1.0",
+    "escape_threshold": 0.5,
+    "boundary_center_distance_m": 0.25,
+    "maximum_visual_lineage_runtime_step_gap": 5,
+    "deadman_timeout_ms": 500,
+    "maximum_stop_refresh_ack_gap_ms": 100,
+    "config_sha256": {
+      "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+      "escape_decoder": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+      "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+      "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+      "safety_envelope": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+      "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+      "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+      "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+      "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+    },
+    "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
+    "looming_v2_module_sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0",
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+    "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+    "visual_scheduler_config_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+    "safety_limits": {
+      "max_abs_vx_mps": 0.08,
+      "max_abs_vy_mps": 0,
+      "max_abs_vyaw_radps": 0.5,
+      "max_delta_vx_per_s": 0.2,
+      "max_delta_vyaw_per_s2": 1.5
+    },
+    "pose_stopped_confirmation": {
+      "speed_below_mps": 0.008,
+      "sustained_ms": 200,
+      "source": "official MuJoCo trunk x/y"
+    }
+  },
+  "scenario": {
+    "config_path": "config/looming_scenario_v1.json",
+    "synthetic_virtual_sphere": true,
+    "mujoco_obstacle_contact": false,
+    "image_size_px": [
+      65,
+      33
+    ],
+    "sphere_radius_m": 0.07,
+    "initial_center_distance_m": 0.85,
+    "approach_speed_m_s": 0.2,
+    "evaluator_boundary_center_distance_m": 0.25,
+    "tof_fixture_mm": 2000,
+    "moving_precondition": {
+      "command_period_ms": 20,
+      "duration_s": 1.5,
+      "interface": "official robotd robot.move high-level JSON-RPC request with acknowledgement",
+      "maximum_command_call_gap_ms": 100,
+      "minimum_trunk_displacement_m": 0.01,
+      "source_label": "precondition_motion; engineering test setup, not MaleCNS output",
+      "vx_mps": 0.07,
+      "vy_mps": 0.0,
+      "vyaw_radps": 0.0
+    },
+    "arm_elapsed_s_cycle": [
+      2.0,
+      2.6,
+      3.0
+    ],
+    "legacy_frame_period_field_role": "config/looming_scenario_v1.json frame_period_s=0.1 belongs to historical smoke fixture; official final cadence is selected_pipeline.visual_hz=20"
+  },
+  "official_execution": {
+    "authority": "Thor official duck-sim + robotd + MuJoCo, Python 3.12",
+    "source_path": "/home/juper007/projects/microduck-connectome-thor/p8-02-r1-source",
+    "source_head_policy": "must equal clean independently reviewed exact R1 execution head frozen in versioned execution preflight record before D00; recheck before B00; mismatch aborts before output or ID assignment",
+    "microduck_path": "/home/juper007/projects/microduck-connectome-thor/microduck",
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_path": "/home/juper007/projects/microduck-connectome-thor/microduck_rl",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "graph_artifact_path": "/home/juper007/projects/microduck-connectome-thor/evidence/g8-r1/graph-v2/c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json",
+    "graph_artifact_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+    "walking_policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+    "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+    "sim_executable_path": "/home/juper007/projects/microduck-connectome-thor/microduck/scripts/duck-sim",
+    "output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-approach-v1",
+    "preflight_audit_log_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-preflight-audit.jsonl",
+    "isolated_sim_state": "/tmp/p8-02-r1-state",
+    "isolated_body_port": 7893,
+    "new_output_dir_required": true,
+    "pretrial_down_up_policy_readback": true,
+    "final_sim_down_port_probe_required": true,
+    "source_path_status": "planned new isolated checkout; create after reviewed execution head; do not move or alter shared connectome checkout",
+    "development_output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-development-v1"
+  },
+  "preflight": {
+    "must_finish_before": [
+      "development_or_final_batch_output_dir_create",
+      "attempt_dir_create",
+      "trial_row_create",
+      "trial_id_assignment",
+      "seed_execution"
+    ],
+    "checks": [
+      "resolved_absolute_operator_paths_equal_frozen_config",
+      "clean_exact_independently_reviewed_source_head",
+      "committed_protocol_and_harness_bytes",
+      "pinned_microduck_and_microduck_rl_heads",
+      "graph_and_walking_policy_sha256",
+      "scenario_and_config_sha256",
+      "robotd_deadman_and_policy_readback_requirements",
+      "Thor_Python_3_12",
+      "isolated_port_and_state",
+      "simulator_executable"
+    ],
+    "operator_mismatch": "abort with zero assigned trial IDs; explicit standalone preflight audit log; never reclassify as exogenous pre-arm invalid",
+    "trial_side_recheck": true,
+    "trial_id_assignment_definition": "reserved D/B IDs in protocol are plans; assignment means activating an attempt row after the passing batch-specific preflight",
+    "applies_separately_to": [
+      "development_D00-D02",
+      "final_B00-B19"
+    ]
+  },
+  "ordered_official_runs": [
+    {
+      "trial_id": "B00",
+      "seed": 880020,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B01",
+      "seed": 880021,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B02",
+      "seed": 880022,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B03",
+      "seed": 880023,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B04",
+      "seed": 880024,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B05",
+      "seed": 880025,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B06",
+      "seed": 880026,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B07",
+      "seed": 880027,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B08",
+      "seed": 880028,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B09",
+      "seed": 880029,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B10",
+      "seed": 880030,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B11",
+      "seed": 880031,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B12",
+      "seed": 880032,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B13",
+      "seed": 880033,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B14",
+      "seed": 880034,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B15",
+      "seed": 880035,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B16",
+      "seed": 880036,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B17",
+      "seed": 880037,
+      "arm_elapsed_s": 3.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B18",
+      "seed": 880038,
+      "arm_elapsed_s": 2.0,
+      "scenario_motion": "approaching"
+    },
+    {
+      "trial_id": "B19",
+      "seed": 880039,
+      "arm_elapsed_s": 2.6,
+      "scenario_motion": "approaching"
+    }
+  ],
+  "planned_armed_denominator": 20,
+  "required_eligible_armed_results": 20,
+  "minimum_healthy_preboundary_successes": 19,
+  "maximum_safety_limit_violations": 0,
+  "unused_remaining_approach_seeds": {
+    "inclusive_start": 880040,
+    "inclusive_end": 880119,
+    "use": "unused_not_replacements"
+  },
+  "inherited_trial_limits": {
+    "applied_stop_threshold_mps": 0.008,
+    "deadman_timeout_ms": 500,
+    "escape_threshold": 0.5,
+    "maximum_last_motion_ack_to_stop_ack_ms": 400,
+    "maximum_neural_observation_ms_by_run": [
+      1000,
+      750,
+      550,
+      1000,
+      750,
+      550,
+      1000,
+      750,
+      550,
+      1000,
+      750,
+      550,
+      1000,
+      750,
+      550,
+      1000,
+      750,
+      550,
+      1000,
+      750
+    ],
+    "maximum_official_visual_frame_gap_ms": 100,
+    "maximum_post_ack_stop_observation_ms": 1000,
+    "maximum_robot_forward_displacement_m": 0.1,
+    "maximum_stop_refresh_gap_ms": 100,
+    "maximum_total_trial_duration_s": 7.5,
+    "maximum_visual_lineage_age_ms": 100,
+    "maximum_visual_lineage_runtime_step_gap": 5,
+    "minimum_applied_vx_reduction_fraction_after_first_stop": 0.2,
+    "minimum_center_clearance_after_ack_m": 0.015,
+    "minimum_deadman_margin_ms": 100,
+    "minimum_fresh_pre_stop_applied_vx_mps": 0.04,
+    "motion_metric": {
+      "maximum_gap_before_neural_stop_ms": 100,
+      "moving_confirmation_ms": 200,
+      "moving_threshold_mps": 0.015,
+      "source": "official MuJoCo trunk x/y; robot.state odometry velocity unavailable in development probe",
+      "speed_window_max_ms": 140,
+      "speed_window_ms": 100
+    },
+    "precondition": {
+      "command_period_ms": 20,
+      "duration_s": 1.5,
+      "interface": "official robotd robot.move high-level JSON-RPC request with acknowledgement",
+      "maximum_command_call_gap_ms": 100,
+      "minimum_trunk_displacement_m": 0.01,
+      "source_label": "precondition_motion; engineering test setup, not MaleCNS output",
+      "vx_mps": 0.07,
+      "vy_mps": 0.0,
+      "vyaw_radps": 0.0
+    },
+    "selected_v2": {
+      "area_epsilon": 1e-06,
+      "full_scale_rate_per_s": 0.5,
+      "max_gap_ms": 150,
+      "method": "log_area",
+      "window_ms": 200
+    },
+    "sphere_entry_safety_margin_ms": 100,
+    "stopped_metric": {
+      "require_confirmation_before_cleanup_stop": true,
+      "source": "official MuJoCo trunk x/y",
+      "stop_confirmation_ms": 200,
+      "stopped_threshold_mps": 0.008
+    },
+    "visual_hz": 20,
+    "visual_representation": "fractional_rgb_v21"
+  },
+  "attempt_accounting": {
+    "initialize_before_B00": "after separate B preflight and D PASS, all B00-B19 PENDING plus empty SHA256/byte/record manifest",
+    "attempt_directory": "Dxx/attempt-01..03 or Bxx/attempt-01..03; separate output roots; no overwrite",
+    "checkpoint_after": [
+      "each prearm acquisition step",
+      "arm transition",
+      "trial exit",
+      "cleanup",
+      "final down and port probe"
+    ],
+    "checkpoint_durability": "same-directory temporary write, flush, fsync, atomic replace, fsync directory; inventory every extant raw/log file SHA256 bytes record count",
+    "max_total_prearm_attempts_per_id": 3,
+    "retry_only_exogenous_prearm": [
+      "simulator startup",
+      "IPC acquisition",
+      "fixture or pose reset",
+      "measured moving-body acquisition"
+    ],
+    "operator_or_config_error_retry_allowed": false,
+    "armed_retry_allowed": false,
+    "unresolved_prearm_invalidity_blocks_pass": true,
+    "sigint_or_exception": "safe stop, checkpoint, raw inventory, final down/probe, machine-readable interrupted result",
+    "sigkill_or_power_loss": "audit-only restart; scan untouched files, hash/count, mark in-flight INTERRUPTED_UNKNOWN_ARM unless proven; no rerun if arm occurred or cannot be ruled out",
+    "all_assigned_ids_fixed_denominator": true,
+    "initialize_before_D00": "after separate D preflight, all D00-D02 PENDING plus empty SHA256/byte/record manifest"
+  },
+  "success_rule": {
+    "causal_order": [
+      "positive looming",
+      "LPLC2",
+      "healthy graph-v2 DNp01 >=0.5",
+      "EscapeDecoder stop",
+      "SafetyClamp",
+      "healthy Watchdog",
+      "neural stop latch",
+      "first robot.stop request and ACK",
+      "applied-vx decline",
+      "pose-confirmed stop"
+    ],
+    "trigger_and_first_request_boundary_margin_m": "strictly >0 while moving, center distance minus 0.25",
+    "max_visual_gap_ms": 100,
+    "max_neural_frame_age_ms": 100,
+    "max_lineage_runtime_step_gap": 5,
+    "max_stop_ack_refresh_gap_ms": 100,
+    "zero_positive_move_after_latch": true,
+    "zero_fault_deadman_scripted_cessation_confound": true,
+    "pose_confirmation_required": true
+  },
+  "metrics": {
+    "times": [
+      "first positive looming",
+      "LPLC2",
+      "DN threshold",
+      "healthy neural stop",
+      "first stop request",
+      "first stop ACK",
+      "applied-vx reduction",
+      "pose-confirmed stop"
+    ],
+    "latencies_ms": [
+      "looming_to_neural_stop",
+      "neural_stop_to_request",
+      "neural_stop_to_ack",
+      "ack_to_pose_stop",
+      "looming_to_pose_stop"
+    ],
+    "summaries": [
+      "per-ID",
+      "median",
+      "nearest-rank p95",
+      "maximum",
+      "Wilson 95% CI"
+    ],
+    "separate_boundary_margins": [
+      "trigger",
+      "request",
+      "ACK",
+      "pose-confirmed stop"
+    ],
+    "secondary_non_gating": [
+      "pose-confirmed preboundary fraction",
+      "minimum virtual surface clearance"
+    ]
+  },
+  "decision": "PASS iff prospective 3/3 D development gate PASS precedes B, all 20 B IDs accounted and eligible armed, >=19 healthy causal preboundary B successes, zero safety-limit violations, all freshness/lineage/transport/stop rules, complete per-attempt raw/journal/manifest agreement and independent exact-head review; otherwise FAIL or blocked preflight as specified",
+  "evidence": {
+    "immutable_prior": "docs/evidence/p8-02/final-approach-summary.md",
+    "new_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-approach-v1",
+    "required": [
+      "standalone preflight audit log",
+      "exact commands and Python version",
+      "resolved path/head/hash record",
+      "policy readback",
+      "per-attempt raw pose/visual/neural/decoder/Watchdog/command/ACK ledgers",
+      "stdout and stderr",
+      "incremental batch journal",
+      "incremental SHA256/byte/record manifest",
+      "raw-derived scorer",
+      "final down and port probe"
+    ],
+    "raw_recomputation_required": true,
+    "development_root": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-development-v1"
+  },
+  "sequencing": [
+    "R1 harness/preflight exact-head review",
+    "three fresh D development trials and focused no-seed barrier/interrupt gates, 3/3 PASS",
+    "B final preflight then 20 B trials",
+    "P8-02 R1 exact-head independent review and PR merge",
+    "P8-03",
+    "P8-04",
+    "final regression",
+    "independent G8 review"
+  ],
+  "limitations": [
+    "prior A 20/20 mechanical result remains protocol FAIL and is not pooled",
+    "20-trial Wilson interval is wide",
+    "preboundary trigger/request does not establish preboundary pose-confirmed stop",
+    "virtual sphere has no MuJoCo contact geometry",
+    "no topology superiority claim"
+  ],
+  "development_gate": {
+    "status": "PROSPECTIVE_UNUSED",
+    "sequence": "after reviewed R1 harness and passing pre-output preflight, before any B final seed",
+    "ordered_runs": [
+      {
+        "trial_id": "D00",
+        "seed": 886020,
+        "arm_elapsed_s": 2.0,
+        "scenario_motion": "approaching",
+        "fresh_official_reset": true
+      },
+      {
+        "trial_id": "D01",
+        "seed": 886021,
+        "arm_elapsed_s": 2.6,
+        "scenario_motion": "approaching",
+        "fresh_official_reset": true
+      },
+      {
+        "trial_id": "D02",
+        "seed": 886022,
+        "arm_elapsed_s": 3.0,
+        "scenario_motion": "approaching",
+        "fresh_official_reset": true
+      }
+    ],
+    "planned_armed_denominator": 3,
+    "required_healthy_preboundary_successes": 3,
+    "maximum_safety_limit_violations": 0,
+    "mechanical_rules": "same selected controller and B-like healthy moving-body causal stop, freshness, lineage, transport, pose confirmation and zero post-latch move rules",
+    "evidence_rules": [
+      "complete incremental per-attempt journal",
+      "SHA256/byte/record manifest",
+      "all raw retained",
+      "final simulator down and port probe"
+    ],
+    "focused_no_seed_gate_cases": [
+      "operator path or commit mismatch aborts pre-output with zero assigned IDs and explicit audit log",
+      "SIGINT preserves checkpointed attempt",
+      "SIGKILL recovery inventories untouched raw and forbids armed retry"
+    ],
+    "failed_development_action": "retain negative evidence, block all B seeds until separate versioned remediation",
+    "pool_with_final_B": false,
+    "select_B_seeds_from_development_results": false,
+    "output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-r1-development-v1"
+  }
+}
