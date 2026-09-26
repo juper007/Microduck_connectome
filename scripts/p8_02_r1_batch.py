@@ -19,6 +19,10 @@ from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_score import score_batch
 from scripts.p8_02_r1_trial import validate_r1_material, validate_r1_selection
 
+FROZEN_PREFLIGHT_AUDIT = Path(
+    "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/"
+    "p8-02-r1-preflight-audit.jsonl")
+
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -130,9 +134,11 @@ def preflight(args) -> tuple[dict, dict, dict]:
               "python": platform.python_version(), "hostname": socket.gethostname(),
               "requested": {k: str(getattr(args, k)) for k in ("root", "protocol", "execution",
                   "microduck", "microduck_rl", "graph", "policy", "sim_executable",
-                  "output", "sim_state", "body_port", "reviewed_head")},
+                  "output", "audit", "sim_state", "body_port", "reviewed_head")},
               "resolved": {}, "hashes": {}, "commits": {}, "checks": []}
-    audit = args.audit.resolve()
+    # The audit destination is frozen independently of operator arguments so
+    # even an early bad source/CLI path cannot create the unassigned output root.
+    audit = FROZEN_PREFLIGHT_AUDIT
     try:
         root = args.root.resolve(strict=True)
         protocol_path = args.protocol.resolve(strict=True)
@@ -155,9 +161,8 @@ def preflight(args) -> tuple[dict, dict, dict]:
         r1 = json.loads(protocol_path.read_text())
         execution = json.loads(execution_path.read_text())
         official = r1["official_execution"]
-        # Once the prospective protocol is available, even a wrong operator
-        # --audit argument must be recorded at the frozen external audit path.
-        audit = Path(official["preflight_audit_log_path"]).resolve()
+        require(audit == Path(official["preflight_audit_log_path"]).resolve(),
+                "frozen preflight audit path differs from prospective protocol")
         require(r1.get("schema_version") == "p8-02-r1-remediation-protocol-v1", "R1 protocol schema mismatch")
         require(protocol_path == root / "config/p8_02_r1_protocol_v1.json", "R1 protocol source path mismatch")
         require(execution_path == root / f"config/p8_02_r1_{args.stage.lower()}_execution_v1.json",

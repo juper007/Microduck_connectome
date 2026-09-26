@@ -69,6 +69,8 @@ class R1HarnessTests(unittest.TestCase):
                 sim_state=parent / "state", body_port=7893, reviewed_head="a" * 40)
             with (mock.patch("scripts.p8_02_r1_batch.socket.gethostname", return_value="jetsonthor01"),
                   mock.patch("scripts.p8_02_r1_batch.platform.python_version_tuple", return_value=("3","12","0")),
+                  mock.patch("scripts.p8_02_r1_batch.FROZEN_PREFLIGHT_AUDIT",
+                             parent / "external-audit.jsonl"),
                   mock.patch("scripts.p8_02_r1_batch.git_head", return_value="a" * 40),
                   mock.patch("scripts.p8_02_r1_batch.subprocess.check_output", return_value="")):
                 with self.assertRaisesRegex(RuntimeError, "operator microduck path mismatch"):
@@ -114,10 +116,11 @@ class R1HarnessTests(unittest.TestCase):
             args=Namespace(stage="D",root=source,protocol=protocol,execution=execution,
                 microduck=parent/"microduck",microduck_rl=parent/"rl",output=output,
                 graph=parent/"graph",policy=parent/"policy",sim_executable=parent/"sim",
-                audit=parent/"audit.jsonl",sim_state=parent/"state",body_port=7893,
+                audit=output/"audit.jsonl",sim_state=parent/"state",body_port=7893,
                 reviewed_head="b"*40)
             with (mock.patch("scripts.p8_02_r1_batch.socket.gethostname",return_value="jetsonthor01"),
                   mock.patch("scripts.p8_02_r1_batch.platform.python_version_tuple",return_value=("3","12","0")),
+                  mock.patch("scripts.p8_02_r1_batch.FROZEN_PREFLIGHT_AUDIT",parent/"audit.jsonl"),
                   mock.patch("scripts.p8_02_r1_batch.git_head",return_value="a"*40)):
                 with self.assertRaisesRegex(RuntimeError,"reviewed head"):
                     preflight(args)
