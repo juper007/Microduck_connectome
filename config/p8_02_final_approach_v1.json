@@ -46,6 +46,8 @@
   "fixture_neutral_transport": "suppress exact zero non-stop watchdog output before first neural stop; fail unexpected nonzero",
   "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
   "frozen_output_dir": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-02-approach-v1",
+  "isolated_body_port": 7892,
+  "isolated_sim_state": "/tmp/p8-02-final-state",
   "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
   "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
   "initial_internal_gate_artifact_path": "docs/evidence/p8-r3/v21-internal-development-raw-v1.json",

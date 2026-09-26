@@ -29,6 +29,30 @@ def exception_label(error: Exception) -> str:
     return f"{type(error).__name__}: {error}"
 
 
+def probe_final_sim_state(sim_state: Path, body_port: int, *, phase: str = "final_down") -> dict:
+    """Retain listener evidence before launch or after final duck-sim down."""
+    socket_path = sim_state / "duck-a.sock"
+    unix_connectable = False
+    if socket_path.exists() and hasattr(socket, "AF_UNIX"):
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
+                probe.settimeout(.25)
+                unix_connectable = probe.connect_ex(str(socket_path)) == 0
+        except OSError:
+            unix_connectable = False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(.25)
+        body_port_connectable = probe.connect_ex(("127.0.0.1", body_port)) == 0
+    return {"schema_version": "p8-02-final-sim-state-probe-v1", "phase": phase,
+            "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "robotd_socket_path": str(socket_path),
+            "robotd_socket_path_exists": socket_path.exists(),
+            "robotd_socket_connectable": unix_connectable,
+            "body_port": body_port, "body_port_connectable": body_port_connectable,
+            "result": "PASS" if not socket_path.exists()
+            and not unix_connectable and not body_port_connectable else "FAIL"}
+
+
 def validate_trial_artifacts(summary: dict, folder: Path) -> None:
     """A PASS summary must name the retained, hashed raw evidence in this trial."""
     for key in ("trace_artifact", "events_artifact", "neural_ledger_artifact", "visual_frame_artifact"):
@@ -74,7 +98,16 @@ def main():
         raise RuntimeError("uncommitted protocol bytes")
     validate_frozen_material(root, protocol)
     validate_frozen_output_dir(protocol, a.output)
+    if (a.sim_state != Path(protocol["isolated_sim_state"])
+            or a.body_port != protocol["isolated_body_port"]):
+        raise RuntimeError("P8-02 final simulator state/port differs from frozen isolation")
     a.output.mkdir(parents=True, exist_ok=False)
+    preflight_probe = probe_final_sim_state(a.sim_state, a.body_port, phase="preflight")
+    preflight_path = a.output / "preflight-state-probe.json"
+    preflight_path.write_text(json.dumps(preflight_probe, sort_keys=True, indent=2,
+                                         allow_nan=False) + "\n", encoding="utf-8", newline="\n")
+    if preflight_probe["result"] != "PASS":
+        raise RuntimeError("P8-02 final isolated simulator state/port already occupied")
     env = dict(os.environ)
     env.update({
         "PATH": str(a.microduck.parent / "rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin")
@@ -163,8 +196,7 @@ def main():
                     row["failure"] = "trial_exited_without_summary"
             except Exception as error:
                 row["failure"] = f"trial_exception: {exception_label(error)}"
-            # Development attempts remain independent; retain a failure and
-            # reset the official simulator before the next planned attempt.
+            # Every final ID retains its own outcome and fresh simulator reset.
     except Exception as error:
         batch_error = f"batch_exception: {exception_label(error)}"
     finally:
@@ -179,6 +211,16 @@ def main():
                     final_down["sha256"] = sha(log)
                 except OSError as hash_error:
                     final_down["hash_failure"] = exception_label(hash_error)
+        try:
+            probe = probe_final_sim_state(a.sim_state, a.body_port)
+        except Exception as error:
+            probe = {"schema_version": "p8-02-final-sim-state-probe-v1",
+                     "result": "FAIL", "error": exception_label(error)}
+        probe_path = a.output / "final-state-probe.json"
+        probe_path.write_text(json.dumps(probe, sort_keys=True, indent=2,
+                                         allow_nan=False) + "\n", encoding="utf-8", newline="\n")
+        final_down["state_probe_result"] = probe["result"]
+        final_down["state_probe_sha256"] = sha(probe_path)
     for unstarted in planned[len(rows):]:
         rows.append({"run_id": unstarted["run_id"], "seed": unstarted["seed"],
                      "selected_v2": protocol["selected_v2"],
@@ -206,6 +248,7 @@ def main():
                             and score["result"] == "PASS"
                             and all("failure" not in row and "summary" in row for row in rows)
                             and final_down.get("exit") == 0
+                            and final_down.get("state_probe_result") == "PASS"
                             and "failure" not in final_down
                             and "sha256" in final_down) else "FAIL"
     report = {
@@ -219,6 +262,7 @@ def main():
         "started_trials": sum(row["trial_started"] for row in rows),
         "completed_trials": sum("summary" in row for row in rows),
         "trials": rows, "final_sim_down": final_down,
+        "preflight_state_probe_sha256": sha(preflight_path),
         "official_passes": official_passes,
         "raw_score_result": score["result"], "raw_score_sha256": sha(score_path),
         "official_passes_planned": 20,

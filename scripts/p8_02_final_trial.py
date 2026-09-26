@@ -574,6 +574,10 @@ def verify_protocol(root, protocol_path, protocol, args):
     if socket.gethostname().startswith("jetsonthor") is False or platform.python_version_tuple()[:2] != ("3", "12"):
         raise RuntimeError("official Thor Python 3.12 required")
     estimator_config, visual_hz = validate_frozen_selection(protocol)
+    if protocol["schema_version"] == "p8-02-final-approach-v1" and (
+            Path(args.socket) != Path(protocol["isolated_sim_state"]) / "duck-a.sock"
+            or args.body_port != protocol["isolated_body_port"]):
+        raise RuntimeError("P8-02 final trial socket/port differs from frozen isolation")
     if not 0 < protocol["maximum_stop_refresh_gap_ms"] < protocol["deadman_timeout_ms"]:
         raise ValueError("stop refresh gap must be below frozen deadman timeout")
     if git_head(root) != args.source_head:
@@ -1047,6 +1051,20 @@ def run(args):
         phase_started_ns = time.monotonic_ns()
         transition("NEURAL_OBSERVATION_ARMED", phase_started_ns)
         first_frame = chain.perception(phase_started_ns)
+        events.append({"timestamp_ns": phase_started_ns, "kind": "final_fixture_anchor",
+                       "trial_seed": seed, "arm_elapsed_s": arm_elapsed_s,
+                       "phase_started_ns": chain.started_ns,
+                       "initial_pose": {"x_m": initial_pose["x_m"],
+                                        "y_m": initial_pose["y_m"],
+                                        "heading_rad": initial_pose["heading_rad"]},
+                       "anchor_x_m": chain.trial.anchor_x_m,
+                       "anchor_y_m": chain.trial.anchor_y_m,
+                       "axis_x": chain.trial.axis_x,
+                       "axis_y": chain.trial.axis_y,
+                       "sphere_radius_m": scenario["virtual_sphere_radius_m"],
+                       "boundary_center_distance_m": scenario["safety_boundary_center_distance_m"],
+                       "approach_speed_m_s": scenario["approach_speed_m_s"],
+                       "warmup_duration_s": scenario["warmup_duration_s"]})
         first_update = chain.neural(first_frame, phase_started_ns)
         ensure_healthy_neutral_priming(chain, first_update)
         if first_update.trace["perception_frame"] != first_frame:
@@ -1551,6 +1569,14 @@ def run(args):
         "safety_bounds": checks["safety_bounds"],
     }
     primary_screen_result = "PASS" if all(primary_screen_checks.values()) else "FAIL"
+    events.append({"timestamp_ns": time.monotonic_ns(), "kind": "final_safety_snapshot",
+                   "fault_stop_latch": (asdict(fault_latch.snapshot())
+                                        if fault_latch.snapshot() else None),
+                   "arbiter_latch_reason": arbiter.latch_reason,
+                   "arbiter_latch_at_ns": arbiter.latch_at_ns,
+                   "scheduler_exceptions": scheduler_exceptions,
+                   "safety_limit_violations": violation_count,
+                   "deadman_limiter_seen_before_stopped": deadman_before_stopped})
     events.sort(key=lambda item: item["timestamp_ns"])
     args.events.parent.mkdir(parents=True, exist_ok=True)
     args.events.write_text("".join(json.dumps(row, sort_keys=True, separators=(",", ":"),
