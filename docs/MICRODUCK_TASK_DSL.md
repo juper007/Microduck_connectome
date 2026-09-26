@@ -1,7 +1,7 @@
 # MicroDuck Task DSL
 
 Status: **versioned compact invocation contract**  
-Version: **1.0**
+Version: **1.1**
 
 ## Purpose
 
@@ -176,6 +176,43 @@ audit
 ```
 
 `pr=<number>` is valid only when the requested action needs an existing pull request. Resolve its current head from GitHub; never trust a prompt-cached SHA.
+
+## Execution host and isolation
+
+Optional execution-host directive:
+
+```text
+host=thor-local
+```
+
+`host=thor-local` means:
+
+- the current Qwen Code process is already running on the Jetson Thor that owns the authoritative simulator/runtime environment;
+- normal task execution uses local shell/process/file access only;
+- do not add SSH/SCP/rsync/remote-shell orchestration for ordinary editing, testing, simulator execution, robotd execution, evidence extraction, or hashing;
+- verify any host/runtime identity required by the normative task contract before authoritative evidence;
+- existing protocol-pinned absolute paths are local Thor paths and remain authoritative unless a separately versioned protocol changes them.
+
+Optional isolation directive:
+
+```text
+isolation=worktree
+```
+
+`isolation=worktree` means create/use a clean task-specific **local Git worktree** from the freshly fetched task base. It does not permit work directly in a dirty or shared `main` checkout.
+
+For scored/final experiments, the execution worktree must be at the exact independently reviewed execution head required by the task protocol. Implementation and independent review must remain separate sessions/subagents even when both execute on the same physical Thor.
+
+Example:
+
+```text
+@run P8-02-R1
+host=thor-local
+isolation=worktree
+continue=G8
+```
+
+These directives alter orchestration only. They do not change seeds, thresholds, graph/config hashes, acceptance criteria, evidence rules, safety limits, or review requirements.
 
 ## Scope and continuation
 

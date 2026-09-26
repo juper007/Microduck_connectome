@@ -1,9 +1,11 @@
-version: 1
+version: 2
 name: P8FINAL
 pm: auto
 wf: std
 ctx: lazy
 base: latest
+host: thor-local
+isolation: worktree
 scope: phase
 review: reviewer
 continue: G8
