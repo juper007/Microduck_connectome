@@ -14,7 +14,7 @@ from scripts.p8_02_final_score import (
     score_attempt, score_batch, wilson,
 )
 from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
-from scripts.p8_02_final_batch import probe_final_sim_state
+from scripts.p8_02_final_batch import probe_final_sim_state, score_agrees_by_trial
 from scripts.p8_02_final_trial import validate_frozen_selection
 
 
@@ -253,6 +253,18 @@ class FinalApproachHarnessTests(unittest.TestCase):
             score = score_batch(Path("unused"), final)
         self.assertEqual(score["result"], "FAIL")
         self.assertFalse(score["all_raw_accounted"])
+
+    def test_batch_requires_same_nineteen_trial_ids_in_summary_and_raw_score(self):
+        rows = [{"run_id": f"A{i:02d}", "summary": {
+                    "result": "PASS" if i != 0 else "FAIL",
+                    "r3_official_screen_result": "PASS" if i != 0 else "FAIL"}}
+                for i in range(20)]
+        same = {"trials": [{"trial_id": f"A{i:02d}", "success": i != 0}
+                           for i in range(20)]}
+        self.assertTrue(score_agrees_by_trial(rows, same))
+        different = {"trials": [{"trial_id": f"A{i:02d}", "success": i != 1}
+                                for i in range(20)]}
+        self.assertFalse(score_agrees_by_trial(rows, different))
 
 
 if __name__ == "__main__":

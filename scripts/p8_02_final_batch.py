@@ -53,6 +53,16 @@ def probe_final_sim_state(sim_state: Path, body_port: int, *, phase: str = "fina
             and not unix_connectable and not body_port_connectable else "FAIL"}
 
 
+def score_agrees_by_trial(rows: list[dict], score: dict) -> bool:
+    raw_rows = score.get("trials")
+    return (isinstance(raw_rows, list) and len(rows) == len(raw_rows) == 20
+            and all(row.get("run_id") == raw.get("trial_id")
+                    and (row.get("summary", {}).get("result") == "PASS"
+                         and row.get("summary", {}).get("r3_official_screen_result") == "PASS")
+                    is (raw.get("success") is True)
+                    for row, raw in zip(rows, raw_rows)))
+
+
 def validate_trial_artifacts(summary: dict, folder: Path) -> None:
     """A PASS summary must name the retained, hashed raw evidence in this trial."""
     for key in ("trace_artifact", "events_artifact", "neural_ledger_artifact", "visual_frame_artifact"):
@@ -246,6 +256,7 @@ def main():
                             and len(rows) == 20
                             and official_passes >= 19
                             and score["result"] == "PASS"
+                            and score_agrees_by_trial(rows, score)
                             and all("failure" not in row and "summary" in row for row in rows)
                             and final_down.get("exit") == 0
                             and final_down.get("state_probe_result") == "PASS"
@@ -264,6 +275,7 @@ def main():
         "trials": rows, "final_sim_down": final_down,
         "preflight_state_probe_sha256": sha(preflight_path),
         "official_passes": official_passes,
+        "summary_raw_score_agreement": score_agrees_by_trial(rows, score),
         "raw_score_result": score["result"], "raw_score_sha256": sha(score_path),
         "official_passes_planned": 20,
         "batch_error": batch_error,
