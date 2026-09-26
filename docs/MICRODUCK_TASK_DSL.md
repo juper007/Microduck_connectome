@@ -142,6 +142,41 @@ Use a separate `$independent-phase-reviewer`. The authoring agent/session cannot
 
 Use `$microduck-pm-architect` to resolve current durable repository state, dependencies, task packet, skill routing, and next gate. PM must not replace narrower specialist skills for implementation.
 
+## Actions
+
+Default:
+
+```text
+action=execute
+```
+
+Review an existing PR without implementing fixes:
+
+```text
+@run DOCS-DSL-V1
+action=review
+pr=74
+```
+
+`action=review` requires `review=independent` unless a stronger repository contract says otherwise. Resolve the PR's exact current head, task packet/acceptance criteria, changed files, validation summary, and relevant contracts; report PASS/FAIL/BLOCKED. Do not silently modify reviewed work.
+
+Audit durable project/task state without implementation:
+
+```text
+action=audit
+merge=never
+```
+
+Valid action values are:
+
+```text
+execute
+review
+audit
+```
+
+`pr=<number>` is valid only when the requested action needs an existing pull request. Resolve its current head from GitHub; never trust a prompt-cached SHA.
+
 ## Scope and continuation
 
 Valid scope values:
