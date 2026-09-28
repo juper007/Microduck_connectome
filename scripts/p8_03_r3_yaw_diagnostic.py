@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import signal
 import socket
 import statistics
 import subprocess
@@ -170,7 +171,7 @@ def sampled(reader: TimedPoseReader, stream: StateStream, previous: dict | None,
 
 def plateau(reader, stream, previous, first, label: str) -> list[dict]:
     rows = []
-    start = time.monotonic()
+    start = time.monotonic() + (.05 if previous is not None else 0.)
     for i in range(21):
         time.sleep(max(0, start + i * .05 - time.monotonic()))
         row = sampled(reader, stream, previous, first, moving=first is not None)
@@ -200,6 +201,7 @@ def pulse(reader, stream, command, first, previous, condition: str, number: int,
     trace.update({"number": number, "vyaw_radps": vyaw, "duration_s": .2,
                   "requests": [], "trajectory": []})
     started = time.monotonic()
+    trace["started_ns"] = time.monotonic_ns()
     last_ack_ns = None
     try:
         for tick in range(10):
@@ -215,18 +217,30 @@ def pulse(reader, stream, command, first, previous, condition: str, number: int,
             trace["requests"].append({"tick": tick, "ack": ack, "call_ns": call_ns,
                                       "write_ns": write_ns, "ack_ns": ack_ns})
             last_ack_ns = ack_ns
+            time.sleep(max(0, due + .015 - time.monotonic()))
             row = sampled(reader, stream, previous, first, moving=True)
             row["tick"] = tick
             trace["trajectory"].append(row)
             previous = row["pose"] | {"robot_t_ns": row["robot_t_ns"]}
+        time.sleep(max(0, started + .2 - time.monotonic()))
     finally:
         trace["stop"] = bounded_stop(STATE / "duck-a.sock")
         trace["stop_completed_ns"] = time.monotonic_ns()
+        trace["active_through_stop_s"] = time.monotonic() - started
     if trace["stop"]["result"] != "PASS":
         raise RuntimeError("stop ACK missing")
-    time.sleep(1.0)
-    if time.monotonic() - started > .35:
+    if not .2 <= trace["active_through_stop_s"] <= .3:
         raise RuntimeError("pulse including stop exceeded bounded duration")
+    trace["post_stop_trajectory"] = []
+    settle_start = time.monotonic()
+    for i in range(21):
+        time.sleep(max(0, settle_start + (i + 1) * .05 - time.monotonic()))
+        row = sampled(reader, stream, previous, first, moving=True)
+        row["tick"] = i
+        trace["post_stop_trajectory"].append(row)
+        previous = row["pose"] | {"robot_t_ns": row["robot_t_ns"]}
+        if i >= 9 and any(abs(v) > .005 for v in row["applied"]):
+            raise RuntimeError("motion persisted more than 0.5s after stop")
     trace["plateau"] = plateau(reader, stream, previous, first, f"post_stop_{number}")
 
 
@@ -252,6 +266,15 @@ def verify_material() -> None:
             raise RuntimeError(f"pinned material mismatch: {key}")
 
 
+def process_start_ticks() -> int:
+    fields = Path("/proc/self/stat").read_text().split()
+    return int(fields[21])
+
+
+def interrupted(signum, _frame):
+    raise RuntimeError(f"diagnostic process interrupted by signal {signum}")
+
+
 def trace_integrity(row: dict, expected: dict) -> bool:
     """Validate raw evidence before using any saved delta or result label."""
     try:
@@ -263,30 +286,66 @@ def trace_integrity(row: dict, expected: dict) -> bool:
                 row["down_before_exit"] != 0 or row["up_exit"] != 0 or
                 row["down_after_exit"] != 0 or
                 row["final_probe"]["result"] != "PASS" or
+                row["health"].get("healthy") is not True or
+                row["health"].get("degraded") is True or
                 row["policy_verified"]["loaded_walk_sha256"] !=
                 R1_CONFIG["walking_policy_sha256"]):
             return False
         if len(row["initial_plateau"]) != 21 or len(row["pulses"]) != 2:
             return False
         expected_yaw = {"positive": .2, "negative": -.2, "sham": 0.}[row["condition"]]
+        first = row["initial_plateau"][0]["pose"]
+        if (abs(first["x_m"] - REFERENCE["x_m"]) > .03 or
+                abs(first["y_m"] - REFERENCE["y_m"]) > .03 or
+                abs(first["trunk_z_m"] - REFERENCE["trunk_z_m"]) > .025 or
+                abs(wrapped_delta(first["heading_rad"], REFERENCE["heading_rad"])) > .35):
+            return False
         phases = [row["initial_plateau"]]
         for pulse_row in row["pulses"]:
             if (pulse_row["vyaw_radps"] != expected_yaw or
                     pulse_row["duration_s"] != .2 or
+                    not .2 <= pulse_row["active_through_stop_s"] <= .3 or
                     pulse_row["stop"]["result"] != "PASS" or
                     len(pulse_row["requests"]) != 10 or
                     len(pulse_row["trajectory"]) != 10 or
+                    len(pulse_row["post_stop_trajectory"]) != 21 or
                     len(pulse_row["plateau"]) != 21):
                 return False
             if any(request["ack"].get("accepted") is not True or
-                   request["ack_ns"] - request["call_ns"] > 100_000_000
+                   request["ack_ns"] - request["call_ns"] > 100_000_000 or
+                   request["ack_ns"] < request["write_ns"]
                    for request in pulse_row["requests"]):
                 return False
-            phases.extend((pulse_row["trajectory"], pulse_row["plateau"]))
+            if any(b["ack_ns"] - a["ack_ns"] > 100_000_000
+                   for a, b in zip(pulse_row["requests"],
+                                   pulse_row["requests"][1:])):
+                return False
+            if any(any(abs(v) > .005 for v in sample["applied"])
+                   for sample in pulse_row["post_stop_trajectory"][9:]):
+                return False
+            phases.extend((pulse_row["trajectory"],
+                           pulse_row["post_stop_trajectory"],
+                           pulse_row["plateau"]))
         for phase in phases:
+            if any(b["pose"]["sim_time_s"] <= a["pose"]["sim_time_s"]
+                   for a, b in zip(phase, phase[1:])):
+                return False
+            if any(b["robot_t_ns"] < a["robot_t_ns"]
+                   for a, b in zip(phase, phase[1:])):
+                return False
             for sample in phase:
                 pose = sample["pose"]
                 if ((pose["response_ns"] - pose["request_ns"]) > 100_000_000 or
+                        pose["response_ns"] < pose["request_ns"] or
+                        not all(math.isfinite(v) for v in
+                                sample["requested"] + sample["applied"]) or
+                        not isinstance(sample["policy"], str) or
+                        not sample["policy"] or
+                        sample["safety"]["fallen"] or sample["safety"]["limp"] or
+                        abs(pose["roll_rad"]) > .5 or
+                        abs(pose["pitch_rad"]) > .5 or
+                        math.hypot(pose["x_m"] - first["x_m"],
+                                   pose["y_m"] - first["y_m"]) > .01 or
                         not all(math.isfinite(pose[key]) for key in
                                 ("heading_rad", "x_m", "y_m", "trunk_z_m",
                                  "roll_rad", "pitch_rad", "sim_time_s"))):
@@ -299,9 +358,13 @@ def trace_integrity(row: dict, expected: dict) -> bool:
             if abs(wrapped_delta(phase[-1]["pose"]["heading_rad"],
                                  phase[0]["pose"]["heading_rad"])) > .005:
                 return False
-            if any(b["pose"]["sim_time_s"] <= a["pose"]["sim_time_s"]
+            if any(b["robot_t_ns"] <= a["robot_t_ns"]
                    for a, b in zip(phase, phase[1:])):
                 return False
+        if any(pulse_row["trajectory"][-1]["robot_t_ns"] <=
+               pulse_row["trajectory"][0]["robot_t_ns"]
+               for pulse_row in row["pulses"]):
+            return False
         recomputed = wrapped_delta(heading_median(row["pulses"][-1]["plateau"]),
                                    heading_median(row["initial_plateau"]))
         return math.isclose(row["delta_heading_rad"], recomputed, abs_tol=1e-10)
@@ -385,6 +448,14 @@ def run(output: Path, reviewed_head: str) -> None:
     if probe_final_sim_state(STATE, PORT, phase="r3_preflight")["result"] != "PASS":
         raise RuntimeError("dedicated simulator state is occupied")
     output.mkdir(parents=True, exist_ok=False)
+    start_ticks = process_start_ticks()
+    signal.signal(signal.SIGTERM, interrupted)
+    signal.signal(signal.SIGINT, interrupted)
+    atomic_json(output / "run.json", {
+        "status": "RUNNING", "source_head": reviewed_head,
+        "pid": os.getpid(), "process_start_ticks": start_ticks,
+        "active_id": None, "completed_ids": [],
+        "single_use_no_retry": True})
     atomic_json(output / "preflight.json", {"source_head": reviewed_head,
         "protocol_sha256": sha(protocol_path), "pinned": R1_CONFIG,
         "sim_probe": probe_final_sim_state(STATE, PORT, phase="r3_preflight")})
@@ -401,11 +472,19 @@ def run(output: Path, reviewed_head: str) -> None:
         row = dict(item, source_head=reviewed_head, result="RUNNING",
                    started_ns=time.monotonic_ns())
         atomic_json(folder / "trace.json", row)
+        atomic_json(output / "run.json", {
+            "status": "RUNNING", "source_head": reviewed_head,
+            "pid": os.getpid(), "process_start_ticks": start_ticks,
+            "active_id": item["id"],
+            "completed_ids": [r["id"] for r in records],
+            "single_use_no_retry": True})
         try:
             row["down_before_exit"] = captured([sim, "down"], env, folder / "down-before.log")
+            atomic_json(folder / "trace.json", row)
             if row["down_before_exit"]:
                 raise RuntimeError("official pre-reset down failed")
             row["up_exit"] = captured([sim, "up"], env, folder / "up.log")
+            atomic_json(folder / "trace.json", row)
             if row["up_exit"]:
                 raise RuntimeError("official fresh up failed")
             row["policy_load_exit"] = captured(
@@ -414,6 +493,7 @@ def run(output: Path, reviewed_head: str) -> None:
             row["policy_readback_exit"] = captured(
                 [sim, "ctl", "policy", "list", "--json"], env,
                 folder / "policy-readback.json")
+            atomic_json(folder / "trace.json", row)
             if row["policy_load_exit"] or row["policy_readback_exit"]:
                 raise RuntimeError("policy load/readback failed")
             row["policy_verified"] = validate_loaded_walk_policy(
@@ -470,13 +550,22 @@ def run(output: Path, reviewed_head: str) -> None:
             except BaseException as error:
                 row["down_after_exit"] = None
                 row["down_after_error"] = repr(error)
-            row["final_probe"] = probe_final_sim_state(STATE, PORT, phase="r3_final_down")
+            try:
+                row["final_probe"] = probe_final_sim_state(
+                    STATE, PORT, phase="r3_final_down")
+            except BaseException as error:
+                row["final_probe"] = {"result": "FAIL", "error": repr(error)}
             if (row["cleanup_stop"]["result"] != "PASS" or
                     row["down_after_exit"] != 0 or row["final_probe"]["result"] != "PASS"):
                 row["result"] = "FAIL"
                 row["cleanup_failure"] = True
             atomic_json(folder / "trace.json", row)
             records.append(row)
+            atomic_json(output / "run.json", {
+                "status": "RUNNING", "source_head": reviewed_head,
+                "pid": os.getpid(), "process_start_ticks": start_ticks,
+                "active_id": None, "completed_ids": [r["id"] for r in records],
+                "single_use_no_retry": True})
         if row["result"] != "VALID":
             break
     gate = score(protocol, records)
@@ -485,7 +574,7 @@ def run(output: Path, reviewed_head: str) -> None:
                  "planned": 50, "observed": len(records)})
     manifest = []
     for path in sorted(output.rglob("*")):
-        if path.is_file() and path.name not in ("manifest.json", "gate.json"):
+        if path.is_file() and path.name not in ("manifest.json", "gate.json", "run.json"):
             raw = path.read_bytes()
             manifest.append({"path": path.relative_to(output).as_posix(),
                              "sha256": hashlib.sha256(raw).hexdigest(),
@@ -494,6 +583,11 @@ def run(output: Path, reviewed_head: str) -> None:
                                           "files": manifest, "source_head": reviewed_head})
     gate["manifest_sha256"] = sha(output / "manifest.json")
     atomic_json(output / "gate.json", gate)
+    atomic_json(output / "run.json", {
+        "status": gate["result"], "source_head": reviewed_head,
+        "pid": os.getpid(), "process_start_ticks": start_ticks,
+        "active_id": None, "completed_ids": [r["id"] for r in records],
+        "gate_sha256": sha(output / "gate.json"), "single_use_no_retry": True})
 
 
 if __name__ == "__main__":
