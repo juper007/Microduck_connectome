@@ -37,6 +37,7 @@ from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
 from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move,
                                     precondition_deadman_after_motion)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
+from scripts.p8_03_r1_durability import create_arm_marker, load_protocol
 
 
 def sha(path: Path) -> str:
@@ -55,10 +56,11 @@ def jsonl_write(path: Path, rows: list[dict]) -> None:
 
 def verify(args) -> tuple[dict, dict, dict, dict, dict]:
     root = args.root.resolve(strict=True)
-    execution_path = root / "config/p8_03_execution_v1.json"
+    execution_path = root / ("config/p8_03_r1_execution_v1.json" if args.r1 else
+                             "config/p8_03_execution_v1.json")
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     execution = json.loads(execution_path.read_text())
-    master = json.loads(master_path.read_text())
+    master = load_protocol(root)[0] if args.r1 else json.loads(master_path.read_text())
     if (not socket.gethostname().startswith("jetsonthor")
             or platform.python_version_tuple()[:2] != ("3", "12")):
         raise RuntimeError("official Thor Python 3.12 required")
@@ -68,7 +70,8 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict]:
         raise RuntimeError("source must be clean at reviewed HEAD")
     if root != Path(execution["source_path"]).resolve():
         raise RuntimeError("source checkout path differs from frozen execution config")
-    for rel in ("config/p8_03_execution_v1.json", "config/p8_v2_final_protocol_v1.json",
+    for rel in (("config/p8_03_r1_execution_v1.json" if args.r1 else
+                 "config/p8_03_execution_v1.json"), "config/p8_v2_final_protocol_v1.json",
                 "scripts/p8_03_trial.py", "scripts/p8_03_batch.py", "scripts/p8_03_score.py",
                 "scripts/p8_03_finalize.py",
                 "microduck_connectome/p8_03_geometry.py"):
@@ -285,8 +288,15 @@ def run(args) -> int:
                        "distance_m": .85, "image_area": baseline_area,
                        "pose": dict(pose)})
         arm_ns = time.monotonic_ns()
-        json_write(args.armed_marker, {"trial_id": planned["trial_id"],
-                                       "seed": planned["seed"], "armed_at_ns": arm_ns})
+        if args.r1:
+            create_arm_marker(args.armed_marker, task="P8-03-R1",
+                              trial_id=planned["trial_id"], seed=planned["seed"],
+                              attempt=args.attempt, source_head=args.source_head,
+                              config_hash=sha(args.root / "config/p8_03_r1_execution_v1.json"),
+                              arm_ns=arm_ns)
+        else:
+            json_write(args.armed_marker, {"trial_id": planned["trial_id"],
+                                           "seed": planned["seed"], "armed_at_ns": arm_ns})
         jsonl_write(args.progress, [{"state": "NEURAL_OBSERVATION_ARMED",
                                     "timestamp_ns": arm_ns}])
         events.append({"kind": "arm", "timestamp_ns": arm_ns,
@@ -444,6 +454,7 @@ def main() -> None:
     ap.add_argument("--microduck", type=Path, required=True)
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--source-head", required=True)
+    ap.add_argument("--r1", action="store_true")
     for name in ("policy_readback", "pose_reset", "armed_marker", "progress", "events", "ledger",
                  "visual", "summary"):
         ap.add_argument("--" + name.replace("_", "-"), type=Path, required=True)

@@ -19,6 +19,9 @@ from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_batch import (append_audit, atomic_json, emergency_stop,
                                     inventory, now, run_child)
 from scripts.p8_03_score import manifest_check, planned, score_batch
+from scripts.p8_03_r1_durability import (
+    checkpoint as r1_checkpoint, load_protocol, reconcile,
+    run_child as r1_run_child, atomic_json as r1_atomic_json)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
@@ -36,7 +39,15 @@ def require(condition: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
+def final_gate_pass(interrupted: bool, score: dict, final: dict) -> bool:
+    return (not interrupted and score.get("result") == "PASS" and
+            final.get("exit") == 0 and final.get("state_probe_result") == "PASS")
+
+
 def checkpoint(root: Path, journal: dict) -> None:
+    if journal.get("schema_version") == "p8-03-r1-batch-journal-v1":
+        r1_checkpoint(root, journal, artifact_state=journal.get("result", "RUNNING"))
+        return
     journal["checkpoint_utc"] = now()
     journal["checkpoint_monotonic_ns"] = time.monotonic_ns()
     atomic_json(root / "batch-journal.json", journal)
@@ -48,6 +59,13 @@ def checkpoint(root: Path, journal: dict) -> None:
 def recover_only(root: Path) -> dict:
     """Never rewrite an interrupted journal or guess whether a trial was armed."""
     journal = json.loads((root / "batch-journal.json").read_text())
+    if journal.get("schema_version") == "p8-03-r1-batch-journal-v1":
+        report = reconcile(root, journal)
+        r1_atomic_json(root / "recovery-report.json", report)
+        journal["result"] = "FAIL"
+        checkpoint(root, journal)
+        report["manifest"] = manifest_check(root)
+        return report
     in_flight = []
     for item in journal["ids"]:
         for attempt in item["attempts"]:
@@ -89,10 +107,11 @@ def pose_reset_probe(port: int, *, reference: dict | None,
 
 def preflight(args) -> tuple[dict, dict, list[dict], dict]:
     root = args.root.resolve()
-    config_path = root / "config/p8_03_execution_v1.json"
+    config_path = root / ("config/p8_03_r1_execution_v1.json" if args.r1 else
+                          "config/p8_03_execution_v1.json")
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     config = json.loads(config_path.read_text())
-    master = json.loads(master_path.read_text())
+    master = load_protocol(root)[0] if args.r1 else json.loads(master_path.read_text())
     audit = Path(config["preflight_audit"])
     record = {"schema_version": "p8-03-preflight-v1", "at_utc": now(),
               "result": "FAIL", "assigned_ids": 0, "stage": args.stage,
@@ -125,16 +144,26 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
         require(args.audit.resolve() == audit.resolve() and
                 args.sim_state.resolve() == Path(config["state_dir"]).resolve() and
                 args.body_port == config["body_port"], "audit/state/port mismatch")
-        require(config["schema_version"] == "p8-03-execution-v1" and
+        require(config["schema_version"] == ("p8-03-r1-execution-v1" if args.r1 else
+                                           "p8-03-execution-v1") and
                 master["schema_version"] == "p8-v2-final-protocol-v1",
                 "protocol schema mismatch")
+        if args.r1:
+            gate = json.loads(Path(config["development_gate"]).read_text())
+            require(gate.get("result") == "PASS" and
+                    gate.get("review_result") == "PASS" and
+                    gate.get("source_head") == args.reviewed_head and
+                    set(gate.get("cases", {})) == set("ABCDEF") and
+                    all(v == "PASS" for v in gate["cases"].values()),
+                    "R1 interruption development gate/review incomplete")
         require(config["scored_window_ms"] == 1000 and config["visual_hz"] == 20 and
                 config["neural_hz"] == 50 and config["control_hz"] == 50 and
                 config["freshness_ttl_ms"] == 100 and
                 config["max_false_stops_per_set"] == 1 and
                 config["max_false_stops_pooled"] == 2,
                 "P8-03 frozen timing/acceptance mismatch")
-        for rel in ("config/p8_03_execution_v1.json", "config/p8_v2_final_protocol_v1.json",
+        for rel in (("config/p8_03_r1_execution_v1.json" if args.r1 else
+                     "config/p8_03_execution_v1.json"), "config/p8_v2_final_protocol_v1.json",
                     "scripts/p8_03_batch.py", "scripts/p8_03_trial.py", "scripts/p8_03_score.py",
                     "scripts/p8_03_finalize.py",
                     "microduck_connectome/p8_03_geometry.py"):
@@ -142,6 +171,13 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
                 ["git", "-C", str(root), "show", f"HEAD:{rel}"]),
                 f"uncommitted source bytes: {rel}")
             record["hashes"][rel] = sha(root / rel)
+        if args.r1:
+            for rel in ("config/p8_03_r1_protocol_v1.json",
+                        "scripts/p8_03_r1_durability.py"):
+                require((root / rel).read_bytes() == subprocess.check_output(
+                    ["git", "-C", str(root), "show", f"HEAD:{rel}"]),
+                    f"uncommitted R1 source bytes: {rel}")
+                record["hashes"][rel] = sha(root / rel)
         selected = master["selected_pipeline"]
         require(selected["graph_v2_sha256"] == config["graph_sha256"] and
                 selected["walking_policy_sha256"] == config["walking_policy_sha256"] and
@@ -182,12 +218,16 @@ def run(args) -> dict:
     master, config, rows, preflight_record = preflight(args)
     output = args.output
     output.mkdir(parents=True, exist_ok=False)
-    journal = {"schema_version": "p8-03-batch-journal-v1", "stage": args.stage,
+    journal = {"schema_version": "p8-03-r1-batch-journal-v1" if args.r1 else
+               "p8-03-batch-journal-v1", "stage": args.stage,
                "source_head": args.reviewed_head, "source_path": str(args.root.resolve()),
                "result": "RUNNING", "preflight": preflight_record,
                "ids": [{"trial_id": r["trial_id"], "seed": r["seed"],
                         "status": "PENDING", "attempts": []} for r in rows],
                "final_sim_down": None, "reset_reference": None}
+    if args.r1:
+        journal["config_sha256"] = sha(args.root / "config/p8_03_r1_execution_v1.json")
+        journal["protocol_sha256"] = sha(args.root / "config/p8_03_r1_protocol_v1.json")
     scenario = json.loads((args.root / "config/looming_scenario_v1.json").read_text())
     tolerance = scenario["initial_pose_tolerance"]
     if args.stage == "R":
@@ -222,7 +262,9 @@ def run(args) -> dict:
                                       ("policy_readback", [str(args.sim_executable), "ctl", "policy",
                                                            "list", "--json"])):
                     log = folder / ("policy-readback.json" if name == "policy_readback" else name + ".log")
-                    code, was_interrupted = run_child(command, log, env)
+                    runner = r1_run_child if args.r1 else run_child
+                    extra = {"created": lambda: checkpoint(output, journal)} if args.r1 else {}
+                    code, was_interrupted = runner(command, log, env, **extra)
                     attempt["steps"].append({"name": name, "command": command,
                                               "exit": code, "sha256": sha(log),
                                               "bytes": log.stat().st_size})
@@ -273,6 +315,8 @@ def run(args) -> dict:
                            "--ledger", str(folder / "neural-ledger.jsonl"),
                            "--visual", str(folder / "visual-frames.jsonl"),
                            "--summary", str(folder / "summary.json")]
+                if args.r1:
+                    command.append("--r1")
                 attempt["command"] = command
                 attempt["status"] = "TRIAL_CHILD_STARTED"
                 checkpoint(output, journal)
@@ -285,7 +329,10 @@ def run(args) -> dict:
                         attempt["status"] = "NEURAL_OBSERVATION_ARMED" if armed else "TRIAL_CHILD_STARTED"
                         checkpoint(output, journal)
 
-                code, was_interrupted = run_child(command, folder / "trial.log", env, progress=progress)
+                runner = r1_run_child if args.r1 else run_child
+                extra = {"created": lambda: checkpoint(output, journal)} if args.r1 else {}
+                code, was_interrupted = runner(command, folder / "trial.log", env,
+                                               progress=progress, **extra)
                 attempt["armed"] = (folder / "armed.json").is_file()
                 attempt["trial_exit"] = code
                 attempt["status"] = "INTERRUPTED_UNKNOWN_ARM" if was_interrupted else "TRIAL_EXITED"
@@ -314,8 +361,10 @@ def run(args) -> dict:
             checkpoint(output, journal)
         final = {}
         try:
-            code, was_interrupted = run_child([str(args.sim_executable), "down"],
-                                              output / "final-down.log", env)
+            runner = r1_run_child if args.r1 else run_child
+            extra = {"created": lambda: checkpoint(output, journal)} if args.r1 else {}
+            code, was_interrupted = runner([str(args.sim_executable), "down"],
+                                           output / "final-down.log", env, **extra)
             final.update({"exit": code, "interrupted": was_interrupted,
                           "sha256": sha(output / "final-down.log")})
         except BaseException as exc:
@@ -336,9 +385,7 @@ def run(args) -> dict:
         score = {"result": "FAIL", "error": f"{type(exc).__name__}: {exc}"}
     score["final_down"] = final
     atomic_json(output / "score.json", score)
-    journal["result"] = "PASS" if (not interrupted and score["result"] == "PASS"
-                                      and final.get("exit") == 0
-                                      and final.get("state_probe_result") == "PASS") else "FAIL"
+    journal["result"] = "PASS" if final_gate_pass(interrupted, score, final) else "FAIL"
     checkpoint(output, journal)
     atomic_json(output / "batch-summary.json", {
         "schema_version": "p8-03-batch-summary-v1", "stage": args.stage,
@@ -368,11 +415,21 @@ def main() -> None:
     ap.add_argument("--sim-state", type=Path, required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--recover-only", action="store_true")
+    ap.add_argument("--r1", action="store_true")
     args = ap.parse_args()
-    result = run(args)
-    print(json.dumps({"result": result["result"], "stage": args.stage}))
-    if result["result"] not in ("PASS", "AUDIT_ONLY"):
-        raise SystemExit(1)
+    exit_code = 1
+    try:
+        result = run(args)
+        print(json.dumps({"result": result["result"], "stage": args.stage}))
+        exit_code = 0 if result["result"] in ("PASS", "AUDIT_ONLY") else 1
+    finally:
+        launch_root = os.environ.get("P8_03_R1_LAUNCH_ROOT")
+        if args.r1 and launch_root:
+            r1_atomic_json(Path(launch_root) / "exit-status.json", {
+                "schema_version": "p8-03-r1-supervisor-exit-v1",
+                "exit_code": exit_code, "at_utc": now(),
+                "stage": args.stage, "output": str(args.output)})
+    raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":

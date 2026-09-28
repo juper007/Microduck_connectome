@@ -1,0 +1,190 @@
+{
+  "schema_version": "p8-03-r1-protocol-v1",
+  "task_id": "P8-03-R1",
+  "master_protocol": "config/p8_v2_final_protocol_v1.json",
+  "master_sha256": "d281d239b9d080027d4c2662f889f76e68e04ef06599d78bb0cd644dcf515e42",
+  "historical_negative_release": "p8-03-s00-interruption-v1",
+  "development_seeds": [
+    887100,
+    887101,
+    887102,
+    887103,
+    887104,
+    887105
+  ],
+  "final_matrix": {
+    "S": [
+      {
+        "trial_id": "RS00",
+        "seed": 887200
+      },
+      {
+        "trial_id": "RS01",
+        "seed": 887201
+      },
+      {
+        "trial_id": "RS02",
+        "seed": 887202
+      },
+      {
+        "trial_id": "RS03",
+        "seed": 887203
+      },
+      {
+        "trial_id": "RS04",
+        "seed": 887204
+      },
+      {
+        "trial_id": "RS05",
+        "seed": 887205
+      },
+      {
+        "trial_id": "RS06",
+        "seed": 887206
+      },
+      {
+        "trial_id": "RS07",
+        "seed": 887207
+      },
+      {
+        "trial_id": "RS08",
+        "seed": 887208
+      },
+      {
+        "trial_id": "RS09",
+        "seed": 887209
+      },
+      {
+        "trial_id": "RS10",
+        "seed": 887210
+      },
+      {
+        "trial_id": "RS11",
+        "seed": 887211
+      },
+      {
+        "trial_id": "RS12",
+        "seed": 887212
+      },
+      {
+        "trial_id": "RS13",
+        "seed": 887213
+      },
+      {
+        "trial_id": "RS14",
+        "seed": 887214
+      },
+      {
+        "trial_id": "RS15",
+        "seed": 887215
+      },
+      {
+        "trial_id": "RS16",
+        "seed": 887216
+      },
+      {
+        "trial_id": "RS17",
+        "seed": 887217
+      },
+      {
+        "trial_id": "RS18",
+        "seed": 887218
+      },
+      {
+        "trial_id": "RS19",
+        "seed": 887219
+      }
+    ],
+    "R": [
+      {
+        "trial_id": "RR00",
+        "seed": 887300
+      },
+      {
+        "trial_id": "RR01",
+        "seed": 887301
+      },
+      {
+        "trial_id": "RR02",
+        "seed": 887302
+      },
+      {
+        "trial_id": "RR03",
+        "seed": 887303
+      },
+      {
+        "trial_id": "RR04",
+        "seed": 887304
+      },
+      {
+        "trial_id": "RR05",
+        "seed": 887305
+      },
+      {
+        "trial_id": "RR06",
+        "seed": 887306
+      },
+      {
+        "trial_id": "RR07",
+        "seed": 887307
+      },
+      {
+        "trial_id": "RR08",
+        "seed": 887308
+      },
+      {
+        "trial_id": "RR09",
+        "seed": 887309
+      },
+      {
+        "trial_id": "RR10",
+        "seed": 887310
+      },
+      {
+        "trial_id": "RR11",
+        "seed": 887311
+      },
+      {
+        "trial_id": "RR12",
+        "seed": 887312
+      },
+      {
+        "trial_id": "RR13",
+        "seed": 887313
+      },
+      {
+        "trial_id": "RR14",
+        "seed": 887314
+      },
+      {
+        "trial_id": "RR15",
+        "seed": 887315
+      },
+      {
+        "trial_id": "RR16",
+        "seed": 887316
+      },
+      {
+        "trial_id": "RR17",
+        "seed": 887317
+      },
+      {
+        "trial_id": "RR18",
+        "seed": 887318
+      },
+      {
+        "trial_id": "RR19",
+        "seed": 887319
+      }
+    ]
+  },
+  "trial_order": [
+    "S",
+    "R"
+  ],
+  "max_prearm_attempts": 3,
+  "scored_window_ms": 1000,
+  "max_false_stops_per_set": 1,
+  "max_false_stops_pooled": 2,
+  "max_safety_limit_violations": 0
+}

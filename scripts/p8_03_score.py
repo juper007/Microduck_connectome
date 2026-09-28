@@ -29,6 +29,7 @@ def manifest_check(root: Path) -> dict:
     """Open and check every file, including files not listed in the manifest."""
     manifest = json.loads((root / "raw-manifest.json").read_text(encoding="utf-8"))
     files = manifest["files"]
+    r1 = manifest.get("schema_version") == "p8-03-r1-raw-manifest-v1"
     listed = {row["path"] for row in files}
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()
               and p.name != "raw-manifest.json"}
@@ -38,6 +39,10 @@ def manifest_check(root: Path) -> dict:
     for rel in sorted(listed ^ actual):
         errors.append(f"missing_or_extra:{rel}")
     for row in files:
+        if r1 and (row.get("artifact_class") not in
+                   ("journal", "arm_marker", "recovery", "trial", "batch")
+                   or "attempt" not in row or "state" not in row):
+            errors.append(f"r1_artifact_metadata:{row.get('path')}")
         rel = row["path"]
         path = (root / rel).resolve()
         if not path.is_relative_to(root.resolve()) or rel not in actual:
@@ -57,11 +62,14 @@ def planned(master: dict, stage: str) -> list[dict]:
         raise ValueError("stage must be S or R")
     key = "P8-03-static" if stage == "S" else "P8-03-receding"
     rows = master["batches"][key]["runs"]
+    r1 = master.get("p8_03_r1_matrix")
     start = 881000 if stage == "S" else 882000
     motion = "constant_relative_range" if stage == "S" else "increasing_relative_range"
+    expected = ([(r["trial_id"], r["seed"], motion) for r in r1[stage]]
+                if r1 is not None else
+                [(f"{stage}{i:02d}", start + i, motion) for i in range(20)])
     if len(rows) != 20 or [(r["trial_id"], r["seed"], r["motion"])
-                           for r in rows] != [(f"{stage}{i:02d}", start + i, motion)
-                                             for i in range(20)]:
+                           for r in rows] != expected:
         raise ValueError("master P8-03 matrix mismatch")
     return rows
 
@@ -364,6 +372,19 @@ def score_batch(root: Path, master: dict, stage: str) -> dict:
                            "safety_limit_violations": None})
             continue
         folder = root / row["trial_id"] / attempts[-1]["name"]
+        if master.get("p8_03_r1_matrix") is not None:
+            from scripts.p8_03_r1_durability import classify_attempt
+            expected_identity = {
+                "task": "P8-03-R1", "trial_id": row["trial_id"],
+                "seed": row["seed"], "attempt": len(attempts),
+                "source_head": journal["source_head"],
+                "config_sha256": journal.get("config_sha256")}
+            if classify_attempt(folder, attempts[-1], expected_identity) != "COMPLETED":
+                trials.append({"trial_id": row["trial_id"], "seed": row["seed"],
+                               "false_neural_stop": False, "clean_true_negative": False,
+                               "failure_causes": ["r1_arm_marker_journal_disagreement"],
+                               "safety_limit_violations": None})
+                continue
         raw = folder / "events.jsonl"
         events = read_jsonl(raw)
         result = score_raw(events, trial_id=row["trial_id"], seed=row["seed"], stage=stage)
