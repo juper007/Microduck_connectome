@@ -49,6 +49,13 @@ def perturbation_target_reached(delta: float, direction: int,
     return direction * delta >= .09
 
 
+def perturbation_pass(trace: dict) -> bool:
+    return ("error" not in trace and not trace.get("close_errors") and
+            trace.get("active_phase_s", 2) < 1.0 and
+            trace.get("duration_s", 2) < 1.0 and
+            trace.get("stop", {}).get("result") == "PASS")
+
+
 class PreparationFailure(RuntimeError):
     def __init__(self, trace: dict, reason: str):
         super().__init__(reason)
@@ -117,8 +124,6 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
     except BaseException as error:
         trace["error"] = f"{type(error).__name__}: {error}"
     finally:
-        if "start" in locals():
-            trace["duration_s"] = time.monotonic() - start
         for connection in (command, health, reader):
             try:
                 connection.close()
@@ -126,10 +131,10 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
                 trace.setdefault("close_errors", []).append(
                     f"{type(error).__name__}: {error}")
         trace["stop"] = emergency_stop(sock)
-    trace["result"] = ("PASS" if "error" not in trace and
-                       not trace.get("close_errors") and
-                       trace.get("active_phase_s", 2) < 1.0 and
-                       trace["stop"]["result"] == "PASS" else "FAIL")
+        trace["stop_completed_ns"] = time.monotonic_ns()
+        if "start" in locals():
+            trace["duration_s"] = time.monotonic() - start
+    trace["result"] = "PASS" if perturbation_pass(trace) else "FAIL"
     return trace
 
 

@@ -74,7 +74,8 @@ perturbation deliberately turns the body once in each yaw direction by at
 least 0.09 rad through bounded high-level robotd intent, stops, then runs the
 same preparation gate. Its resets are excluded from the 60-reset estimate and
 cannot become final trials. This tests the otherwise unexercised corrective
-path without tuning to a final result.
+path without tuning to a final result. Its one-second maximum includes the
+acknowledged final stop, not merely reaching the target heading.
 If it fails, revise the intervention as a new version and rerun an independent
 review before starting a held-out batch. The held-out development matrix is
 887400–887459, in three consecutive groups of 20. All 60 fresh resets must pass

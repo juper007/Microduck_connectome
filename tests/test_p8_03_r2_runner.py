@@ -68,6 +68,14 @@ def test_perturbation_target_at_deadline_is_failure():
         raise AssertionError("late target was accepted")
 
 
+def test_perturbation_stop_ack_must_precede_one_second_deadline():
+    trace = {"active_phase_s": .8, "duration_s": .99,
+             "stop": {"result": "PASS"}}
+    assert dev.perturbation_pass(trace)
+    assert not dev.perturbation_pass(dict(trace, duration_s=1.0))
+    assert not dev.perturbation_pass(dict(trace, stop={"result": "FAIL"}))
+
+
 class FixedReader:
     def __init__(self, port):
         self.sock = self
