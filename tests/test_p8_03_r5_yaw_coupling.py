@@ -29,8 +29,8 @@ def pose(t, ns, x=0.):
 def test_frozen_fresh_balanced_matrix():
     rows = runner.matrix(PROTOCOL)
     assert rows == expected_matrix(PROTOCOL)
-    assert [row["seed"] for row in rows] == list(range(888200, 888230))
-    assert all(row["seed"] not in set(range(887100, 887750)) |
+    assert [row["development_reset_id"] for row in rows] == list(range(888200, 888230))
+    assert all(row["development_reset_id"] not in set(range(887100, 887750)) |
                set(range(888100, 888130)) |
                set(range(881000, 881020)) |
                set(range(882000, 882020)) for row in rows)
@@ -39,6 +39,8 @@ def test_frozen_fresh_balanced_matrix():
     assert all(sum(r["condition"] == condition for r in rows) == 6
                for condition in {r["condition"] for r in rows})
     assert max(row["ticks"] for row in rows) == 5
+    assert PROTOCOL["reset_id_semantics"] == "unique_label_only"
+    assert PROTOCOL["simulator_rng_seeded"] is False
     assert PROTOCOL["pose"]["max_motion_xy_from_initial_m"] == .01
     assert PROTOCOL["unchanged_final_reset_heading_tolerance_rad"] == .08
     assert PROTOCOL["unchanged_r2_qualification_guard_rad"] == .06

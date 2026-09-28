@@ -27,10 +27,14 @@ frozen high-level `robot.move` / `robot.stop` path.
 `config/p8_03_r5_yaw_coupling_v1.json` is the executable specification.
 Six five-reset blocks contain one sham and one of each ±low and ±medium
 condition. Even blocks use sham, +low, −low, +medium, −medium; odd blocks
-reverse each sign pair. IDs C00–C29 use seeds 888200–888229 exactly once,
-with no replacement or retry. Historical repo refs, final matrices, and
-freshly downloaded R1/R3/R4 evidence archives were searched for this range;
-no collision was found. Sham alternates 3/5 zero-yaw ticks. Low is 3 and
+reverse each sign pair. IDs C00–C29 carry unique development reset labels
+888200–888229 exactly once, with no replacement or retry. These numbers
+identify resets, matrix order, one-attempt accounting, collision avoidance,
+and evidence rows. They are **not simulator RNG seeds**. The pinned official
+`duck-sim` / MuJoCo body server exposes no RNG-seed input; R5 does not seed
+simulator randomness or claim RNG determinism. Historical repo refs, final
+matrices, and freshly downloaded R1/R3/R4 evidence archives were searched
+for these labels; no collision was found. Sham alternates 3/5 zero-yaw ticks. Low is 3 and
 medium is 5 ticks at 20 ms/tick and |vyaw|=0.2 rad/s. Both are below R4's
 unsafe 8-tick high exposure; 5 ticks was R4's low condition, not proven safe.
 `vx=vy=0`, TTL=0.10 s, and bounded through-stop duration ≤0.30 s. The
@@ -47,8 +51,11 @@ possible. No final static/receding seed or 60-reset qualification is run.
 Use the pinned upstream MicroDuck and microduck_rl commits, model-1250 walk
 policy, graph hash, Python 3.12, SIT reset, and clean reviewed source at
 exact head. The runner checks idle state/socket/port and unused output root.
-Every reset uses official down/up, policy load and readback, initial stop,
-healthy robotd, and a stopped pre-command pose plateau. It samples pose and
+Every trial uses an independent official SIT `duck-sim down`/`up` reset,
+policy load and readback, initial stop, healthy robotd, and a stopped
+pre-command pose plateau. Freshness and qualification are determined from
+observed advancing simulator time, pose, robotd state/clock, and health for
+that reset. It samples pose and
 state at 20 ms during command and for 1 s after stop ACK, with a separate
 STOP_ACK pose, and uses the existing 50 ms plateau checks. Host request and
 response timestamps, robotd clock, simulator time, full body packet,

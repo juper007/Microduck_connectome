@@ -175,8 +175,10 @@ def stop_for_violation(journal: SampleJournal, error: SafetyAbort) -> SafetyAbor
 
 def matrix(protocol: dict) -> list[dict]:
     assert protocol["schema_version"] == "p8-03-r5-yaw-coupling-v1"
-    assert protocol["blocks"] == 6 and protocol["seed_first"] == 888200
-    assert protocol["seed_last"] == 888229
+    assert protocol["blocks"] == 6 and protocol["development_reset_id_first"] == 888200
+    assert protocol["development_reset_id_last"] == 888229
+    assert protocol["reset_id_semantics"] == "unique_label_only"
+    assert protocol["simulator_rng_seeded"] is False
     assert protocol["even_block"] == [
         "sham", "positive_low", "negative_low", "positive_medium", "negative_medium"]
     assert protocol["odd_block"] == [
@@ -198,11 +200,11 @@ def matrix(protocol: dict) -> list[dict]:
             ticks = (protocol["sham_ticks_by_block"][block] if condition == "sham"
                      else protocol["dose"]["low_ticks"] if condition.endswith("_low")
                      else protocol["dose"]["medium_ticks"])
-            rows.append({"id": f"C{index:02d}", "seed": 888200 + index,
+            rows.append({"id": f"C{index:02d}", "development_reset_id": 888200 + index,
                          "block": block, "condition": condition, "ticks": ticks,
                          "vyaw_radps": 0. if condition == "sham" else
                          .2 if condition.startswith("positive") else -.2})
-    assert len(rows) == 30 and rows[-1]["seed"] == protocol["seed_last"]
+    assert len(rows) == 30 and rows[-1]["development_reset_id"] == protocol["development_reset_id_last"]
     return rows
 
 
@@ -579,7 +581,8 @@ def run(output: Path, reviewed_head: str) -> None:
         "single_use_no_retry": True})
     atomic_json(output / "preflight.json", {"source_head": reviewed_head,
         "protocol_sha256": sha(protocol_path), "pinned": R1_CONFIG,
-        "sim_probe": preprobe})
+        "sim_probe": preprobe, "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+        "simulator_rng_seeded": False})
     sim = str(Path(R1_CONFIG["microduck_path"]) / "scripts/duck-sim")
     env = dict(os.environ, DUCK_SIM_VIEWER="0", DUCK_SIM_STATE=str(STATE),
                DUCK_SIM_KEYFRAME="SIT", DUCK_SIM_RL=R1_CONFIG["microduck_rl_path"],

@@ -20,7 +20,10 @@ REFERENCE = {"x_m": .03457887954384973, "y_m": .0010909211238251523,
 
 def expected_matrix(protocol: dict) -> list[dict]:
     if (protocol["schema_version"] != "p8-03-r5-yaw-coupling-v1" or
-            protocol["seed_first"] != 888200 or protocol["seed_last"] != 888229 or
+            protocol["development_reset_id_first"] != 888200 or
+            protocol["development_reset_id_last"] != 888229 or
+            protocol["reset_id_semantics"] != "unique_label_only" or
+            protocol["simulator_rng_seeded"] is not False or
             protocol["blocks"] != 6 or
             protocol["even_block"] != list(CONDITIONS) or
             protocol["odd_block"] != ["sham", "negative_low", "positive_low",
@@ -41,7 +44,8 @@ def expected_matrix(protocol: dict) -> list[dict]:
                           else protocol["odd_block"]):
             ticks = (protocol["sham_ticks_by_block"][block] if condition == "sham"
                      else 3 if condition.endswith("_low") else 5)
-            rows.append({"id": f"C{len(rows):02d}", "seed": 888200 + len(rows),
+            rows.append({"id": f"C{len(rows):02d}",
+                         "development_reset_id": 888200 + len(rows),
                          "block": block, "condition": condition, "ticks": ticks,
                          "vyaw_radps": 0. if condition == "sham" else
                          .2 if condition.startswith("positive") else -.2})
@@ -119,7 +123,7 @@ def _pose_record_retained(row: dict) -> bool:
 
 
 def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tuple[bool, str]:
-    for key in ("id", "seed", "block", "condition", "ticks", "vyaw_radps"):
+    for key in ("id", "development_reset_id", "block", "condition", "ticks", "vyaw_radps"):
         if record.get(key) != expected[key]:
             return False, f"matrix mismatch {key}"
     if (record.get("cleanup_stop", {}).get("result") != "PASS" or
@@ -501,7 +505,9 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
             "condition_summary": condition_summary,
             "phase_metrics": metrics,
             "correction_strategy_eligible": bool(eligible),
-            "raw_verification": verified, "development_only": True}
+            "raw_verification": verified, "development_only": True,
+            "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+            "simulator_rng_seeded": False}
 
 
 def score_root(root: Path, protocol_path: Path) -> dict:
