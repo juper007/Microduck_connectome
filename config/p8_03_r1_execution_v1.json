@@ -16,7 +16,7 @@
   "state_dir": "/tmp/p8-03-r1-state",
   "body_port": 7895,
   "preflight_audit": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-preflight-audit.jsonl",
-  "development_gate": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-development-gate-v1/gate.json",
+  "development_gate": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-development-gate-v2/gate.json",
   "static_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-static-v1",
   "receding_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-receding-v1",
   "scored_window_ms": 1000,

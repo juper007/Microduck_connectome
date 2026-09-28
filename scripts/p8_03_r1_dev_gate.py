@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.p8_02_final_batch import probe_final_sim_state
-from scripts.p8_02_r1_batch import emergency_stop, inventory
+from scripts.p8_02_r1_batch import emergency_stop, fsync_directory
 from scripts.p8_03_batch import final_gate_pass, r1_final_cleanup
 from scripts.p8_03_r1_durability import (
     atomic_json, checkpoint, classify_attempt, create_arm_marker,
@@ -77,6 +77,17 @@ def save_case(path: Path, letter: str, seed: int, passed: bool, details: dict) -
                                        "details": details})
 
 
+def snapshot_file(source: Path, target: Path) -> str:
+    """Retain checkpoint bytes before a later checkpoint overwrites the path."""
+    payload = source.read_bytes()
+    with target.open("xb") as out:
+        out.write(payload)
+        out.flush()
+        os.fsync(out.fileno())
+    fsync_directory(target.parent)
+    return hashlib.sha256(payload).hexdigest()
+
+
 def ssh_session_observation() -> dict:
     connection = os.environ.get("SSH_CONNECTION")
     if not connection:
@@ -114,10 +125,13 @@ def prepare(output: Path, head: str) -> None:
                "result": "RUNNING", "ids": [{"trial_id": "DA00",
                "seed": 887100, "attempts": [attempt]}]}
     checkpoint(a, journal, artifact_state="ACQUIRING")
+    a_source_hash = snapshot_file(a / "batch-journal.json",
+                                  a / "source-batch-journal.json")
     report = reconcile(a, journal)
     atomic_json(a / "recovery-report.json", report)
     checkpoint(a, journal, artifact_state="RECOVERED")
-    save_case(a, "A", 887100, report["states"]["DA00/attempt-01"] == "PRE_ARM"
+    save_case(a, "A", 887100, a_source_hash == report["source_journal_sha256"]
+              and report["states"]["DA00/attempt-01"] == "PRE_ARM"
               and manifest_check(a)["result"] == "PASS", report)
     checkpoint(a, journal, artifact_state="RECOVERED")
 
@@ -132,6 +146,8 @@ def prepare(output: Path, head: str) -> None:
     b_journal = dict(journal, ids=[{"trial_id": "DB00", "seed": 887101,
                                     "attempts": [b_attempt]}])
     checkpoint(b, b_journal, artifact_state="TRIAL_CHILD_STARTED")
+    b_source_hash = snapshot_file(b / "batch-journal.json",
+                                  b / "source-batch-journal.json")
     create_arm_marker(b_folder / "armed.json", task=ib["task"],
                       trial_id=ib["trial_id"], seed=ib["seed"],
                       attempt=1, source_head=head,
@@ -140,6 +156,7 @@ def prepare(output: Path, head: str) -> None:
     atomic_json(b / "recovery-report.json", b_report)
     checkpoint(b, b_journal, artifact_state="RECOVERED")
     save_case(b, "B", 887101,
+              b_source_hash == b_report["source_journal_sha256"] and
               b_report["states"]["DB00/attempt-01"] == "ARMED" and
               "DB00/attempt-01" in b_report["retry_prohibited"] and
               manifest_check(b)["result"] == "PASS", b_report)
@@ -229,14 +246,25 @@ def prepare(output: Path, head: str) -> None:
     log.touch()
     checkpoint(e, e_journal, artifact_state="ACQUIRING")
     zero = manifest_check(e)["result"]
+    zero_log_hash = snapshot_file(log, e / "zero-stage-down.log")
+    zero_manifest_hash = snapshot_file(e / "raw-manifest.json",
+                                       e / "zero-stage-raw-manifest.json")
+    snapshot_file(e / "batch-journal.json", e / "zero-stage-batch-journal.json")
+    zero_rows = json.loads((e / "zero-stage-raw-manifest.json").read_text())["files"]
+    zero_recorded = any(row["path"] == "DE00/attempt-01/down.log" and
+                        row["bytes"] == 0 and row["sha256"] == zero_log_hash
+                        for row in zero_rows)
     log.write_bytes(b"partial")
     before = manifest_check(e)["result"]
     checkpoint(e, e_journal, artifact_state="RECOVERED_PARTIAL")
     after = manifest_check(e)["result"]
-    save_case(e, "E", 887104, (zero, before, after) ==
+    save_case(e, "E", 887104, zero_recorded and (zero, before, after) ==
               ("PASS", "FAIL", "PASS"),
               {"zero_manifest": zero, "uncheckpointed_partial": before,
-               "reconciled_partial": after})
+               "reconciled_partial": after,
+               "zero_log_sha256": zero_log_hash,
+               "zero_manifest_sha256": zero_manifest_hash,
+               "zero_recorded": zero_recorded})
     checkpoint(e, e_journal, artifact_state="RECOVERED_PARTIAL")
 
     # F: the production cleanup path observes a nonzero final down.
@@ -316,11 +344,18 @@ def finalize(output: Path, head: str) -> None:
         "cases": {key: value["result"] for key, value in cases.items()},
         "result": "PASS" if passed else "FAIL",
         "independent_review": "PENDING"})
-    files = inventory(output)
+    files = []
+    for path in sorted(output.rglob("*")):
+        if not path.is_file() or path == output / "development-manifest.json":
+            continue
+        payload = path.read_bytes()
+        files.append({"path": path.relative_to(output).as_posix(),
+                      "sha256": hashlib.sha256(payload).hexdigest(),
+                      "bytes": len(payload),
+                      "record_count": len(payload.splitlines()) if payload else 0})
     atomic_json(output / "development-manifest.json", {
         "schema_version": "p8-03-r1-development-manifest-v1",
-        "source_head": head, "files": [
-            row for row in files if row["path"] != "development-manifest.json"]})
+        "source_head": head, "files": files})
 
 
 def main() -> None:

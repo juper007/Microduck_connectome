@@ -162,8 +162,18 @@ and review result PASS. The final batch preflight checks it before assigning
 IDs. A development FAIL stops all final execution.
 
 The versioned no-final-seed runner is
-`scripts/p8_03_r1_dev_gate.py`. From the clean reviewed Thor source,
-set `OUT=/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-development-gate-v1`
+`scripts/p8_03_r1_dev_gate.py`.
+The first development run at `p8-03-r1-development-gate-v1` remains retained
+as a failed evidence review: its top-level inventory omitted five nested
+manifests and its case E overwrote the zero-byte checkpoint. Its result and
+manifest SHA256 values are `f1d5300c99963f4617cd79661e5d9e3744b4afef68136479976fdb9420d8cbac`
+and `83de41fc1cf7572b29150732af20eb16e6adfa7e0ea65785f5a4ad1eb349d4fc`.
+The v2 development rerun uses the same reserved development-only seeds;
+none are in the 40 final trials. It retains A/B source journals, both E
+checkpoint states, and every nested manifest in the top-level inventory.
+
+From the clean reviewed Thor source,
+set `OUT=/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-development-gate-v2`
 and `HEAD=$(git rev-parse HEAD)`, then run:
 
 ```bash
