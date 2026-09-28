@@ -18,6 +18,12 @@ import uuid
 from scripts.p8_02_r1_batch import fsync_directory, inventory, now
 
 
+def durable_directory(path: Path) -> None:
+    """Make the new directory entry durable before anything inside can arm."""
+    path.mkdir(exist_ok=False)
+    fsync_directory(path.parent)
+
+
 def load_protocol(root: Path) -> tuple[dict, dict, dict]:
     """Use the original scientific protocol with only R1 trial identity replaced."""
     master_path = root / "config/p8_v2_final_protocol_v1.json"

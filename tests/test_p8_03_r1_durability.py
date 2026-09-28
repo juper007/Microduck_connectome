@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.p8_03_r1_durability import (checkpoint, classify_attempt,
-                                         create_arm_marker, load_protocol,
+                                         create_arm_marker, durable_directory, load_protocol,
                                          reconcile, run_child, stop_orphan_children)
 from scripts.p8_03_score import manifest_check, planned
 from scripts.p8_03_r1_remote import start, status
@@ -36,6 +36,17 @@ class DurabilityTests(unittest.TestCase):
                                  source_head=self.identity["source_head"],
                                  config_hash=self.identity["config_sha256"],
                                  arm_ns=123456)
+
+    def test_new_directory_entries_fsync_each_parent(self):
+        root = self.root / "matrix"
+        trial = root / "RS00"
+        attempt = trial / "attempt-01"
+        with patch("scripts.p8_03_r1_durability.fsync_directory") as sync:
+            durable_directory(root)
+            durable_directory(trial)
+            durable_directory(attempt)
+        self.assertEqual([call.args[0] for call in sync.call_args_list],
+                         [self.root, root, trial])
 
     def test_prearm_and_durable_arm(self):
         self.assertEqual(classify_attempt(self.folder, self.attempt,

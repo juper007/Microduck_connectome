@@ -22,7 +22,8 @@ from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_r1_durability import (
     checkpoint as r1_checkpoint, load_protocol, reconcile,
     run_child as r1_run_child, atomic_json as r1_atomic_json,
-    stop_orphan_children, process_start_ticks, supervisor_liveness)
+    stop_orphan_children, process_start_ticks, supervisor_liveness,
+    durable_directory)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
@@ -273,7 +274,10 @@ def run(args) -> dict:
         require(supervisor_ticks is not None,
                 "cannot durably identify R1 supervisor")
     output = args.output
-    output.mkdir(parents=True, exist_ok=False)
+    if args.r1:
+        durable_directory(output)
+    else:
+        output.mkdir(parents=True, exist_ok=False)
     journal = {"schema_version": "p8-03-r1-batch-journal-v1" if args.r1 else
                "p8-03-batch-journal-v1", "stage": args.stage,
                "source_head": args.reviewed_head, "source_path": str(args.root.resolve()),
@@ -305,8 +309,14 @@ def run(args) -> dict:
         for index, row in enumerate(rows):
             item = journal["ids"][index]
             for number in range(1, config["max_prearm_attempts"] + 1):
-                folder = output / row["trial_id"] / f"attempt-{number:02d}"
-                folder.mkdir(parents=True, exist_ok=False)
+                row_root = output / row["trial_id"]
+                folder = row_root / f"attempt-{number:02d}"
+                if args.r1:
+                    if not row_root.exists():
+                        durable_directory(row_root)
+                    durable_directory(folder)
+                else:
+                    folder.mkdir(parents=True, exist_ok=False)
                 attempt = {"name": folder.name, "status": "ACQUIRING", "armed": False,
                            "started_utc": now(), "steps": []}
                 item["attempts"].append(attempt)

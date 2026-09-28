@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-from scripts.p8_03_r1_durability import atomic_json
+from scripts.p8_03_r1_durability import atomic_json, durable_directory
 from scripts.p8_02_r1_batch import fsync_directory, now
 
 
@@ -33,7 +33,7 @@ def start(state: Path, command: list[str]) -> dict:
             or "--r1" not in command or "--output" not in command
             or "--reviewed-head" not in command):
         raise ValueError("start command must use pinned python3.12")
-    state.mkdir(parents=True, exist_ok=False)
+    durable_directory(state)
     env = dict(os.environ, P8_03_R1_LAUNCH_ROOT=str(state.resolve()))
     with (state / "supervisor.log").open("xb") as log:
         log.flush()

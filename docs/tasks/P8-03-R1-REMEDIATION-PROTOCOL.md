@@ -75,6 +75,9 @@ arm never happened. Corrupt, conflicting, or unprovable state is UNKNOWN_ARM;
 no retry and no PASS. The marker is written to a unique temporary file,
 flushed, fsynced, atomically renamed, and parent-fsynced **before** neural
 arm. Journal/marker disagreement blocks PASS.
+Before a child starts, creation of the output, ID and attempt directories
+is followed by fsync of each containing parent directory; the marker's
+rename then fsyncs the attempt directory itself.
 
 Every created log is checkpointed on open and after exit. Other meaningful
 transitions checkpoint the journal and full SHA256/byte/record-count
