@@ -372,8 +372,7 @@ def trace_integrity(row: dict, expected: dict) -> bool:
                                  "roll_rad", "pitch_rad", "sim_time_s"))):
                     return False
         for phase in (row["initial_plateau"],
-                      row["pulses"][0]["plateau"],
-                      row["pulses"][1]["plateau"]):
+                      row["pulses"][0]["plateau"]):
             if any(abs(v) > .005 for sample in phase for v in sample["applied"]):
                 return False
             if abs(wrapped_delta(phase[-1]["pose"]["heading_rad"],

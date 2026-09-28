@@ -6,7 +6,10 @@ from pathlib import Path
 import time
 from unittest import mock
 
-from scripts.p8_03_r3_yaw_diagnostic import matrix, sampled, score, trace_integrity
+from scripts.p8_03_r3_yaw_diagnostic import (
+    R1_CONFIG, REFERENCE, heading_median, matrix, sampled, score,
+    trace_integrity, wrapped_delta,
+)
 
 PROTOCOL = json.loads((Path(__file__).parents[1] /
                        "config/p8_03_r3_yaw_diagnostic_v1.json").read_text())
@@ -20,6 +23,51 @@ def records():
             .02 if row["condition"] == "positive" else
             -.02 if row["condition"] == "negative" else .001)
     return rows
+
+
+def complete_record(item):
+    yaw = {"positive": .2, "negative": -.2, "sham": 0.}[item["condition"]]
+    final_heading = REFERENCE["heading_rad"] + (
+        .02 if yaw > 0 else -.02 if yaw < 0 else 0.)
+
+    def samples(count, start_s, interval_s, heading, policy, applied_yaw=0.):
+        result = []
+        for index in range(count):
+            seconds = start_s + index * interval_s
+            tick_ns = round(seconds * 1e9)
+            result.append({
+                "pose": {"request_ns": tick_ns, "response_ns": tick_ns + 1_000_000,
+                         "sim_time_s": seconds, "x_m": REFERENCE["x_m"],
+                         "y_m": REFERENCE["y_m"],
+                         "trunk_z_m": REFERENCE["trunk_z_m"],
+                         "heading_rad": heading, "roll_rad": 0., "pitch_rad": 0.},
+                "robot_t_ns": tick_ns, "requested": [0., 0., applied_yaw],
+                "applied": [0., 0., applied_yaw], "limited_by": [],
+                "policy": policy, "safety": {"fallen": False, "limp": False}})
+        return result
+
+    initial = samples(21, 1., .05, REFERENCE["heading_rad"], "stand")
+    moving = samples(10, 2.02, .02, final_heading, "walk", yaw)
+    stopped = samples(21, 2.25, .05, final_heading, "stand")
+    final = samples(21, 3.35, .05, final_heading, "stand")
+    requests = [{"ack": {"accepted": True}, "call_ns": 2_000_000_000 + i * 20_000_000,
+                 "write_ns": 2_000_100_000 + i * 20_000_000,
+                 "ack_ns": 2_001_000_000 + i * 20_000_000}
+                for i in range(10)]
+    return dict(item, result="VALID", initial_stop={"result": "PASS"},
+                cleanup_stop={"result": "PASS"}, down_before_exit=0, up_exit=0,
+                down_after_exit=0, final_probe={"result": "PASS"},
+                health={"healthy": True, "degraded": False},
+                policy_verified={"loaded_walk_sha256":
+                                 R1_CONFIG["walking_policy_sha256"]},
+                initial_plateau=initial,
+                pulses=[{"vyaw_radps": yaw, "duration_s": .2,
+                         "active_through_stop_s": .23,
+                         "stop": {"result": "PASS"}, "requests": requests,
+                         "trajectory": moving, "post_stop_trajectory": stopped,
+                         "plateau": final}],
+                delta_heading_rad=wrapped_delta(
+                    heading_median(final), heading_median(initial)))
 
 
 def test_frozen_matrix_is_disjoint_balanced_and_development_only():
@@ -66,6 +114,22 @@ def test_missing_or_unverified_raw_cannot_pass():
     assert score(PROTOCOL, rows[:-1])["result"] == "FAIL"
     assert score(PROTOCOL, rows)["result"] == "FAIL"
     assert trace_integrity(rows[0], matrix(PROTOCOL)[0]) is False
+
+
+def test_complete_raw_traces_score_and_safety_faults_fail():
+    items = matrix(PROTOCOL)
+    rows = [complete_record(item) for item in items]
+    assert all(trace_integrity(row, item) for row, item in zip(rows, items))
+    assert score(PROTOCOL, rows)["result"] == "PASS"
+    corrupted = copy.deepcopy(rows)
+    corrupted[0]["pulses"][0]["trajectory"][2]["policy"] = "stand"
+    assert score(PROTOCOL, corrupted)["result"] == "FAIL"
+    corrupted = copy.deepcopy(rows)
+    corrupted[0]["pulses"][0]["trajectory"][2]["pose"]["x_m"] += .02
+    assert score(PROTOCOL, corrupted)["result"] == "FAIL"
+    corrupted = copy.deepcopy(rows)
+    corrupted[0]["pulses"][0]["requests"][2]["call_ns"] += 20_000_000
+    assert score(PROTOCOL, corrupted)["result"] == "FAIL"
 
 
 def test_pose_wait_accepts_next_sim_tick_and_rejects_wrong_policy():
