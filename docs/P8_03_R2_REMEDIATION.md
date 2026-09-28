@@ -69,6 +69,12 @@ the original moving-body precondition and arm checks still apply.
 ## Development and final gates
 
 The pilot uses three unnumbered development resets and cannot qualify finals.
+If those resets never require alignment, a separate two-reset development
+perturbation deliberately turns the body once in each yaw direction by at
+least 0.09 rad through bounded high-level robotd intent, stops, then runs the
+same preparation gate. Its resets are excluded from the 60-reset estimate and
+cannot become final trials. This tests the otherwise unexercised corrective
+path without tuning to a final result.
 If it fails, revise the intervention as a new version and rerun an independent
 review before starting a held-out batch. The held-out development matrix is
 887400–887459, in three consecutive groups of 20. All 60 fresh resets must pass
@@ -106,7 +112,9 @@ python3.12 -B scripts/p8_03_r2_reset_development.py --kind pilot --reviewed-head
 ```
 
 If the reviewed pilot PASSes and the protocol/code are frozen on a newly
-reviewed exact head, run `--kind qualification` with
+reviewed exact head, run `--kind perturbation` with
+`p8-03-r2-alignment-perturbation-v1` as output, then run
+`--kind qualification` with
 `p8-03-r2-reset-qualification-v1` as output. Do not infer qualification from
 the pilot or launch a final seed from a protocol without a PASS gate.
 Any remote disconnect requires inspecting the same output/state and process

@@ -50,6 +50,65 @@ def pose_row(reader: TimedPoseReader, previous: dict | None) -> dict:
     return row
 
 
+def perturb_heading(port: int, sock: Path, direction: int) -> dict:
+    """Development-only controlled yaw offset; never part of qualification."""
+    trace = {"direction": direction, "moves": [], "target_delta_rad": .09}
+    reader = TimedPoseReader(port)
+    command = JsonLines(str(sock))
+    health = RobotdClient(str(sock), timeout_s=2)
+    health.connect()
+    try:
+        if health.health().get("healthy") is not True:
+            raise RuntimeError("unhealthy before perturbation")
+        first = pose_row(reader, None)
+        trace["initial"] = first
+        previous = first
+        start = time.monotonic()
+        last_ack = None
+        while True:
+            delta = pose_deltas(previous["pose"])["heading_rad"] - (
+                pose_deltas(first["pose"])["heading_rad"])
+            if direction * delta >= .09:
+                break
+            if time.monotonic() - start >= 1.0:
+                raise TimeoutError("controlled perturbation did not reach 0.09 rad")
+            if math.hypot(previous["pose"]["x_m"] - first["pose"]["x_m"],
+                          previous["pose"]["y_m"] - first["pose"]["y_m"]) > .03:
+                raise RuntimeError("perturbation translation bound exceeded")
+            if health.health().get("healthy") is not True:
+                raise RuntimeError("health lost during perturbation")
+            tick = time.monotonic_ns()
+            if last_ack is not None and tick - last_ack > 100_000_000:
+                raise RuntimeError("perturbation TTL elapsed")
+            ack, call_ns, write_ns, ack_ns = acknowledged_precondition_move(
+                command, vx=0.0, vy=0.0, vyaw=direction * .2)
+            move = {"requested_vyaw_radps": direction * .2, "ack": ack,
+                    "call_ns": call_ns, "write_ns": write_ns, "ack_ns": ack_ns}
+            trace["moves"].append(move)
+            if (ack_ns - tick > 100_000_000 or
+                    (last_ack is not None and ack_ns - last_ack > 100_000_000)):
+                raise RuntimeError("perturbation ACK exceeded TTL")
+            last_ack = ack_ns
+            previous = pose_row(reader, previous)
+            move["pose"] = previous
+            time.sleep(max(0, .05 - (time.monotonic_ns() - tick) / 1e9))
+        trace["final"] = previous
+    except BaseException as error:
+        trace["error"] = f"{type(error).__name__}: {error}"
+    finally:
+        for connection in (command, health, reader):
+            try:
+                connection.close()
+            except BaseException as error:
+                trace.setdefault("close_errors", []).append(
+                    f"{type(error).__name__}: {error}")
+        trace["stop"] = emergency_stop(sock)
+    trace["result"] = ("PASS" if "error" not in trace and
+                       not trace.get("close_errors") and
+                       trace["stop"]["result"] == "PASS" else "FAIL")
+    return trace
+
+
 def prepare(reader: TimedPoseReader, sock: Path) -> dict:
     stop = emergency_stop(sock)
     if stop["result"] != "PASS":
@@ -161,8 +220,11 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
 
 
 def run(output: Path, head: str, kind: str) -> None:
-    expected = PARENT / ("p8-03-r2-reset-pilot-v1" if kind == "pilot" else
-                         "p8-03-r2-reset-qualification-v1")
+    expected = PARENT / ({
+        "pilot": "p8-03-r2-reset-pilot-v1",
+        "perturbation": "p8-03-r2-alignment-perturbation-v1",
+        "qualification": "p8-03-r2-reset-qualification-v1",
+    }[kind])
     if output != expected or output.exists():
         raise ValueError("dedicated unused R2 development output required")
     if (socket.gethostname().startswith("jetsonthor") is False or
@@ -203,7 +265,7 @@ def run(output: Path, head: str, kind: str) -> None:
     env["PATH"] = (str(Path(config["microduck_path"]).parent /
                        "rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin") +
                    os.pathsep + env["PATH"])
-    count = 3 if kind == "pilot" else 60
+    count = {"pilot": 3, "perturbation": 2, "qualification": 60}[kind]
     records = []
     for i in range(count):
         folder = output / f"D{i:02d}"
@@ -236,6 +298,12 @@ def run(output: Path, head: str, kind: str) -> None:
             validate_loaded_walk_policy(
                 json.loads((folder / "policy-readback.json").read_text()),
                 Path(config["walking_policy_path"]), config["walking_policy_sha256"])
+            if kind == "perturbation":
+                row["perturbation"] = perturb_heading(
+                    PORT, STATE / "duck-a.sock", 1 if i == 0 else -1)
+                atomic_json(folder / "trace.json", row)
+                if row["perturbation"]["result"] != "PASS":
+                    raise RuntimeError("controlled development perturbation failed")
             reader = TimedPoseReader(PORT)
             try:
                 row["preparation"] = prepare(reader, STATE / "duck-a.sock")
@@ -298,6 +366,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--reviewed-head", required=True)
-    parser.add_argument("--kind", choices=("pilot", "qualification"), required=True)
+    parser.add_argument("--kind", choices=("pilot", "perturbation", "qualification"),
+                        required=True)
     args = parser.parse_args()
     run(args.output, args.reviewed_head, args.kind)
