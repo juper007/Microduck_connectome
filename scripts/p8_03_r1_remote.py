@@ -24,6 +24,25 @@ def proc_identity(pid: int) -> str | None:
         return None
 
 
+def guarded_exec(state: Path, command: list[str]) -> None:
+    """Do not execute the batch until the launcher has durably acknowledged it."""
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if (state / "start-ack.json").exists():
+            launch = json.loads((state / "launch.json").read_text())
+            ack = json.loads((state / "start-ack.json").read_text())
+            if (launch.get("pid") != os.getpid() or
+                    launch.get("proc_start_ticks") != proc_identity(os.getpid()) or
+                    launch.get("command") != command or
+                    ack.get("pid") != os.getpid() or
+                    ack.get("proc_start_ticks") != launch["proc_start_ticks"]):
+                raise RuntimeError("launch handshake mismatch")
+            os.execvpe(command[0], command, os.environ)
+            return  # reached only by tests that mock exec
+        time.sleep(.05)
+    raise TimeoutError("launch acknowledgement never became durable; no batch started")
+
+
 def start(state: Path, command: list[str]) -> dict:
     if state.exists():
         raise FileExistsError("one-shot supervisor state already exists")
@@ -38,21 +57,43 @@ def start(state: Path, command: list[str]) -> dict:
     with (state / "supervisor.log").open("xb") as log:
         log.flush()
         os.fsync(log.fileno())
-        child = subprocess.Popen(command, stdin=subprocess.DEVNULL,
+        guarded = [sys.executable, "-B", str(Path(__file__).resolve()),
+                   "_guarded_exec", str(state.resolve()), *command]
+        child = subprocess.Popen(guarded, stdin=subprocess.DEVNULL,
                                  stdout=log, stderr=subprocess.STDOUT,
                                  start_new_session=True, close_fds=True, env=env)
-    identity = proc_identity(child.pid)
-    record = {"schema_version": "p8-03-r1-launch-v1", "pid": child.pid,
-              "proc_start_ticks": identity, "command": command,
-              "source_head": command[command.index("--reviewed-head") + 1],
-              "started_utc": now(), "started_monotonic_ns": time.monotonic_ns(),
-              "state": "LAUNCHED"}
-    atomic_json(state / "launch.json", record)
-    fsync_directory(state)
-    return record
+    try:
+        identity = proc_identity(child.pid)
+        if identity is None:
+            raise RuntimeError("cannot identify detached supervisor process")
+        record = {"schema_version": "p8-03-r1-launch-v1", "pid": child.pid,
+                  "proc_start_ticks": identity, "command": command,
+                  "source_head": command[command.index("--reviewed-head") + 1],
+                  "started_utc": now(), "started_monotonic_ns": time.monotonic_ns(),
+                  "state": "LAUNCHED"}
+        atomic_json(state / "launch.json", record)
+        atomic_json(state / "start-ack.json", {
+            "schema_version": "p8-03-r1-start-ack-v1", "pid": child.pid,
+            "proc_start_ticks": identity})
+        fsync_directory(state)
+        return record
+    except BaseException:
+        if child.poll() is None:
+            os.killpg(child.pid, signal.SIGINT)
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait()
+        raise
 
 
 def status(state: Path) -> dict:
+    if not (state / "launch.json").exists() or not (state / "start-ack.json").exists():
+        return {"schema_version": "p8-03-r1-status-v1",
+                "state": "INCOMPLETE_LAUNCH_NO_BATCH_ACK",
+                "same_process_alive": False,
+                "log_path": str(state / "supervisor.log")}
     launch = json.loads((state / "launch.json").read_text())
     current_identity = proc_identity(launch["pid"])
     same_process = current_identity is not None and current_identity == launch["proc_start_ticks"]
@@ -74,6 +115,9 @@ def status(state: Path) -> dict:
 
 
 def main() -> None:
+    if len(sys.argv) >= 4 and sys.argv[1] == "_guarded_exec":
+        guarded_exec(Path(sys.argv[2]), sys.argv[3:])
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("start", "status", "interrupt"))
     parser.add_argument("--state", type=Path, required=True)

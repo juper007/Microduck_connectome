@@ -103,7 +103,11 @@ Start Thor's authoritative supervisor once with
 python3.12 -B scripts/p8_03_batch.py --r1 ...`. It creates a detached
 session with closed stdin, captures stdout/stderr in `supervisor.log`,
 records PID and Linux process start ticks, and refuses a second launch at
-that root. Reconnect with `status --state <root>`; never auto-restart.
+that root. The detached helper waits for both durably written
+`launch.json` and `start-ack.json` before executing the batch; a launcher
+death before acknowledgement times out without assigning an ID.
+`INCOMPLETE_LAUNCH_NO_BATCH_ACK` is a retained no-retry status for that
+root. Reconnect with `status --state <root>`; never auto-restart.
 `interrupt --state <root>` sends SIGINT for stop, checkpoint, down and
 probe. LOST requires recovery and review.
 

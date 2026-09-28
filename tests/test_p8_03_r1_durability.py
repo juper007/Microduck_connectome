@@ -11,7 +11,7 @@ from scripts.p8_03_r1_durability import (checkpoint, classify_attempt,
                                          create_arm_marker, durable_directory, load_protocol,
                                          reconcile, run_child, stop_orphan_children)
 from scripts.p8_03_score import manifest_check, planned
-from scripts.p8_03_r1_remote import start, status
+from scripts.p8_03_r1_remote import guarded_exec, start, status
 from scripts.p8_03_batch import recover_only
 
 
@@ -122,11 +122,37 @@ class DurabilityTests(unittest.TestCase):
                   "command": ["python3.12", "scripts/p8_03_batch.py",
                               "--output", str(output)]}
         (state / "launch.json").write_text(json.dumps(launch))
+        (state / "start-ack.json").write_text(json.dumps({
+            "pid": launch["pid"], "proc_start_ticks": launch["proc_start_ticks"]}))
         with patch("scripts.p8_03_r1_remote.proc_identity", return_value=None):
             self.assertEqual(status(state)["state"], "LOST_REQUIRES_RECOVERY")
         with self.assertRaises(FileExistsError):
             start(state, ["python3.12", "scripts/p8_03_batch.py", "--r1",
                           "--output", str(output), "--reviewed-head", "a" * 40])
+
+    def test_incomplete_detached_launch_has_no_batch_ack(self):
+        state = self.root / "launch"
+        state.mkdir()
+        self.assertEqual(status(state)["state"], "INCOMPLETE_LAUNCH_NO_BATCH_ACK")
+        with patch("scripts.p8_03_r1_remote.time.monotonic",
+                   side_effect=[0, 11]):
+            with self.assertRaises(TimeoutError):
+                guarded_exec(state, ["python3.12", "batch.py"])
+
+    def test_guarded_launch_requires_durable_matching_ack(self):
+        state = self.root / "launch"
+        state.mkdir()
+        command = ["python3.12", "batch.py", "--r1"]
+        pid = 1234
+        (state / "launch.json").write_text(json.dumps({
+            "pid": pid, "proc_start_ticks": "42", "command": command}))
+        (state / "start-ack.json").write_text(json.dumps({
+            "pid": pid, "proc_start_ticks": "42"}))
+        with patch("scripts.p8_03_r1_remote.os.getpid", return_value=pid), patch(
+                "scripts.p8_03_r1_remote.proc_identity", return_value="42"), patch(
+                "scripts.p8_03_r1_remote.os.execvpe") as execute:
+            guarded_exec(state, command)
+        execute.assert_called_once()
 
     def test_recovery_refuses_live_supervisor_without_writing(self):
         journal = {"schema_version": "p8-03-r1-batch-journal-v1",
