@@ -25,6 +25,7 @@ from scripts.p6_telemetry_runtime_fixture import quaternion_yaw
 from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_batch import emergency_stop, fsync_directory
 from scripts.p8_03_r1_durability import atomic_json, durable_directory
+from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
 
 
 class TimedPoseReader:
@@ -99,6 +100,11 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
         raise RuntimeError("clean exact-head Thor Python 3.12 source required")
     if cycles < 1 or cycles > 20 or preload_s not in (0.0, 1.0):
         raise ValueError("exploratory count or pre-load interval outside frozen choices")
+    expected_name = ("p8-03-r2-diagnosis-r1cadence-v1" if preload_s == 0.0 else
+                     "p8-03-r2-diagnosis-deferred-policy-v1")
+    expected_parent = Path("/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final")
+    if output != expected_parent / expected_name:
+        raise ValueError("diagnosis output must use its dedicated development root")
     config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
     for key, version in (("microduck_path", "microduck_commit"),
                          ("microduck_rl_path", "microduck_rl_commit")):
@@ -132,6 +138,8 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
         try:
             record["down_before_exit"] = captured([sim, "down"], env,
                                                    folder / "down-before.log")
+            if record["down_before_exit"] != 0:
+                raise RuntimeError("official simulator down failed before fresh reset")
             record["up_exit"] = captured([sim, "up"], env, folder / "up.log")
             if record["up_exit"] != 0:
                 raise RuntimeError("official simulator up failed")
@@ -146,6 +154,9 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
                 env, folder / "policy-readback.json")
             if record["policy_load_exit"] or record["policy_readback_exit"]:
                 raise RuntimeError("policy load/readback failed")
+            validate_loaded_walk_policy(
+                json.loads((folder / "policy-readback.json").read_text()),
+                Path(config["walking_policy_path"]), config["walking_policy_sha256"])
             record["policy_readback_ns"] = time.monotonic_ns()
             record["after_policy"] = sample(port, 2.0)
             record["health_exit"] = captured([sim, "ctl", "health"], env,
@@ -157,11 +168,26 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
             record["result"] = "ERROR"
             record["error"] = f"{type(error).__name__}: {error}"
         finally:
-            record["stop"] = emergency_stop(state / "duck-a.sock")
-            record["down_after_exit"] = captured([sim, "down"], env,
-                                                  folder / "down-after.log")
-            record["final_probe"] = probe_final_sim_state(
-                state, port, phase="r2_diagnosis_down")
+            try:
+                record["stop"] = emergency_stop(state / "duck-a.sock")
+            except BaseException as error:
+                record["stop"] = {"result": "FAIL",
+                                  "error": f"{type(error).__name__}: {error}"}
+            try:
+                record["down_after_exit"] = captured([sim, "down"], env,
+                                                      folder / "down-after.log")
+            except BaseException as error:
+                record["down_after_exit"] = None
+                record["down_after_error"] = f"{type(error).__name__}: {error}"
+            try:
+                record["final_probe"] = probe_final_sim_state(
+                    state, port, phase="r2_diagnosis_down")
+            except BaseException as error:
+                record["final_probe"] = {"result": "FAIL",
+                                         "error": f"{type(error).__name__}: {error}"}
+            if (record["stop"]["result"] != "PASS" or record["down_after_exit"] != 0
+                    or record["final_probe"]["result"] != "PASS"):
+                record["result"] = "CLEANUP_FAIL"
             atomic_json(folder / "trace.json", record)
             records.append({"index": index, "result": record["result"],
                             "stop": record["stop"]["result"],
