@@ -26,7 +26,8 @@ from scripts.p8_02_r1_batch import emergency_stop, inventory
 from scripts.p8_03_batch import final_gate_pass, r1_final_cleanup
 from scripts.p8_03_r1_durability import (
     atomic_json, checkpoint, classify_attempt, create_arm_marker,
-    durable_directory, load_protocol, reconcile, run_child)
+    durable_directory, load_protocol, process_start_ticks, reconcile, run_child,
+    supervisor_liveness)
 from scripts.p8_03_r1_remote import start, status
 from scripts.p8_03_score import manifest_check
 
@@ -80,9 +81,14 @@ def ssh_session_observation() -> dict:
     connection = os.environ.get("SSH_CONNECTION")
     if not connection:
         raise RuntimeError("development reconnect case requires SSH_CONNECTION")
+    parent_pid = os.getppid()
+    parent_start_ticks = process_start_ticks(parent_pid)
+    if parent_start_ticks is None:
+        raise RuntimeError("cannot prove first SSH session process identity")
     session_id = os.getsid(0) if hasattr(os, "getsid") else None
     return {"ssh_connection_sha256": hashlib.sha256(connection.encode()).hexdigest(),
-            "session_id": session_id, "parent_pid": os.getppid()}
+            "session_id": session_id, "parent_pid": parent_pid,
+            "parent_start_ticks": parent_start_ticks}
 
 
 def prepare(output: Path, head: str) -> None:
@@ -274,6 +280,8 @@ def d_finish(output: Path, head: str) -> None:
     first = json.loads((d / "start-observation.json").read_text())
     distinct_connection = (first["ssh_connection_sha256"] !=
                            second["ssh_connection_sha256"])
+    first_session_liveness = supervisor_liveness(first["parent_pid"],
+                                                 first["parent_start_ticks"])
     launch_root = d / "launch"
     before = status(launch_root)
     duplicate_refused = False
@@ -286,11 +294,13 @@ def d_finish(output: Path, head: str) -> None:
         os.kill(before["pid"], signal.SIGKILL)
     time.sleep(.5)
     after = status(launch_root)
-    passed = (distinct_connection and before["state"] == "RUNNING" and duplicate_refused and
+    passed = (distinct_connection and first_session_liveness == "ABSENT" and
+              before["state"] == "RUNNING" and duplicate_refused and
               after["state"] == "LOST_REQUIRES_RECOVERY")
     save_case(d, "D", 887103, passed,
               {"start_session": first, "finish_session": second,
                "distinct_ssh_connection": distinct_connection,
+               "first_session_liveness": first_session_liveness,
                "reconnected_before": before, "duplicate_refused": duplicate_refused,
                "after_forced_termination": after})
 
