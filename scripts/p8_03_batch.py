@@ -22,7 +22,7 @@ from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_r1_durability import (
     checkpoint as r1_checkpoint, load_protocol, reconcile,
     run_child as r1_run_child, atomic_json as r1_atomic_json,
-    stop_orphan_children)
+    stop_orphan_children, process_start_ticks)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
@@ -61,8 +61,15 @@ def recover_only(root: Path) -> dict:
     """Never rewrite an interrupted journal or guess whether a trial was armed."""
     journal = json.loads((root / "batch-journal.json").read_text())
     if journal.get("schema_version") == "p8-03-r1-batch-journal-v1":
+        parent_pid = journal.get("supervisor_pid")
+        if (type(parent_pid) is int and process_start_ticks(parent_pid) is not None and
+                process_start_ticks(parent_pid) == journal.get("supervisor_start_ticks")):
+            return {"schema_version": "p8-03-r1-recovery-v1",
+                    "result": "REFUSED_ACTIVE_SUPERVISOR",
+                    "supervisor_pid": parent_pid}
         report = reconcile(root, journal)
-        if "ACTIVE" in report["states"].values():
+        if any(state in ("ACTIVE", "UNKNOWN_ARM")
+               for state in report["states"].values()):
             source = Path(journal["source_path"])
             config = json.loads((source / "config/p8_03_r1_execution_v1.json").read_text())
             cleanup = {"emergency_stop": emergency_stop(
@@ -86,7 +93,8 @@ def recover_only(root: Path) -> dict:
                 cleanup["probe"] = probe_final_sim_state(
                     Path(config["state_dir"]), config["body_port"],
                     phase="r1_recovery_final_down")
-                cleanup["result"] = "PASS" if cleanup.get("down_exit") == 0 and (
+                cleanup["result"] = "PASS" if cleanup["emergency_stop"].get(
+                    "result") == "PASS" and cleanup.get("down_exit") == 0 and (
                     cleanup["probe"].get("result") == "PASS") else "FAIL"
             report["cleanup"] = cleanup
             report["post_cleanup_states"] = reconcile(root, journal)["states"]
@@ -178,6 +186,14 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
                 master["schema_version"] == "p8-v2-final-protocol-v1",
                 "protocol schema mismatch")
         if args.r1:
+            r1_protocol = load_protocol(root)[1]
+            require(config["max_prearm_attempts"] ==
+                    r1_protocol["max_prearm_attempts"] == 1 and
+                    config["static_distance_m"] == .85 and
+                    config["static_tolerance_m"] == .005 and
+                    config["receding_speed_mps"] == .20 and
+                    config["receding_max_negative_frame_step_m"] == .005,
+                    "R1 frozen attempts/geometry mismatch")
             gate = json.loads(Path(config["development_gate"]).read_text())
             require(gate.get("result") == "PASS" and
                     gate.get("review_result") == "PASS" and
@@ -202,7 +218,9 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
             record["hashes"][rel] = sha(root / rel)
         if args.r1:
             for rel in ("config/p8_03_r1_protocol_v1.json",
-                        "scripts/p8_03_r1_durability.py"):
+                        "scripts/p8_03_r1_durability.py",
+                        "scripts/p8_03_r1_child.py",
+                        "scripts/p8_03_r1_remote.py"):
                 require((root / rel).read_bytes() == subprocess.check_output(
                     ["git", "-C", str(root), "show", f"HEAD:{rel}"]),
                     f"uncommitted R1 source bytes: {rel}")
@@ -257,6 +275,8 @@ def run(args) -> dict:
     if args.r1:
         journal["config_sha256"] = sha(args.root / "config/p8_03_r1_execution_v1.json")
         journal["protocol_sha256"] = sha(args.root / "config/p8_03_r1_protocol_v1.json")
+        journal["supervisor_pid"] = os.getpid()
+        journal["supervisor_start_ticks"] = process_start_ticks(os.getpid())
     scenario = json.loads((args.root / "config/looming_scenario_v1.json").read_text())
     tolerance = scenario["initial_pose_tolerance"]
     if args.stage == "R":

@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 import uuid
 
@@ -113,7 +114,10 @@ def stop_orphan_children(root: Path) -> list[dict]:
                            (signal.SIGKILL, 1)):
             if process_start_ticks(pid) != row.get("proc_start_ticks"):
                 break
-            os.killpg(pid, sig)
+            try:
+                os.killpg(pid, sig)
+            except ProcessLookupError:
+                break
             actions.append(sig.name)
             deadline = time.monotonic() + limit
             while time.monotonic() < deadline and (
@@ -123,6 +127,42 @@ def stop_orphan_children(root: Path) -> list[dict]:
                        "STOPPED" if process_start_ticks(pid) != row.get(
                            "proc_start_ticks") else "STILL_ACTIVE",
                        "signals": actions})
+    # Covers the Popen-to-process-record crash window. Only the unique R1
+    # output root and exact trial executable identify candidates.
+    known_pids = {json.loads(p.read_text())["pid"]
+                  for p in root.rglob("*.process.json")}
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdecimal() or int(entry.name) in known_pids:
+            continue
+        try:
+            cmdline = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(
+                "utf-8", "replace")
+        except OSError:
+            continue
+        if str(root) not in cmdline or not any(
+                token in cmdline for token in ("p8_03_trial.py", "p8_03_r1_child.py")):
+            continue
+        pid = int(entry.name)
+        ticks = process_start_ticks(pid)
+        if ticks is None:
+            continue
+        actions = []
+        for sig, limit in ((signal.SIGINT, 8), (signal.SIGTERM, 5),
+                           (signal.SIGKILL, 1)):
+            if process_start_ticks(pid) != ticks:
+                break
+            try:
+                os.killpg(os.getpgid(pid), sig)
+            except ProcessLookupError:
+                break
+            actions.append(sig.name)
+            deadline = time.monotonic() + limit
+            while time.monotonic() < deadline and process_start_ticks(pid) == ticks:
+                time.sleep(.05)
+        result.append({"path": str(entry), "state":
+                       "UNTRACKED_STOPPED" if process_start_ticks(pid) != ticks
+                       else "STILL_ACTIVE", "pid": pid,
+                       "proc_start_ticks": ticks, "signals": actions})
     return result
 
 
@@ -196,7 +236,9 @@ def run_child(command: list[str], log: Path, env: dict, *, progress=None,
         fsync_directory(log.parent)
         if created is not None:
             created()
-        child = subprocess.Popen(command, stdin=subprocess.DEVNULL,
+        shim = Path(__file__).with_name("p8_03_r1_child.py")
+        guarded = [sys.executable, "-B", str(shim), str(os.getpid()), *command]
+        child = subprocess.Popen(guarded, stdin=subprocess.DEVNULL,
                                  stdout=out, stderr=subprocess.STDOUT,
                                  env=env, start_new_session=True)
         atomic_json(log.with_name(log.name + ".process.json"), {

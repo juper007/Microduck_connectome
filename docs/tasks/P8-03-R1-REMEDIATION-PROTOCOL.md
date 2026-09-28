@@ -84,6 +84,13 @@ partial/zero-byte artifacts. It never launches a trial or changes an arm
 marker. Final verification checks every file; missing, extra, or mismatched
 bytes block PASS.
 
+Each R1 child starts through `p8_03_r1_child.py`, which sets Linux
+`PR_SET_PDEATHSIG=SIGINT` and checks its expected parent before executing
+the command. A supervisor death during the launch-to-PID-record gap
+therefore prevents the child from arming; recovery still reports UNKNOWN_ARM
+for that gap and performs stop/down/probe. Recovery refuses to touch a
+batch whose recorded supervisor PID and process start identity are alive.
+
 Start Thor's authoritative supervisor once with
 `python3.12 -B scripts/p8_03_r1_remote.py start --state <unused-root> --
 python3.12 -B scripts/p8_03_batch.py --r1 ...`. It creates a detached
@@ -92,6 +99,34 @@ records PID and Linux process start ticks, and refuses a second launch at
 that root. Reconnect with `status --state <root>`; never auto-restart.
 `interrupt --state <root>` sends SIGINT for stop, checkpoint, down and
 probe. LOST requires recovery and review.
+
+The exact static launch/status/reconnect form on Thor is:
+
+```bash
+SOURCE=/home/juper007/projects/microduck-connectome-thor/p8-03-r1-source
+THOR=/home/juper007/projects/microduck-connectome-thor
+EVIDENCE=$THOR/evidence/p8-v2-final
+HEAD=$(git -C "$SOURCE" rev-parse HEAD)
+cd "$SOURCE"
+python3.12 -B scripts/p8_03_r1_remote.py start \
+  --state "$EVIDENCE/p8-03-r1-static-launch-v1" -- \
+  python3.12 -B scripts/p8_03_batch.py --r1 --stage S \
+  --root "$SOURCE" --reviewed-head "$HEAD" \
+  --microduck "$THOR/microduck" --microduck-rl "$THOR/microduck_rl" \
+  --graph "$THOR/evidence/g8-r1/graph-v2/c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json" \
+  --policy "$THOR/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx" \
+  --sim-executable "$THOR/microduck/scripts/duck-sim" \
+  --output "$EVIDENCE/p8-03-r1-static-v1" \
+  --audit "$EVIDENCE/p8-03-r1-preflight-audit.jsonl" \
+  --sim-state /tmp/p8-03-r1-state --body-port 7895
+python3.12 -B scripts/p8_03_r1_remote.py status \
+  --state "$EVIDENCE/p8-03-r1-static-launch-v1"
+```
+
+After a LOST status, use the same batch arguments with
+`--recover-only` while the original source remains at that exact HEAD;
+the recovery path refuses a live supervisor. Receding uses stage R and
+the frozen receding output/launch roots; it starts only after static PASS.
 
 ## Development interruption gate
 

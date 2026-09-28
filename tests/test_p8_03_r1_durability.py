@@ -12,6 +12,7 @@ from scripts.p8_03_r1_durability import (checkpoint, classify_attempt,
                                          reconcile, run_child)
 from scripts.p8_03_score import manifest_check, planned
 from scripts.p8_03_r1_remote import start, status
+from scripts.p8_03_batch import recover_only
 
 
 class DurabilityTests(unittest.TestCase):
@@ -115,6 +116,19 @@ class DurabilityTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             start(state, ["python3.12", "scripts/p8_03_batch.py", "--r1",
                           "--output", str(output), "--reviewed-head", "a" * 40])
+
+    def test_recovery_refuses_live_supervisor_without_writing(self):
+        journal = {"schema_version": "p8-03-r1-batch-journal-v1",
+                   "supervisor_pid": 1234, "supervisor_start_ticks": "42",
+                   "stage": "S", "source_head": "a" * 40, "ids": []}
+        raw = json.dumps(journal).encode()
+        (self.root / "batch-journal.json").write_bytes(raw)
+        with patch("scripts.p8_03_batch.process_start_ticks",
+                   return_value="42"):
+            report = recover_only(self.root)
+        self.assertEqual(report["result"], "REFUSED_ACTIVE_SUPERVISOR")
+        self.assertEqual((self.root / "batch-journal.json").read_bytes(), raw)
+        self.assertFalse((self.root / "recovery-report.json").exists())
 
     def test_scientific_matrix_only_changes_identity(self):
         root = Path(__file__).resolve().parents[1]
