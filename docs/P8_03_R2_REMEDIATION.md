@@ -55,8 +55,9 @@ The pilot and 60-reset development evidence determine whether this intervention
 is viable. Successful preparation demonstrates a repeatable **prepared**
 initial condition, not deterministic raw simulator resets.
 
-After acknowledged stop, obtain 21 sequential 50 ms pose samples over at least
-0.95 s, with strictly advancing simulator time and no read older than 100 ms.
+After acknowledged stop, wait a separate fixed 1 s settling interval, then
+obtain 21 sequential 50 ms pose samples over at least 0.95 s, with strictly
+advancing simulator time and no read older than 100 ms.
 Require healthy robotd, three zero-applied-motion state observations, every
 sample within x/y 0.03 m, z 0.025 m, heading 0.08 rad of the frozen reference,
 heading within the stronger 0.06 rad guard, and heading drift at most 0.005 rad.

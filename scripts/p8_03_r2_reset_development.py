@@ -27,7 +27,7 @@ from microduck_connectome.robotd_client import RobotdClient
 from scripts.p6_motion_fixture import JsonLines
 from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_batch import emergency_stop
-from scripts.p8_03_r1_durability import atomic_json, durable_directory
+from scripts.p8_03_r1_durability import atomic_json, durable_directory, process_start_ticks
 from scripts.p8_03_r2_diagnose import TimedPoseReader, captured
 from scripts.p8_02_r1_trial import acknowledged_precondition_move
 from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
@@ -68,6 +68,7 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
         trace["before"] = [first, second]
         origin = first["pose"]
         previous = second
+        initial_error = abs(pose_deltas(second["pose"])["heading_rad"])
         start = time.monotonic()
         last_ack = None
         while abs(pose_deltas(previous["pose"])["heading_rad"]) > .03:
@@ -84,15 +85,25 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
                 raise RuntimeError("robotd health lost during alignment")
             vyaw = max(-.2, min(.2, -2.0 * error))
             tick = time.monotonic_ns()
+            if last_ack is not None and tick - last_ack > 100_000_000:
+                raise RuntimeError("100 ms command TTL elapsed before refresh")
             ack, call_ns, write_ns, ack_ns = acknowledged_precondition_move(
                 command, vx=0.0, vy=0.0, vyaw=vyaw)
+            move = {"requested_vyaw_radps": vyaw, "ack": ack,
+                    "call_ns": call_ns, "write_ns": write_ns, "ack_ns": ack_ns}
+            trace["moves"].append(move)
+            if ack_ns - tick > 100_000_000:
+                raise RuntimeError("command ACK exceeded 100 ms TTL")
             if last_ack is not None and ack_ns - last_ack > 100_000_000:
                 raise RuntimeError("100 ms command TTL refresh exceeded")
             last_ack = ack_ns
             current = pose_row(reader, previous)
-            trace["moves"].append({"requested_vyaw_radps": vyaw, "ack": ack,
-                                   "call_ns": call_ns, "write_ns": write_ns,
-                                   "ack_ns": ack_ns, "pose": current})
+            move["pose"] = current
+            current_error = abs(pose_deltas(current["pose"])["heading_rad"])
+            if current_error > initial_error + .015:
+                raise RuntimeError("alignment response moved away from reference")
+            if time.monotonic() - start > .35 and current_error > initial_error - .005:
+                raise RuntimeError("alignment response stuck or wrong sign")
             previous = current
             if time.monotonic_ns() - tick < 50_000_000:
                 time.sleep((50_000_000 - (time.monotonic_ns() - tick)) / 1e9)
@@ -107,28 +118,35 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
         trace["final_stop"] = emergency_stop(sock)
     if trace["final_stop"]["result"] != "PASS":
         raise RuntimeError("post-alignment stop was not acknowledged")
-    # The stop command has completed before all 21 fixed-cadence dwell reads.
+    # Fixed post-stop settling is separate from the subsequent qualification dwell.
     stop_ns = time.monotonic_ns()
+    time.sleep(1.0)
     rows = []
     dwell_start = time.monotonic()
+    client = RobotdClient(str(sock), timeout_s=2)
     try:
+        client.connect()
+        states = []
         for i in range(21):
             time.sleep(max(0, dwell_start + i * .05 - time.monotonic()))
             rows.append(reader.read())
+            if i in (0, 10, 20):
+                states.append(client.state(hz=50))
         trace["dwell_rows"] = rows
-        client = RobotdClient(str(sock), timeout_s=2)
-        client.connect()
-        try:
-            health = client.health()
-            states = [client.state(hz=50) for _ in range(3)]
-        finally:
-            client.close()
+        health = client.health()
     except BaseException as error:
         trace["dwell_rows"] = rows
         trace["error"] = f"{type(error).__name__}: {error}"
         raise PreparationFailure(trace, trace["error"]) from error
+    finally:
+        client.close()
     trace["health"] = health
     trace["post_stop_states"] = states
+    state_times = [state.get("t_ns") for state in states]
+    if (any(type(t) is not int for t in state_times) or
+            not all(a < b for a, b in zip(state_times, state_times[1:]))):
+        trace["error"] = "nonadvancing robot.state clock"
+        raise PreparationFailure(trace, trace["error"])
     applied = [v for state in states for v in state["move"]["applied"]]
     trace["gate"] = qualification(rows, stop_ack_ns=stop_ns,
                                   health=health, applied_velocity=applied)
@@ -162,6 +180,12 @@ def run(output: Path, head: str, kind: str) -> None:
     if preflight["result"] != "PASS":
         raise RuntimeError("development simulator state occupied")
     durable_directory(output)
+    atomic_json(output / "run.json", {
+        "schema_version": "p8-03-r2-development-run-v1", "status": "RUNNING",
+        "source_head": head, "kind": kind, "pid": os.getpid(),
+        "process_start_ticks": process_start_ticks(os.getpid()),
+        "started_monotonic_ns": time.monotonic_ns(),
+        "rule": "never relaunch into this output; inspect process identity after disconnect"})
     atomic_json(output / "preflight.json", preflight)
     env = dict(os.environ, DUCK_SIM_VIEWER="0", DUCK_SIM_STATE=str(STATE),
                DUCK_SIM_KEYFRAME="SIT", DUCK_SIM_RL=config["microduck_rl_path"],
@@ -176,13 +200,18 @@ def run(output: Path, head: str, kind: str) -> None:
         durable_directory(folder)
         row = {"index": i, "development_seed": None if kind == "pilot" else
                protocol["development_reset_seeds"][i], "source_head": head,
-               "result": "FAIL"}
+               "result": "RUNNING", "process_start_ticks": process_start_ticks(os.getpid())}
+        # This durable marker accounts for the reset even after SIGKILL or SSH loss.
+        atomic_json(folder / "cycle-start.json", row)
+        atomic_json(folder / "trace.json", row)
         try:
             row["down_before_exit"] = captured([config["sim_executable"], "down"],
                                                 env, folder / "down-before.log")
+            atomic_json(folder / "trace.json", row)
             if row["down_before_exit"]:
                 raise RuntimeError("fresh down failed")
             row["up_exit"] = captured([config["sim_executable"], "up"], env, folder / "up.log")
+            atomic_json(folder / "trace.json", row)
             if row["up_exit"]:
                 raise RuntimeError("official up failed")
             row["policy_load_exit"] = captured(
@@ -191,6 +220,7 @@ def run(output: Path, head: str, kind: str) -> None:
             row["policy_readback_exit"] = captured(
                 [config["sim_executable"], "ctl", "policy", "list", "--json"],
                 env, folder / "policy-readback.json")
+            atomic_json(folder / "trace.json", row)
             if row["policy_load_exit"] or row["policy_readback_exit"]:
                 raise RuntimeError("policy load/readback failed")
             validate_loaded_walk_policy(
@@ -214,8 +244,12 @@ def run(output: Path, head: str, kind: str) -> None:
             except BaseException as error:
                 row["down_after_exit"] = None
                 row["down_after_error"] = f"{type(error).__name__}: {error}"
-            row["final_probe"] = probe_final_sim_state(
-                STATE, PORT, phase="r2_dev_reset_down")
+            try:
+                row["final_probe"] = probe_final_sim_state(
+                    STATE, PORT, phase="r2_dev_reset_down")
+            except BaseException as error:
+                row["final_probe"] = {"result": "FAIL", "error":
+                                      f"{type(error).__name__}: {error}"}
             if (row["cleanup_stop"]["result"] != "PASS" or row["down_after_exit"] != 0
                     or row["final_probe"]["result"] != "PASS"):
                 row["result"] = "CLEANUP_FAIL"
@@ -229,6 +263,11 @@ def run(output: Path, head: str, kind: str) -> None:
               all(x["result"] == "PASS" for x in records) else "FAIL",
               "records": records, "not_final_evidence": True}
     atomic_json(output / "gate.json", result)
+    atomic_json(output / "run.json", {
+        "schema_version": "p8-03-r2-development-run-v1", "status": result["result"],
+        "source_head": head, "kind": kind, "pid": os.getpid(),
+        "process_start_ticks": process_start_ticks(os.getpid()),
+        "completed_monotonic_ns": time.monotonic_ns(), "observed": len(records)})
     files = []
     for path in sorted(output.rglob("*")):
         if path.is_file() and path.name != "manifest.json":

@@ -69,3 +69,14 @@ def test_alignment_precheck_depends_only_on_fresh_pose():
     bad = rows(.061)
     bad[1]["roll_rad"] = .51
     assert not alignment_eligible(bad[1], bad[0])
+
+
+def test_gate_is_deterministic_and_ignores_trial_outcomes():
+    import copy
+    data = rows(.055)
+    first = gate(data)
+    second = gate(copy.deepcopy(data))
+    assert first == second
+    for row in data:
+        row["trial_result"] = {"neural_stop": True, "score": -1000}
+    assert gate(data) == first
