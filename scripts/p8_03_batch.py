@@ -93,7 +93,9 @@ def recover_only(root: Path) -> dict:
                 cleanup["probe"] = probe_final_sim_state(
                     Path(config["state_dir"]), config["body_port"],
                     phase="r1_recovery_final_down")
-                cleanup["result"] = "PASS" if cleanup["emergency_stop"].get(
+                cleanup["result"] = "PASS" if not any(
+                    r["state"] == "UNKNOWN_IDENTITY" for r in cleanup["children"]
+                ) and cleanup["emergency_stop"].get(
                     "result") == "PASS" and cleanup.get("down_exit") == 0 and (
                     cleanup["probe"].get("result") == "PASS") else "FAIL"
             report["cleanup"] = cleanup

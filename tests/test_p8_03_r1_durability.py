@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from scripts.p8_03_r1_durability import (checkpoint, classify_attempt,
                                          create_arm_marker, load_protocol,
-                                         reconcile, run_child)
+                                         reconcile, run_child, stop_orphan_children)
 from scripts.p8_03_score import manifest_check, planned
 from scripts.p8_03_r1_remote import start, status
 from scripts.p8_03_batch import recover_only
@@ -164,6 +164,34 @@ class DurabilityTests(unittest.TestCase):
         self.assertEqual(len(checkpoints), 3)
         kill.assert_called_once()
         self.assertTrue((self.folder / "down.log").is_file())
+
+    def test_launch_bookkeeping_failure_stops_child(self):
+        class Child:
+            pid = 123
+            def poll(self):
+                return None
+            def wait(self, timeout):
+                return 130
+        with patch("scripts.p8_03_r1_durability.subprocess.Popen",
+                   return_value=Child()), patch(
+                       "scripts.p8_03_r1_durability.atomic_json",
+                       side_effect=OSError("disk full")), patch(
+                       "scripts.p8_03_r1_durability.os.killpg",
+                       create=True) as kill:
+            with self.assertRaises(OSError):
+                run_child(["sim", "down"], self.folder / "down.log", {})
+        kill.assert_called_once()
+
+    def test_null_process_identity_is_not_live(self):
+        record = {"pid": 123, "proc_start_ticks": None,
+                  "parent_pid": 1, "parent_start_ticks": "42"}
+        (self.folder / "down.log.process.json").write_text(json.dumps(record))
+        original_iterdir = Path.iterdir
+        def limited_iterdir(path):
+            return iter(()) if path == Path("/proc") else original_iterdir(path)
+        with patch.object(Path, "iterdir", limited_iterdir):
+            rows = stop_orphan_children(self.root)
+        self.assertEqual(rows[0]["state"], "UNKNOWN_IDENTITY")
 
     def test_final_down_failure_is_fail_closed(self):
         from scripts.p8_03_batch import final_gate_pass

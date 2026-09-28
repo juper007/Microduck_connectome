@@ -102,6 +102,9 @@ def stop_orphan_children(root: Path) -> list[dict]:
     for path in sorted(root.rglob("*.process.json")):
         row = json.loads(path.read_text())
         pid = row["pid"]
+        if row.get("proc_start_ticks") is None:
+            result.append({"path": str(path), "state": "UNKNOWN_IDENTITY"})
+            continue
         if process_start_ticks(pid) != row.get("proc_start_ticks"):
             continue
         parent_alive = (process_start_ticks(row["parent_pid"]) ==
@@ -241,16 +244,16 @@ def run_child(command: list[str], log: Path, env: dict, *, progress=None,
         child = subprocess.Popen(guarded, stdin=subprocess.DEVNULL,
                                  stdout=out, stderr=subprocess.STDOUT,
                                  env=env, start_new_session=True)
-        atomic_json(log.with_name(log.name + ".process.json"), {
-            "schema_version": "p8-03-r1-child-v1", "pid": child.pid,
-            "proc_start_ticks": process_start_ticks(child.pid),
-            "parent_pid": os.getpid(),
-            "parent_start_ticks": process_start_ticks(os.getpid()),
-            "command": command,
-            "started_utc": now()})
-        if created is not None:
-            created()
         try:
+            atomic_json(log.with_name(log.name + ".process.json"), {
+                "schema_version": "p8-03-r1-child-v1", "pid": child.pid,
+                "proc_start_ticks": process_start_ticks(child.pid),
+                "parent_pid": os.getpid(),
+                "parent_start_ticks": process_start_ticks(os.getpid()),
+                "command": command,
+                "started_utc": now()})
+            if created is not None:
+                created()
             while True:
                 try:
                     code = child.wait(timeout=.05)
