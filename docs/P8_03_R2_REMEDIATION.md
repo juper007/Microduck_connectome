@@ -1,7 +1,12 @@
 # P8-03-R2 pose reset remediation protocol
 
-Status: prospective development protocol. P8-03-R1 is terminal FAIL in PR #80
-and GitHub Release `p8-03-r1-evidence-v1`; this protocol does not revise it.
+Status: **terminal development FAIL for this v1 protocol**. The reviewed
+perturbation-v4 run failed one of two polarity cases, so the 60-reset held-out
+qualification and all R2 final seeds are blocked. The execution recipe below
+is a historical record and must not be relaunched. P8-03-R1 is terminal FAIL
+in PR #80 and GitHub Release `p8-03-r1-evidence-v1`; this protocol does not
+revise it. Detailed evidence and the next diagnostic handoff are in
+`docs/P8_03_R2_DEVELOPMENT_OUTCOME.md`.
 No R1 final trial, including RS04 seed 887204, may be rerun or counted in R2.
 
 ## Diagnosis and limits of inference
@@ -133,12 +138,11 @@ an idle simulator/socket/port 7898. Run the reviewed development entry point:
 python3.12 -B scripts/p8_03_r2_reset_development.py --kind pilot --reviewed-head <EXACT_REVIEWED_SHA> --output /home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-reset-pilot-v1
 ```
 
-If the reviewed pilot PASSes and the protocol/code are frozen on a newly
-reviewed exact head, run `--kind perturbation` with
-`p8-03-r2-alignment-perturbation-v4` as output, then run
-`--kind qualification` with
-`p8-03-r2-reset-qualification-v1` as output. Do not infer qualification from
-the pilot or launch a final seed from a protocol without a PASS gate.
+The reviewed pilot PASSed, but `p8-03-r2-alignment-perturbation-v4` is
+terminal FAIL. Its output root is occupied and must not be rerun. The
+`p8-03-r2-reset-qualification-v1` root remains unused; do not launch it
+under this failed protocol or infer qualification from the pilot. No final
+seed is eligible under this v1 protocol.
 Any remote disconnect requires inspecting the same output/state and process
 identity; it never authorizes a replacement attempt.
 
