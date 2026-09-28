@@ -9,7 +9,7 @@ import time
 from unittest import mock
 
 import scripts.p8_03_r4_actuator_pose as runner
-from scripts.p8_03_r4_score import classify, expected_matrix, verify_trace
+from scripts.p8_03_r4_score import _pose_record_valid, classify, expected_matrix, verify_trace
 
 PROTOCOL = json.loads((Path(__file__).parents[1] /
                        "config/p8_03_r4_actuator_pose_v1.json").read_text())
@@ -240,3 +240,11 @@ def test_response_classes_keep_safety_separate():
     assert classify("negative_high", -.006, .005, "VALID") == "EXPECTED"
     assert classify("negative_high", None, .005, "SAFETY_ABORT") == "SAFETY_ABORT"
     assert classify("sham", 0., .005, "VALID") == "SHAM"
+
+
+def test_official_unlimited_robotd_state_is_valid_raw_telemetry():
+    now = time.monotonic_ns()
+    row = baseline_payload(pose(1., now))
+    row["limited_by"] = None
+    row["sample_index"] = 0
+    assert _pose_record_valid(row)

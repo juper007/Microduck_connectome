@@ -79,7 +79,9 @@ def _pose_record_valid(row: dict) -> bool:
                 not isinstance(row["applied"], list) or
                 not all(_finite(v) for v in row["requested"] + row["applied"])):
             return False
-        if not isinstance(row["limited_by"], list) or row["policy"] not in ("stand", "walk"):
+        # Official robotd uses null when no limiter is active, and a list otherwise.
+        if (row["limited_by"] is not None and
+                not isinstance(row["limited_by"], list)) or row["policy"] not in ("stand", "walk"):
             return False
         health = row["robotd_health"]
         if (not isinstance(health, dict) or health.get("healthy") is not True or
