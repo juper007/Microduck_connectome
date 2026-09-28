@@ -42,7 +42,7 @@ Old PRs #79–#86 are historical drafts, not behavioral PASS. After exact heads,
 
 ### Live historical index and cleanup conditions
 
-The PR metadata below was read from the connected GitHub repository on 2026-09-28. Digest values are the published-asset digests stated in the PR descriptions/decision record; the assets have **not** been freshly downloaded for this task. No row below is a P8-03 behavioral PASS.
+The PR and Release metadata below was read from the connected GitHub repository on 2026-09-28. The listed digests match Release asset metadata; the assets have **not** been freshly downloaded for this task. No row below is a P8-03 behavioral PASS.
 
 | PR | Exact draft head | Outcome | Durable evidence tag / asset SHA256 |
 | --- | --- | --- | --- |
@@ -53,7 +53,7 @@ The PR metadata below was read from the connected GitHub repository on 2026-09-2
 | [#83](https://github.com/juper007/Microduck_connectome/pull/83) | `243263725b5c3798cb917515e6b54effa123f310` | R4 development FAIL | `p8-03-r4-actuator-pose-evidence-v1` / `606c57e13c2e4cd08d1160484167d91cba24b33c9db3adbb46438192cc35cb6c` |
 | [#84](https://github.com/juper007/Microduck_connectome/pull/84) | `e961b07940018887f2e0f0c3dffeae428a3d8e24` | R5 development FAIL | `p8-03-r5-yaw-coupling-evidence-v1` / `633890d945a838d6698c7d1f94c906a387bd97945f7449a670e4e15852688467` |
 | [#85](https://github.com/juper007/Microduck_connectome/pull/85) | `e31557aea92dd6299570269151a18cfcdbb84d67` | R6 diagnostic PASS only | `p8-03-r6-sit-reset-pose-evidence-v1` / `a2769f15825264438f4cf734fa8ede92fc74471cab437181c44b7559c639a657` |
-| [#86](https://github.com/juper007/Microduck_connectome/pull/86) | `1c11d05c3d59893f464dde320fce907c0712849c` | R7 v1/v2 FAIL, v3 diagnostic PASS only | `p8-03-r7-startup-interval-evidence-v1/v2/v3`; v3 digest `666075649d1b691020002bfe9ddd3f7c329e583c632bd373216471871c0aad4b`; v1/v2 asset digests still require indexing |
+| [#86](https://github.com/juper007/Microduck_connectome/pull/86) | `1c11d05c3d59893f464dde320fce907c0712849c` | R7 v1/v2 FAIL, v3 diagnostic PASS only | `p8-03-r7-startup-interval-evidence-v1` / `d25e4064d0587849c745a38fd4e1647e6474f996d0f2233c8cfb5e1c6084213d`; `v2` / `3684a819f6fb31cbde87916df28b748c03bf2b6004b91ffdc146b7776e6d91ed`; `v3` / `666075649d1b691020002bfe9ddd3f7c329e583c632bd373216471871c0aad4b` |
 | [#87](https://github.com/juper007/Microduck_connectome/pull/87) | `9465cb0c233abeabf9a8493445d273acf0f37836` | architecture decision PASS | no data Release |
 
-Before closing a draft, verify its current head still equals this table, independently record its Release asset URL, byte count and digest (or explicit absence for R2), and retain the corresponding raw evidence. R7 v1/v2 digest indexing is outstanding. Close only with the historical outcome in the note; closure is not scientific approval. Do not merge terminal FAIL drafts as behavioral PASS.
+Before closing a draft, verify its current head still equals this table, independently record its Release asset URL, byte count and digest (or explicit absence for R2), and retain the corresponding raw evidence. Close only with the historical outcome in the note; closure is not scientific approval. Do not merge terminal FAIL drafts as behavioral PASS.
