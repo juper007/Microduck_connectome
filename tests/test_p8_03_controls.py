@@ -13,7 +13,7 @@ from unittest.mock import patch
 from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
 from microduck_connectome.looming_scenario import load_config
 from microduck_connectome.p8_03_geometry import relative_trial
-from scripts.p8_03_score import manifest_check, score_raw, wilson_95
+from scripts.p8_03_score import audit_original_ledgers, manifest_check, score_raw, wilson_95
 from scripts.p8_03_batch import pose_reset_probe, recover_only
 
 
@@ -127,6 +127,13 @@ class RawScorerTests(unittest.TestCase):
         self.assertTrue(result["false_neural_stop"])
         self.assertFalse(result["clean_true_negative"])
 
+    def test_dn_threshold_crossing_cannot_be_clean_negative(self):
+        rows = clean_raw()
+        next(r for r in rows if r["kind"] == "neural_step")["dn_escape"] = .6
+        result = score_raw(rows, trial_id="S00", seed=881000, stage="S")
+        self.assertTrue(result["false_neural_stop"])
+        self.assertIn("dn_decoder_mismatch", result["failure_causes"])
+
     def test_geometry_and_fault_contaminate(self):
         rows = clean_raw()
         next(r for r in rows if r["kind"] == "visual_frame")["distance_m"] = .86
@@ -197,6 +204,36 @@ class RawScorerTests(unittest.TestCase):
             result = recover_only(root)
             self.assertEqual(result["in_flight_unknown_arm"], ["S00/attempt-01"])
             self.assertEqual(path.read_bytes(), data)
+
+    def test_original_ledgers_must_match_events(self):
+        with tempfile.TemporaryDirectory() as dirname:
+            folder = Path(dirname)
+            events = [{"kind": "visual_frame", "timestamp_ns": 10,
+                       "source_valid": True, "image_area": .01},
+                      {"kind": "neural_step", "timestamp_ns": 11,
+                       "runtime_healthy": True, "dn_escape": 0,
+                       "decoder_stop": False, "source_age_ms": 1,
+                       "source_frame_id": 1}]
+            visual = [{"timestamp_ns": 10, "frame_id": 1, "perception_valid": True,
+                       "perception_target_area": .01}]
+            neural = [{"neural_call_timestamp_ns": 11, "dn_runtime_healthy": True,
+                       "male_cns_healthy": True, "dn_escape": 0,
+                       "raw_decoder_stop": False, "perception_age_ms": 1,
+                       "perception_frame_id": 1, "input_none": False,
+                       "result_none": False, "perception_valid": True}]
+            for name, rows in (("events.jsonl", events), ("visual-frames.jsonl", visual),
+                               ("neural-ledger.jsonl", neural)):
+                (folder / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+            summary = {"event_sha256": hashlib.sha256((folder / "events.jsonl").read_bytes()).hexdigest(),
+                       "visual_sha256": hashlib.sha256((folder / "visual-frames.jsonl").read_bytes()).hexdigest(),
+                       "neural_ledger_sha256": hashlib.sha256((folder / "neural-ledger.jsonl").read_bytes()).hexdigest()}
+            self.assertEqual(audit_original_ledgers(folder, events, summary), [])
+            neural[0]["dn_escape"] = .6
+            (folder / "neural-ledger.jsonl").write_text(json.dumps(neural[0]) + "\n")
+            summary["neural_ledger_sha256"] = hashlib.sha256(
+                (folder / "neural-ledger.jsonl").read_bytes()).hexdigest()
+            self.assertIn("original_neural_disagreement",
+                          audit_original_ledgers(folder, events, summary))
 
 
 if __name__ == "__main__":

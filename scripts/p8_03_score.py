@@ -216,9 +216,13 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
                 causes.append("evaluator_geometry_missing")
                 break
     false_neural_stop = any(r.get("runtime_healthy") is True
-                            and r.get("decoder_stop") is True for r in neural) or any(
+                            and (r.get("dn_escape", 0) >= .5
+                                 or r.get("decoder_stop") is True) for r in neural) or any(
         r.get("neural_origin") is True and r.get("transport") == "robot.stop"
         for r in publish)
+    if any(r.get("runtime_healthy") is True and r.get("dn_escape", 0) >= .5
+           and r.get("decoder_stop") is not True for r in neural):
+        causes.append("dn_decoder_mismatch")
     if not false_neural_stop and len(motion) < 40:
         causes.append("motion_refresh_missing")
     if not false_neural_stop:
@@ -271,6 +275,56 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
             "geometry_max_m": max((r["distance_m"] for r in visual), default=None)}
 
 
+def audit_original_ledgers(folder: Path, events: list[dict], summary: dict) -> list[str]:
+    """Require condensed event rows to agree with the retained original ledgers."""
+    errors = []
+    visual_path = folder / "visual-frames.jsonl"
+    neural_path = folder / "neural-ledger.jsonl"
+    event_path = folder / "events.jsonl"
+    try:
+        visual = read_jsonl(visual_path)
+        neural = read_jsonl(neural_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return ["original_ledger_unreadable"]
+    if (summary.get("event_sha256") != hashlib.sha256(event_path.read_bytes()).hexdigest()
+            or summary.get("visual_sha256") != hashlib.sha256(visual_path.read_bytes()).hexdigest()
+            or summary.get("neural_ledger_sha256") !=
+            hashlib.sha256(neural_path.read_bytes()).hexdigest()):
+        errors.append("summary_raw_hash_mismatch")
+    event_visual = [r for r in events if r.get("kind") == "visual_frame"]
+    event_neural = [r for r in events if r.get("kind") == "neural_step"]
+    visual_ids = {r.get("frame_id") for r in visual}
+    if len(event_visual) != len(visual) or len(event_neural) != len(neural):
+        errors.append("original_ledger_count_mismatch")
+    for event, original in zip(event_visual, visual):
+        if (event.get("timestamp_ns") != original.get("timestamp_ns")
+                or event.get("source_valid") != original.get("perception_valid")
+                or type(original.get("perception_target_area")) not in (int, float)
+                or abs(event.get("image_area", -1) -
+                       original["perception_target_area"]) > 1e-12):
+            errors.append("original_visual_disagreement")
+            break
+    for event, original in zip(event_neural, neural):
+        healthy = bool(original.get("dn_runtime_healthy") and
+                       original.get("male_cns_healthy"))
+        if (event.get("timestamp_ns") != original.get("neural_call_timestamp_ns")
+                or event.get("runtime_healthy") != healthy
+                or event.get("dn_escape") != original.get("dn_escape", 0)
+                or event.get("decoder_stop") != original.get("raw_decoder_stop", False)
+                or event.get("source_age_ms") != original.get("perception_age_ms")
+                or event.get("source_frame_id") != original.get("perception_frame_id")):
+            errors.append("original_neural_disagreement")
+            break
+        if (original.get("input_none") or original.get("result_none")
+                or original.get("perception_valid") is not True):
+            errors.append("original_neural_input_invalid")
+            break
+        if original.get("perception_frame_id") not in visual_ids:
+            errors.append("original_neural_visual_lineage_missing")
+            break
+    return errors
+
+
 def score_batch(root: Path, master: dict, stage: str) -> dict:
     expected = planned(master, stage)
     journal = json.loads((root / "batch-journal.json").read_text(encoding="utf-8"))
@@ -293,8 +347,10 @@ def score_batch(root: Path, master: dict, stage: str) -> dict:
                            "failure_causes": ["attempt_accounting"],
                            "safety_limit_violations": None})
             continue
-        raw = root / row["trial_id"] / attempts[-1]["name"] / "events.jsonl"
-        result = score_raw(read_jsonl(raw), trial_id=row["trial_id"], seed=row["seed"], stage=stage)
+        folder = root / row["trial_id"] / attempts[-1]["name"]
+        raw = folder / "events.jsonl"
+        events = read_jsonl(raw)
+        result = score_raw(events, trial_id=row["trial_id"], seed=row["seed"], stage=stage)
         reset_path = root / row["trial_id"] / attempts[-1]["name"] / "pose-reset.json"
         try:
             reset = json.loads(reset_path.read_text(encoding="utf-8"))
@@ -306,11 +362,30 @@ def score_batch(root: Path, master: dict, stage: str) -> dict:
         if not reset_agrees:
             result["failure_causes"].append("pose_reset_journal_mismatch")
             result["clean_true_negative"] = False
-        summary = root / row["trial_id"] / attempts[-1]["name"] / "summary.json"
+        else:
+            raw_reset = [r for r in events if r.get("kind") == "pose_reset"]
+            if (len(raw_reset) != 1 or raw_reset[0].get("reference") != reset.get("reference")
+                    or raw_reset[0].get("pose") != reset.get("second_pose")
+                    or raw_reset[0].get("tolerance") != reset.get("tolerance")):
+                result["failure_causes"].append("pose_reset_event_mismatch")
+                result["clean_true_negative"] = False
+        summary = folder / "summary.json"
         if (not summary.is_file() or hashlib.sha256(summary.read_bytes()).hexdigest()
                 != attempts[-1].get("summary_sha256")):
             result["failure_causes"].append("summary_journal_hash")
             result["clean_true_negative"] = False
+        else:
+            retained_summary = json.loads(summary.read_text(encoding="utf-8"))
+            if (retained_summary.get("trial_id") != row["trial_id"]
+                    or retained_summary.get("seed") != row["seed"]
+                    or retained_summary.get("stage") != stage
+                    or retained_summary.get("armed") is not True
+                    or retained_summary.get("source_head") != journal.get("source_head")):
+                result["failure_causes"].append("summary_identity")
+            result["failure_causes"].extend(
+                audit_original_ledgers(folder, events, retained_summary))
+            if result["failure_causes"]:
+                result["clean_true_negative"] = False
         trials.append(result)
     count = sum(t["false_neural_stop"] for t in trials)
     contaminated = sum(any(c != "false_neural_stop" for c in t["failure_causes"])
