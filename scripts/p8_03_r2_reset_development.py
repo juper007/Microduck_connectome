@@ -36,7 +36,8 @@ from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
 PARENT = Path("/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final")
 STATE = Path("/tmp/p8-03-r2-reset-development-state")
 PORT = 7898
-PERTURBATION_MAX_S = 2.0
+PERTURBATION_MAX_S = 3.0
+PERTURBATION_STOP_RESERVE_S = .5
 
 
 def development_seed(kind: str, index: int, protocol: dict) -> int | None:
@@ -61,6 +62,27 @@ def perturbation_settled(first: dict, second: dict) -> tuple[bool, float, float]
     drift = abs(second["pose"]["heading_rad"] - first["pose"]["heading_rad"])
     remaining_error = abs(pose_deltas(second["pose"])["heading_rad"])
     return drift <= .005 and remaining_error > .06, drift, remaining_error
+
+
+def bounded_stop(sock: Path) -> dict:
+    """Attempt authentic stop with bounded RPCs; robotd TTL remains 100 ms."""
+    result = {"result": "FAIL", "method": "robot.stop",
+              "attempt_started_ns": time.monotonic_ns()}
+    client = RobotdClient(str(sock), timeout_s=.1)
+    try:
+        client.connect()
+        result["ack"] = client.stop()
+        result["result"] = "PASS"
+    except BaseException as error:
+        result["error"] = f"{type(error).__name__}: {error}"
+    finally:
+        try:
+            client.close()
+        except BaseException as error:
+            result["close_error"] = f"{type(error).__name__}: {error}"
+            result["result"] = "FAIL"
+        result["attempt_completed_ns"] = time.monotonic_ns()
+    return result
 
 
 class PreparationFailure(RuntimeError):
@@ -96,7 +118,7 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
         previous = first
         start = time.monotonic()
         deadline = start + PERTURBATION_MAX_S
-        command_deadline = deadline - .1  # reserve one TTL for the authentic stop
+        command_deadline = deadline - PERTURBATION_STOP_RESERVE_S
         last_ack = None
         while True:
             delta = pose_deltas(previous["pose"])["heading_rad"] - (
@@ -140,7 +162,7 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             except BaseException as error:
                 trace.setdefault("close_errors", []).append(
                     f"{type(error).__name__}: {error}")
-        trace["stop"] = emergency_stop(sock)
+        trace["stop"] = bounded_stop(sock)
         trace["stop_completed_ns"] = time.monotonic_ns()
         if "start" in locals():
             trace["duration_s"] = time.monotonic() - start
@@ -283,7 +305,7 @@ def run(output: Path, head: str, kind: str) -> None:
             protocol["development_perturbation"] != {
                 "cycles": 2, "directions": [1, -1],
                 "minimum_abs_heading_delta_rad": .09,
-                "max_duration_s": 2,
+                "max_duration_s": 3, "stop_reserve_s": .5,
                 "max_abs_yaw_rate_radps": .2,
                 "requested_vx_mps": 0, "requested_vy_mps": 0,
                 "evidence_version": "v4", "post_perturbation_settle_s": 1,

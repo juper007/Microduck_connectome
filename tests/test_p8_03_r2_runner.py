@@ -57,22 +57,22 @@ def test_perturbation_never_reuses_qualification_seed():
     assert dev.development_seed("qualification", 0, protocol) == 887400
 
 
-def test_perturbation_target_at_deadline_is_failure():
-    assert dev.perturbation_target_reached(.09, 1, 1.999, 2.0)
-    assert not dev.perturbation_target_reached(.089, 1, 1.999, 2.0)
+def test_perturbation_target_at_command_cutoff_is_failure():
+    assert dev.perturbation_target_reached(.09, 1, 2.499, 2.5)
+    assert not dev.perturbation_target_reached(.089, 1, 2.499, 2.5)
     try:
-        dev.perturbation_target_reached(.2, 1, 2.0, 2.0)
+        dev.perturbation_target_reached(.2, 1, 2.5, 2.5)
     except TimeoutError:
         pass
     else:
         raise AssertionError("late target was accepted")
 
 
-def test_perturbation_stop_ack_must_precede_two_second_deadline():
-    trace = {"active_phase_s": 1.8, "duration_s": 1.99,
+def test_perturbation_stop_ack_must_precede_three_second_deadline():
+    trace = {"active_phase_s": 2.4, "duration_s": 2.99,
              "stop": {"result": "PASS"}}
     assert dev.perturbation_pass(trace)
-    assert not dev.perturbation_pass(dict(trace, duration_s=2.0))
+    assert not dev.perturbation_pass(dict(trace, duration_s=3.0))
     assert not dev.perturbation_pass(dict(trace, stop={"result": "FAIL"}))
 
 
@@ -115,15 +115,36 @@ class QuietCommand(CommandConnection):
 
 
 def test_perturbation_health_delay_cannot_send_after_deadline():
-    clock = iter([0.0, 0.0, 2.01, 2.02])
+    clock = iter([0.0, 0.0, 2.51, 2.52])
     with patch.object(dev, "TimedPoseReader", FixedReader), \
             patch.object(dev, "RobotdClient", HealthyClient), \
             patch.object(dev, "JsonLines", QuietCommand), \
             patch.object(dev.time, "monotonic", side_effect=lambda: next(clock)), \
             patch.object(dev, "acknowledged_precondition_move") as move, \
-            patch.object(dev, "emergency_stop", return_value={"result": "PASS"}):
+            patch.object(dev, "bounded_stop", return_value={"result": "PASS"}):
         trace = dev.perturb_heading(7898, Path("/tmp/isolated.sock"), 1)
     assert trace["result"] == "FAIL"
     assert "deadline elapsed during health read" in trace["error"]
     move.assert_not_called()
     assert trace["stop"]["result"] == "PASS"
+
+
+def test_bounded_stop_timeout_records_failure_and_completion():
+    class StopTimeout:
+        def __init__(self, path, timeout_s):
+            assert timeout_s == .1
+
+        def connect(self):
+            pass
+
+        def stop(self):
+            raise TimeoutError("robotd did not ACK")
+
+        def close(self):
+            pass
+
+    with patch.object(dev, "RobotdClient", StopTimeout):
+        result = dev.bounded_stop(Path("/tmp/isolated.sock"))
+    assert result["result"] == "FAIL"
+    assert "TimeoutError" in result["error"]
+    assert result["attempt_completed_ns"] >= result["attempt_started_ns"]

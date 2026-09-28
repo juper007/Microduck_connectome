@@ -84,16 +84,18 @@ deliberate 0.09 rad perturbation target at its one-second deadline: 20 accepted
 commands changed final heading by about 0.053 rad. The acknowledged stop came
 39 ms after that deadline, so v3 correctly remained FAIL despite successful
 cleanup. None of versions 1–3 count toward qualification. Version 4 gives
-this auxiliary offset generation two seconds
+this auxiliary offset generation a three-second motion-through-stop bound
 while retaining the same 0.2 rad/s command cap, fresh-pose checks, translation
 bounds, stop ACK requirement, and separate one-second settling interval. The
-last 100 ms of the two-second cap is reserved for the authentic stop request.
+last 500 ms are reserved for the 100 ms command ACK, 100 ms pose read, bounded
+robotd stop attempt, and connection closure. The independent 100 ms robotd
+command TTL bounds motion if a stop ACK cannot be obtained; such a reset FAILs.
 If those resets never require alignment, a separate two-reset development
 perturbation deliberately turns the body once in each yaw direction by at
 least 0.09 rad through bounded high-level robotd intent, stops, then runs the
 same preparation gate. Its resets are excluded from the 60-reset estimate and
 cannot become final trials. This tests the otherwise unexercised corrective
-path without tuning to a final result. Its two-second maximum includes the
+path without tuning to a final result. Its three-second maximum includes the
 acknowledged final stop, not merely reaching the target heading.
 If it fails, revise the intervention as a new version and rerun an independent
 review before starting a held-out batch. The held-out development matrix is
