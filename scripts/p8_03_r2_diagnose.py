@@ -99,11 +99,12 @@ def run(output: Path, head: str, cycles: int, preload_s: float,
     if (actual != head or dirty or not socket.gethostname().startswith("jetsonthor")
             or platform.python_version_tuple()[:2] != ("3", "12")):
         raise RuntimeError("clean exact-head Thor Python 3.12 source required")
-    if cycles < 1 or cycles > 20 or preload_s not in (0.0, 1.0) or keyframe not in ("SIT", "HOME"):
+    if cycles < 1 or cycles > 20 or preload_s not in (0.0, 1.0) or keyframe not in ("SIT", "HOME", "STAND"):
         raise ValueError("exploratory count or pre-load interval outside frozen choices")
-    if keyframe == "HOME" and preload_s != 0.0:
-        raise ValueError("HOME diagnosis uses R1 policy cadence")
-    expected_name = ("p8-03-r2-diagnosis-home-v1" if keyframe == "HOME" else
+    if keyframe != "SIT" and preload_s != 0.0:
+        raise ValueError("alternate keyframe diagnosis uses R1 policy cadence")
+    expected_name = ("p8-03-r2-diagnosis-stand-v1" if keyframe == "STAND" else
+                     "p8-03-r2-diagnosis-home-v1" if keyframe == "HOME" else
                      "p8-03-r2-diagnosis-r1cadence-v1" if preload_s == 0.0 else
                      "p8-03-r2-diagnosis-deferred-policy-v1")
     expected_parent = Path("/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final")
@@ -230,7 +231,7 @@ def main() -> None:
     parser.add_argument("--reviewed-head", required=True)
     parser.add_argument("--cycles", type=int, required=True)
     parser.add_argument("--preload-s", type=float, choices=(0.0, 1.0), required=True)
-    parser.add_argument("--keyframe", choices=("SIT", "HOME"), default="SIT")
+    parser.add_argument("--keyframe", choices=("SIT", "HOME", "STAND"), default="SIT")
     args = parser.parse_args()
     run(args.output, args.reviewed_head, args.cycles, args.preload_s, args.keyframe)
 
