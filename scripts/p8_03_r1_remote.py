@@ -13,6 +13,10 @@ import subprocess
 import sys
 import time
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from scripts.p8_03_r1_durability import atomic_json, durable_directory
 from scripts.p8_02_r1_batch import fsync_directory, now
 
@@ -53,7 +57,8 @@ def start(state: Path, command: list[str]) -> dict:
             or "--reviewed-head" not in command):
         raise ValueError("start command must use pinned python3.12")
     durable_directory(state)
-    env = dict(os.environ, P8_03_R1_LAUNCH_ROOT=str(state.resolve()))
+    env = dict(os.environ, P8_03_R1_LAUNCH_ROOT=str(state.resolve()),
+               PYTHONPATH=str(REPO_ROOT))
     with (state / "supervisor.log").open("xb") as log:
         log.flush()
         os.fsync(log.fileno())

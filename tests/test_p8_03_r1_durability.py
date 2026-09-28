@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -153,6 +156,15 @@ class DurabilityTests(unittest.TestCase):
                 "scripts.p8_03_r1_remote.os.execvpe") as execute:
             guarded_exec(state, command)
         execute.assert_called_once()
+
+    def test_documented_remote_cli_imports_without_pythonpath(self):
+        root = Path(__file__).resolve().parents[1]
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [sys.executable, "-B", "scripts/p8_03_r1_remote.py", "--help"],
+            cwd=root, env=env, text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_recovery_refuses_live_supervisor_without_writing(self):
         journal = {"schema_version": "p8-03-r1-batch-journal-v1",
