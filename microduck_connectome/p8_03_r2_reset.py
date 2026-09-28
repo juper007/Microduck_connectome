@@ -15,6 +15,8 @@ SAMPLE_PERIOD_S = .05
 SETTLE_S = 1.0
 MAX_SAMPLE_AGE_S = .10
 MAX_HEADING_DRIFT_RAD = .005
+MIN_SAMPLE_INTERVAL_S = .03
+MAX_SAMPLE_INTERVAL_S = .075
 
 
 def wrapped_delta(value: float, reference: float) -> float:
@@ -85,6 +87,12 @@ def qualification(rows: list[dict], *, stop_ack_ns: int, health: dict,
     for row in rows:
         if not fresh_after(row, previous):
             reasons.append("stale_pose")
+        if previous is not None:
+            interval = (row.get("response_ns", 0) -
+                        previous.get("response_ns", 0))
+            if not (MIN_SAMPLE_INTERVAL_S * 1e9 <= interval <=
+                    MAX_SAMPLE_INTERVAL_S * 1e9):
+                reasons.append("sample_cadence")
         if not attitude_ok(row):
             reasons.append("attitude")
         try:

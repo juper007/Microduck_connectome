@@ -122,11 +122,11 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
     stop_ns = time.monotonic_ns()
     time.sleep(1.0)
     rows = []
-    dwell_start = time.monotonic()
     client = RobotdClient(str(sock), timeout_s=2)
     try:
         client.connect()
         states = []
+        dwell_start = time.monotonic()
         for i in range(21):
             time.sleep(max(0, dwell_start + i * .05 - time.monotonic()))
             rows.append(reader.read())
@@ -179,11 +179,14 @@ def run(output: Path, head: str, kind: str) -> None:
     preflight = probe_final_sim_state(STATE, PORT, phase="r2_dev_reset_preflight")
     if preflight["result"] != "PASS":
         raise RuntimeError("development simulator state occupied")
+    start_ticks = process_start_ticks(os.getpid())
+    if start_ticks is None:
+        raise RuntimeError("cannot identify Thor development process")
     durable_directory(output)
     atomic_json(output / "run.json", {
         "schema_version": "p8-03-r2-development-run-v1", "status": "RUNNING",
         "source_head": head, "kind": kind, "pid": os.getpid(),
-        "process_start_ticks": process_start_ticks(os.getpid()),
+        "process_start_ticks": start_ticks,
         "started_monotonic_ns": time.monotonic_ns(),
         "rule": "never relaunch into this output; inspect process identity after disconnect"})
     atomic_json(output / "preflight.json", preflight)
@@ -200,7 +203,7 @@ def run(output: Path, head: str, kind: str) -> None:
         durable_directory(folder)
         row = {"index": i, "development_seed": None if kind == "pilot" else
                protocol["development_reset_seeds"][i], "source_head": head,
-               "result": "RUNNING", "process_start_ticks": process_start_ticks(os.getpid())}
+               "result": "RUNNING", "process_start_ticks": start_ticks}
         # This durable marker accounts for the reset even after SIGKILL or SSH loss.
         atomic_json(folder / "cycle-start.json", row)
         atomic_json(folder / "trace.json", row)
@@ -262,22 +265,26 @@ def run(output: Path, head: str, kind: str) -> None:
               "result": "PASS" if len(records) == count and
               all(x["result"] == "PASS" for x in records) else "FAIL",
               "records": records, "not_final_evidence": True}
-    atomic_json(output / "gate.json", result)
-    atomic_json(output / "run.json", {
-        "schema_version": "p8-03-r2-development-run-v1", "status": result["result"],
-        "source_head": head, "kind": kind, "pid": os.getpid(),
-        "process_start_ticks": process_start_ticks(os.getpid()),
-        "completed_monotonic_ns": time.monotonic_ns(), "observed": len(records)})
     files = []
     for path in sorted(output.rglob("*")):
-        if path.is_file() and path.name != "manifest.json":
+        if path.is_file() and path.name not in ("manifest.json", "gate.json", "run.json"):
             data = path.read_bytes()
             files.append({"path": path.relative_to(output).as_posix(),
                           "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data),
                           "record_count": len(data.splitlines())})
     atomic_json(output / "manifest.json", {
         "schema_version": "p8-03-r2-development-manifest-v1",
-        "source_head": head, "files": files})
+        "source_head": head, "excluded_metadata": ["manifest.json", "gate.json", "run.json"],
+        "files": files})
+    result["raw_manifest_sha256"] = hashlib.sha256(
+        (output / "manifest.json").read_bytes()).hexdigest()
+    atomic_json(output / "gate.json", result)
+    atomic_json(output / "run.json", {
+        "schema_version": "p8-03-r2-development-run-v1", "status": result["result"],
+        "source_head": head, "kind": kind, "pid": os.getpid(),
+        "process_start_ticks": start_ticks,
+        "completed_monotonic_ns": time.monotonic_ns(), "observed": len(records),
+        "gate_sha256": hashlib.sha256((output / "gate.json").read_bytes()).hexdigest()})
 
 
 if __name__ == "__main__":

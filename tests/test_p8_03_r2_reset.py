@@ -35,6 +35,12 @@ def test_stale_clock_and_delayed_reply_rejected():
     assert "stale_pose" in gate(data)["reasons"]
 
 
+def test_sample_cadence_cannot_catch_up_after_blocking_read():
+    data = rows()
+    data[10]["response_ns"] += 40_000_000
+    assert "sample_cadence" in gate(data)["reasons"]
+
+
 def test_stable_displaced_and_moving_pose_rejected():
     data = rows()
     for row in data:
