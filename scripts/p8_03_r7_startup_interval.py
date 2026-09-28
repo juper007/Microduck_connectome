@@ -21,7 +21,7 @@ import time
 from microduck_connectome.robotd_client import RobotdClient
 from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_03_r7_score import (
-    EVENTS, body_pose_from_packet, derive_timeline, finite, matrix,
+    EVENTS, body_pose_from_packet, derive_timeline, finite, health_phase, matrix,
     read_journal, score_root, settled_candidate, trial_metrics, verify_trial,
 )
 
@@ -218,6 +218,23 @@ class StateSubscriber:
         self.thread.join(timeout=.5)
 
 
+def health_transition(health: dict, connected_ns: int, received_ns: int,
+                      had_healthy_cycle: bool, protocol: dict
+                      ) -> tuple[bool, tuple[str, str] | None]:
+    phase = health_phase(health)
+    if phase == "HEALTHY_CYCLE":
+        return True, None
+    if had_healthy_cycle:
+        return True, ("SAFETY_FAIL", "robotd_unhealthy_after_cycle")
+    if phase == "STARTUP_UNREADY":
+        if received_ns-connected_ns > protocol["startup_unready_grace_s"]*1e9:
+            return False, ("INFRA_FAIL", "startup_unready_timeout")
+        return False, None
+    if phase == "CONTRADICTORY_STARTUP_HEALTH":
+        return False, ("DATA_INTEGRITY_FAIL", "contradictory_startup_health")
+    return False, ("SAFETY_FAIL", "robotd_unhealthy")
+
+
 class RobotdMonitor:
     """Health and connection worker, separate from the 50 Hz body read loop."""
 
@@ -227,6 +244,7 @@ class RobotdMonitor:
         self.protocol = protocol
         self.stop_event = threading.Event()
         self.latest_health = None
+        self.had_healthy_cycle = False
         self.subscriber = None
         self.reachable_row = None
         self.thread = threading.Thread(target=self._run, daemon=True)
@@ -264,9 +282,11 @@ class RobotdMonitor:
                     row = self.journal.add("robotd_health", health=health,
                                            received_ns=received_ns)
                     self.latest_health = row
-                    if health.get("healthy") is not True or health.get("degraded"):
-                        self.faults.set("SAFETY_FAIL", "robotd_unhealthy",
-                                        row["sample_index"])
+                    self.had_healthy_cycle, fault = health_transition(
+                        health, connected_ns, received_ns,
+                        self.had_healthy_cycle, self.protocol)
+                    if fault:
+                        self.faults.set(*fault, row["sample_index"])
                 except RuntimeError as error:
                     row = self.journal.add("robotd_health_error", error=repr(error))
                     if self.latest_health is not None and (
@@ -594,7 +614,7 @@ def manifest(root: Path) -> dict:
             files.append({"path": path.relative_to(root).as_posix(),
                           "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
                           "record_count": len(raw.splitlines())})
-    return {"schema_version": "p8-03-r7-manifest-v1", "files": files}
+    return {"schema_version": "p8-03-r7-manifest-v2", "files": files}
 
 
 def main() -> int:

@@ -1,0 +1,69 @@
+{
+  "schema_version": "p8-03-r7-startup-interval-v2",
+  "task_id": "P8-03-R7-STARTUP-INTERVAL-INSTRUMENTATION",
+  "base_commit": "57161251c63be912a002d236d18e7c13cd48b1cc",
+  "development_only": true,
+  "development_reset_id_first": 888500,
+  "development_reset_id_last": 888595,
+  "reset_count": 96,
+  "block_count": 12,
+  "resets_per_block": 8,
+  "reset_id_semantics": "unique_label_only",
+  "simulator_rng_seeded": false,
+  "reset_method": "one independent official SIT duck-sim down/up per label; no retry or replacement",
+  "no_robot_move": true,
+  "no_correction_command": true,
+  "no_explicit_policy_load": true,
+  "body_target_period_s": 0.02,
+  "max_body_gap_s": 0.10,
+  "max_body_response_age_s": 0.10,
+  "max_robotd_state_age_s": 0.20,
+  "health_poll_period_s": 0.20,
+  "max_health_age_s": 0.75,
+  "startup_timeout_s": 120.0,
+  "startup_unready_grace_s": 5.0,
+  "startup_unready_allowlist": {
+    "healthy": false,
+    "reason": "control loop has not completed a cycle yet",
+    "control_loop_ticks": 0,
+    "imu_ready": false,
+    "degraded_field": "absent"
+  },
+  "post_up_min_capture_s": 1.0,
+  "post_up_max_capture_s": 3.0,
+  "settle_window_s": 0.50,
+  "settle_max_planar_m": 0.0005,
+  "settle_max_z_m": 0.0005,
+  "settle_max_heading_rad": 0.005,
+  "pose_deviation": {
+    "consecutive_fresh_samples": 2,
+    "planar_m": 0.002,
+    "z_m": 0.002,
+    "heading_rad": 0.02,
+    "baseline": "first fresh body sample at BODY_REACHABLE"
+  },
+  "applied_nonzero": {
+    "consecutive_distinct_robotd_states": 2,
+    "abs_component_threshold": 0.0001
+  },
+  "genuine_safety": {
+    "max_abs_roll_pitch_rad": 0.5,
+    "max_abs_vx_mps": 0.08,
+    "max_abs_vy_mps": 0.0,
+    "max_abs_vyaw_radps": 0.5
+  },
+  "final_reference_read_only": {
+    "x_m": 0.03457887954384973,
+    "y_m": 0.0010909211238251523,
+    "trunk_z_m": 0.11587609862790209,
+    "heading_rad": 0.11693358424258107
+  },
+  "unchanged_final_envelope_read_only": {
+    "x_m": 0.03,
+    "y_m": 0.03,
+    "trunk_z_m": 0.025,
+    "heading_rad": 0.08
+  },
+  "matrix_stop_rule": "stop only on genuine safety, data integrity, or infrastructure failure; never on outside-final-envelope pose; no retry",
+  "evidence_release_tag": "p8-03-r7-startup-interval-evidence-v2"
+}

@@ -8,7 +8,8 @@ import math
 from pathlib import Path
 import statistics
 
-EVENTS = ("BODY_REACHABLE", "ROBOTD_REACHABLE", "POLICY_HELD",
+EVENTS = ("BODY_REACHABLE", "ROBOTD_REACHABLE", "STARTUP_UNREADY",
+          "FIRST_HEALTHY_CYCLE", "POLICY_HELD",
           "POLICY_STAND", "FIRST_NONZERO_APPLIED", "FIRST_POSE_DEVIATION",
           "UP_EXIT", "STAND_SETTLED")
 POSE_KEYS = ("sim_time_s", "x_m", "y_m", "trunk_z_m", "heading_rad",
@@ -19,15 +20,42 @@ def finite(value) -> bool:
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def health_phase(health: dict) -> str:
+    """Classify only the observed, bounded pre-cycle robotd health tuple."""
+    loop = health.get("control_loop", {})
+    imu = health.get("imu", {})
+    if (health.get("healthy") is True and
+            health.get("degraded") in (None, False) and
+            type(loop.get("ticks")) is int and loop["ticks"] >= 1 and
+            imu.get("ready") is True):
+        return "HEALTHY_CYCLE"
+    if (health.get("healthy") is False and
+            "degraded" not in health and
+            health.get("reason") == "control loop has not completed a cycle yet" and
+            type(loop.get("ticks")) is int and loop["ticks"] == 0 and
+            imu.get("ready") is False):
+        return "STARTUP_UNREADY"
+    if (health.get("healthy") is False and
+            health.get("reason") == "control loop has not completed a cycle yet"):
+        return "CONTRADICTORY_STARTUP_HEALTH"
+    return "UNHEALTHY"
+
+
 def wrap(delta: float) -> float:
     return math.atan2(math.sin(delta), math.cos(delta))
 
 
 def matrix(protocol: dict) -> list[dict]:
-    if (protocol.get("schema_version") != "p8-03-r7-startup-interval-v1" or
+    if (protocol.get("schema_version") != "p8-03-r7-startup-interval-v2" or
             protocol.get("development_only") is not True or
-            protocol.get("development_reset_id_first") != 888400 or
-            protocol.get("development_reset_id_last") != 888495 or
+            protocol.get("development_reset_id_first") != 888500 or
+            protocol.get("development_reset_id_last") != 888595 or
+            protocol.get("startup_unready_grace_s") != 5.0 or
+            protocol.get("startup_unready_allowlist") != {
+                "healthy": False,
+                "reason": "control loop has not completed a cycle yet",
+                "control_loop_ticks": 0, "imu_ready": False,
+                "degraded_field": "absent"} or
             protocol.get("reset_count") != 96 or
             protocol.get("block_count") != 12 or
             protocol.get("resets_per_block") != 8 or
@@ -52,7 +80,7 @@ def matrix(protocol: dict) -> list[dict]:
                 "x_m": .03, "y_m": .03, "trunk_z_m": .025,
                 "heading_rad": .08}):
         raise ValueError("R7 frozen protocol mismatch")
-    return [{"id": f"T{i:02d}", "development_reset_id": 888400 + i,
+    return [{"id": f"T{i:02d}", "development_reset_id": 888500 + i,
              "order": i, "block": i // 8} for i in range(96)]
 
 
@@ -186,6 +214,15 @@ def derive_timeline(rows: list[dict], protocol: dict) -> dict:
                        ("UP_EXIT", "up_exit")):
         row = lookup(kind)
         timeline[name] = _event(name, row, status="MISSING" if row is None else "OBSERVED")
+    health_rows = [r for r in rows if r["kind"] == "robotd_health"]
+    for name, phase in (("STARTUP_UNREADY", "STARTUP_UNREADY"),
+                        ("FIRST_HEALTHY_CYCLE", "HEALTHY_CYCLE")):
+        row = next((r for r in health_rows if health_phase(r["health"]) == phase), None)
+        preceding = (health_rows[health_rows.index(row)-1] if row is not None and
+                     health_rows.index(row) else None)
+        timeline[name] = _event(name, row,
+                                status="OBSERVED" if row else "NOT_OBSERVED",
+                                preceding=preceding)
     for name, policy in (("POLICY_HELD", "held"), ("POLICY_STAND", "stand")):
         row = next((r for r in states if r["state"].get("policy") == policy), None)
         preceding = states[states.index(row)-1] if row is not None and states.index(row) else None
@@ -442,6 +479,18 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
                 source_ns(rows[loc["up_exit"][0]]))):
         return False, "robotd state stream gap/clock failure"
     reached_ns = source_ns(rows[loc["robotd_reachable"][0]])
+    health_rows = [r for r in rows if r["kind"] == "robotd_health"]
+    had_healthy_cycle = False
+    for health_row in health_rows:
+        phase = health_phase(health_row["health"])
+        if phase == "HEALTHY_CYCLE":
+            had_healthy_cycle = True
+        elif (phase != "STARTUP_UNREADY" or had_healthy_cycle or
+              source_ns(health_row)-reached_ns >
+              protocol["startup_unready_grace_s"]*1e9):
+            return False, "unsafe or contradictory robotd health timeline"
+    if not had_healthy_cycle:
+        return False, "first healthy control cycle missing"
     if any(sample.get("snapshot_state_index") is None or
            sample.get("snapshot_health_index") is None or
            source_ns(sample) - source_ns(by_index[
@@ -466,7 +515,7 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
         return False, "daemon log availability evidence missing"
     timeline = derive_timeline(rows, protocol)
     if (any(timeline[name]["status"] != "OBSERVED" for name in (
-            "BODY_REACHABLE", "ROBOTD_REACHABLE", "POLICY_HELD",
+            "BODY_REACHABLE", "ROBOTD_REACHABLE", "FIRST_HEALTHY_CYCLE", "POLICY_HELD",
             "POLICY_STAND", "FIRST_POSE_DEVIATION", "UP_EXIT",
             "STAND_SETTLED")) or
             record.get("metrics") != trial_metrics(rows, protocol)):
@@ -552,7 +601,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
                                m["trajectory"]["peak_planar_speed_mps"]
                                for m in values) if values else None}
                                   for name, values in groups.items()}}
-    return {"schema_version": "p8-03-r7-raw-score-v1",
+    return {"schema_version": "p8-03-r7-raw-score-v2",
             "result": "PASS" if passed else "FAIL", "planned": 96,
             "attempted": len(records), "valid_resets": len(valid),
             "inside_final_envelope": inside,
@@ -576,7 +625,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
 def score_root(root: Path) -> dict:
     protocol = json.loads((root / "protocol.json").read_text())
     manifest = json.loads((root / "manifest.json").read_text())
-    if manifest.get("schema_version") != "p8-03-r7-manifest-v1":
+    if manifest.get("schema_version") != "p8-03-r7-manifest-v2":
         raise ValueError("manifest schema mismatch")
     listed = {item["path"] for item in manifest["files"]}
     actual = {path.relative_to(root).as_posix() for path in root.rglob("*")
