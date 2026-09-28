@@ -222,7 +222,7 @@ def health_transition(health: dict, connected_ns: int, received_ns: int,
                       had_healthy_cycle: bool, protocol: dict
                       ) -> tuple[bool, tuple[str, str] | None]:
     phase = health_phase(health)
-    if phase == "HEALTHY_CYCLE":
+    if phase == "HEALTHY":
         return True, None
     if had_healthy_cycle:
         return True, ("SAFETY_FAIL", "robotd_unhealthy_after_cycle")
@@ -614,7 +614,7 @@ def manifest(root: Path) -> dict:
             files.append({"path": path.relative_to(root).as_posix(),
                           "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
                           "record_count": len(raw.splitlines())})
-    return {"schema_version": "p8-03-r7-manifest-v2", "files": files}
+    return {"schema_version": "p8-03-r7-manifest-v3", "files": files}
 
 
 def main() -> int:

@@ -8,7 +8,7 @@ from scripts import p8_03_r7_score as score
 from scripts import p8_03_r7_startup_interval as runner
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL = json.loads((ROOT / "config/p8_03_r7_startup_interval_v2.json").read_text())
+PROTOCOL = json.loads((ROOT / "config/p8_03_r7_startup_interval_v3.json").read_text())
 BASE = 100_000_000_000
 TICK = 20_000_000
 
@@ -57,7 +57,8 @@ def synthetic_trial():
                            "control_loop": {"ticks": 0}, "imu": {"ready": False}}
                           if i == 1 else
                           {"healthy": True, "degraded": False,
-                           "control_loop": {"ticks": i}, "imu": {"ready": True}})
+                           "control_loop": {"ticks": i},
+                           "imu": {"ready": i >= 30}})
                 health_ref = add("robotd_health", t+2_000_000,
                                  health=health,
                                  received_ns=t+2_000_000)
@@ -119,7 +120,7 @@ def synthetic_trial():
 def test_frozen_ids_bounds_and_unique_label_semantics():
     planned = score.matrix(PROTOCOL)
     assert len(planned) == 96
-    assert [p["development_reset_id"] for p in planned] == list(range(888500, 888596))
+    assert [p["development_reset_id"] for p in planned] == list(range(888600, 888696))
     assert PROTOCOL["reset_id_semantics"] == "unique_label_only"
     assert PROTOCOL["simulator_rng_seeded"] is False
     assert PROTOCOL["unchanged_final_envelope_read_only"] == {
@@ -137,9 +138,9 @@ def test_frozen_ids_bounds_and_unique_label_semantics():
                 yield from seeds(item)
     frozen = set()
     for path in (ROOT / "config").glob("p8_*.json"):
-        if path.name != "p8_03_r7_startup_interval_v2.json":
+        if path.name != "p8_03_r7_startup_interval_v3.json":
             frozen.update(seeds(json.loads(path.read_text())))
-    assert set(range(888500, 888596)).isdisjoint(frozen)
+    assert set(range(888600, 888696)).isdisjoint(frozen)
 
 
 def test_no_motion_or_correction_call_path():
@@ -198,13 +199,17 @@ def test_startup_unready_is_narrow_and_one_way():
     assert good, reason
     timeline = score.derive_timeline(rows, PROTOCOL)
     assert timeline["STARTUP_UNREADY"]["status"] == "OBSERVED"
-    assert timeline["FIRST_HEALTHY_CYCLE"]["status"] == "OBSERVED"
+    assert timeline["FIRST_HEALTHY"]["status"] == "OBSERVED"
+    assert timeline["FIRST_CONTROL_TICK"]["status"] == "OBSERVED"
+    assert timeline["IMU_READY"]["status"] == "OBSERVED"
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
     capture_end = next(r for r in rows if r["kind"] == "capture_end")
-    assert score.healthy_before_capture_end(rows, capture_end)
+    assert score.health_event_before_capture_end(
+        rows, capture_end, lambda h: score.health_phase(h) == "HEALTHY")
     early_end = {**capture_end,
                  "host_monotonic_ns": health_rows[1]["received_ns"]-1}
-    assert not score.healthy_before_capture_end(rows, early_end)
+    assert not score.health_event_before_capture_end(
+        rows, early_end, lambda h: score.health_phase(h) == "HEALTHY")
     valid = health_rows[0]["health"]
     assert score.health_phase(valid) == "STARTUP_UNREADY"
     assert runner.health_transition(valid, BASE, BASE+1_000_000_000,
@@ -213,7 +218,12 @@ def test_startup_unready_is_narrow_and_one_way():
                                     False, PROTOCOL) == (
         False, ("INFRA_FAIL", "startup_unready_timeout"))
     healthy = health_rows[1]["health"]
+    assert healthy["imu"]["ready"] is False
+    assert score.health_phase(healthy) == "HEALTHY"
     assert runner.health_transition(healthy, BASE, BASE+2_000_000_000,
+                                    False, PROTOCOL) == (True, None)
+    before_tick = {**healthy, "control_loop": {"ticks": 0}}
+    assert runner.health_transition(before_tick, BASE, BASE+2_000_000_000,
                                     False, PROTOCOL) == (True, None)
     assert runner.health_transition(valid, BASE, BASE+3_000_000_000,
                                     True, PROTOCOL) == (
@@ -238,6 +248,12 @@ def test_startup_unready_is_narrow_and_one_way():
     unready = next(r for r in broken if r["kind"] == "robotd_health")
     unready["received_ns"] += 6_000_000_000
     assert score.verify_trial(trace, score.matrix(PROTOCOL)[0], broken, PROTOCOL)[0] is False
+    no_imu_ready = json.loads(json.dumps(rows))
+    for row in no_imu_ready:
+        if row["kind"] == "robotd_health":
+            row["health"]["imu"]["ready"] = False
+    assert score.derive_timeline(no_imu_ready, PROTOCOL)["IMU_READY"]["status"] == "NOT_OBSERVED"
+    assert score.derive_timeline(no_imu_ready, PROTOCOL)["FIRST_HEALTHY"]["status"] == "OBSERVED"
 
 
 def test_source_receipt_times_control_order_not_journal_delay():

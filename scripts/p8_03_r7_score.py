@@ -9,7 +9,7 @@ from pathlib import Path
 import statistics
 
 EVENTS = ("BODY_REACHABLE", "ROBOTD_REACHABLE", "STARTUP_UNREADY",
-          "FIRST_HEALTHY_CYCLE", "POLICY_HELD",
+          "FIRST_HEALTHY", "FIRST_CONTROL_TICK", "IMU_READY", "POLICY_HELD",
           "POLICY_STAND", "FIRST_NONZERO_APPLIED", "FIRST_POSE_DEVIATION",
           "UP_EXIT", "STAND_SETTLED")
 POSE_KEYS = ("sim_time_s", "x_m", "y_m", "trunk_z_m", "heading_rad",
@@ -26,24 +26,26 @@ def health_phase(health: dict) -> str:
     imu = health.get("imu", {})
     if (health.get("healthy") is True and
             health.get("degraded") in (None, False) and
-            type(loop.get("ticks")) is int and loop["ticks"] >= 1 and
-            imu.get("ready") is True):
-        return "HEALTHY_CYCLE"
+            "reason" not in health and
+            type(loop.get("ticks")) is int and loop["ticks"] >= 0 and
+            type(imu.get("ready")) is bool):
+        return "HEALTHY"
     if (health.get("healthy") is False and
             "degraded" not in health and
             health.get("reason") == "control loop has not completed a cycle yet" and
             type(loop.get("ticks")) is int and loop["ticks"] == 0 and
             imu.get("ready") is False):
         return "STARTUP_UNREADY"
-    if (health.get("healthy") is False and
-            health.get("reason") == "control loop has not completed a cycle yet"):
+    if (health.get("healthy") is True or
+            (health.get("healthy") is False and
+             health.get("reason") == "control loop has not completed a cycle yet")):
         return "CONTRADICTORY_STARTUP_HEALTH"
     return "UNHEALTHY"
 
 
-def healthy_before_capture_end(rows: list[dict], capture_end: dict) -> bool:
-    return any(r["kind"] == "robotd_health" and
-               health_phase(r["health"]) == "HEALTHY_CYCLE" and
+def health_event_before_capture_end(rows: list[dict], capture_end: dict,
+                                    predicate) -> bool:
+    return any(r["kind"] == "robotd_health" and predicate(r["health"]) and
                r["sample_index"] < capture_end["sample_index"] and
                source_ns(r) <= capture_end["host_monotonic_ns"]
                for r in rows)
@@ -54,10 +56,11 @@ def wrap(delta: float) -> float:
 
 
 def matrix(protocol: dict) -> list[dict]:
-    if (protocol.get("schema_version") != "p8-03-r7-startup-interval-v2" or
+    if (protocol.get("schema_version") != "p8-03-r7-startup-interval-v3" or
             protocol.get("development_only") is not True or
-            protocol.get("development_reset_id_first") != 888500 or
-            protocol.get("development_reset_id_last") != 888595 or
+            protocol.get("development_reset_id_first") != 888600 or
+            protocol.get("development_reset_id_last") != 888695 or
+            protocol.get("robotd_healthy_independent_of_imu_ready") is not True or
             protocol.get("startup_unready_grace_s") != 5.0 or
             protocol.get("startup_unready_allowlist") != {
                 "healthy": False,
@@ -88,7 +91,7 @@ def matrix(protocol: dict) -> list[dict]:
                 "x_m": .03, "y_m": .03, "trunk_z_m": .025,
                 "heading_rad": .08}):
         raise ValueError("R7 frozen protocol mismatch")
-    return [{"id": f"T{i:02d}", "development_reset_id": 888500 + i,
+    return [{"id": f"T{i:02d}", "development_reset_id": 888600 + i,
              "order": i, "block": i // 8} for i in range(96)]
 
 
@@ -223,9 +226,14 @@ def derive_timeline(rows: list[dict], protocol: dict) -> dict:
         row = lookup(kind)
         timeline[name] = _event(name, row, status="MISSING" if row is None else "OBSERVED")
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
-    for name, phase in (("STARTUP_UNREADY", "STARTUP_UNREADY"),
-                        ("FIRST_HEALTHY_CYCLE", "HEALTHY_CYCLE")):
-        row = next((r for r in health_rows if health_phase(r["health"]) == phase), None)
+    health_predicates = {
+        "STARTUP_UNREADY": lambda h: health_phase(h) == "STARTUP_UNREADY",
+        "FIRST_HEALTHY": lambda h: health_phase(h) == "HEALTHY",
+        "FIRST_CONTROL_TICK": lambda h: type(h.get("control_loop", {}).get("ticks")) is int
+        and h["control_loop"]["ticks"] >= 1,
+        "IMU_READY": lambda h: h.get("imu", {}).get("ready") is True}
+    for name, predicate in health_predicates.items():
+        row = next((r for r in health_rows if predicate(r["health"])), None)
         preceding = (health_rows[health_rows.index(row)-1] if row is not None and
                      health_rows.index(row) else None)
         timeline[name] = _event(name, row,
@@ -487,13 +495,25 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
                 source_ns(rows[loc["up_exit"][0]]))):
         return False, "robotd state stream gap/clock failure"
     reached_ns = source_ns(rows[loc["robotd_reachable"][0]])
-    if not healthy_before_capture_end(rows, rows[loc["capture_end"][0]]):
-        return False, "first healthy cycle after capture ended"
+    capture_end = rows[loc["capture_end"][0]]
+    if not health_event_before_capture_end(
+            rows, capture_end, lambda h: health_phase(h) == "HEALTHY"):
+        return False, "first healthy response after capture ended"
+    if not health_event_before_capture_end(
+            rows, capture_end, lambda h: type(h.get("control_loop", {}).get("ticks")) is int
+            and h["control_loop"]["ticks"] >= 1):
+        return False, "first control tick after capture ended"
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
     had_healthy_cycle = False
+    previous_ticks = None
     for health_row in health_rows:
         phase = health_phase(health_row["health"])
-        if phase == "HEALTHY_CYCLE":
+        ticks = health_row["health"].get("control_loop", {}).get("ticks")
+        if type(ticks) is not int or ticks < 0 or (
+                previous_ticks is not None and ticks < previous_ticks):
+            return False, "invalid control tick timeline"
+        previous_ticks = ticks
+        if phase == "HEALTHY":
             had_healthy_cycle = True
         elif (phase != "STARTUP_UNREADY" or had_healthy_cycle or
               source_ns(health_row)-reached_ns >
@@ -525,7 +545,8 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
         return False, "daemon log availability evidence missing"
     timeline = derive_timeline(rows, protocol)
     if (any(timeline[name]["status"] != "OBSERVED" for name in (
-            "BODY_REACHABLE", "ROBOTD_REACHABLE", "FIRST_HEALTHY_CYCLE", "POLICY_HELD",
+            "BODY_REACHABLE", "ROBOTD_REACHABLE", "FIRST_HEALTHY",
+            "FIRST_CONTROL_TICK", "POLICY_HELD",
             "POLICY_STAND", "FIRST_POSE_DEVIATION", "UP_EXIT",
             "STAND_SETTLED")) or
             record.get("metrics") != trial_metrics(rows, protocol)):
@@ -611,7 +632,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
                                m["trajectory"]["peak_planar_speed_mps"]
                                for m in values) if values else None}
                                   for name, values in groups.items()}}
-    return {"schema_version": "p8-03-r7-raw-score-v2",
+    return {"schema_version": "p8-03-r7-raw-score-v3",
             "result": "PASS" if passed else "FAIL", "planned": 96,
             "attempted": len(records), "valid_resets": len(valid),
             "inside_final_envelope": inside,
@@ -635,7 +656,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
 def score_root(root: Path) -> dict:
     protocol = json.loads((root / "protocol.json").read_text())
     manifest = json.loads((root / "manifest.json").read_text())
-    if manifest.get("schema_version") != "p8-03-r7-manifest-v2":
+    if manifest.get("schema_version") != "p8-03-r7-manifest-v3":
         raise ValueError("manifest schema mismatch")
     listed = {item["path"] for item in manifest["files"]}
     actual = {path.relative_to(root).as_posix() for path in root.rglob("*")
