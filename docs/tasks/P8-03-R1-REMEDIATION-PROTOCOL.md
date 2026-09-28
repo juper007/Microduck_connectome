@@ -161,6 +161,28 @@ evidence must PASS. Freeze a gate artifact at the configured
 and review result PASS. The final batch preflight checks it before assigning
 IDs. A development FAIL stops all final execution.
 
+The versioned no-final-seed runner is
+`scripts/p8_03_r1_dev_gate.py`. From the clean reviewed Thor source,
+set `OUT=/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r1-development-gate-v1`
+and `HEAD=$(git rev-parse HEAD)`, then run:
+
+```bash
+PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py prepare --output "$OUT" --reviewed-head "$HEAD"
+PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py d-start --output "$OUT" --reviewed-head "$HEAD"
+# End this SSH command/session. Reconnect in a new SSH invocation.
+PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py d-finish --output "$OUT" --reviewed-head "$HEAD"
+PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py finalize --output "$OUT" --reviewed-head "$HEAD"
+```
+
+`prepare` runs A/B/C/E/F with distinct development-only IDs/seeds;
+C starts the official simulator only at the isolated development state/port
+and records authentic stop, down and probe. D uses a detached synthetic
+supervisor across two SSH invocations, rejects duplicate launch, then
+forces termination. `finalize` leaves an evidence manifest and a
+`development-result.json` with independent review PENDING. A reviewer
+verifies every artifact and only then may a separate `gate.json` record
+review_result PASS. The runner itself cannot self-approve the gate.
+
 ## Final matrix and publication
 
 Run static RS00–RS19 first, each with a fresh official reset, measured

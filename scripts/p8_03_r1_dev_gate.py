@@ -1,0 +1,289 @@
+"""Retained Thor-only, no-final-seed P8-03-R1 interruption development gate.
+
+Run prepare, d-start, d-finish (in a new SSH session), then finalize.
+The independent reviewer, not this program, supplies gate.json on PASS.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.p8_02_final_batch import probe_final_sim_state
+from scripts.p8_02_r1_batch import emergency_stop, inventory
+from scripts.p8_03_batch import final_gate_pass
+from scripts.p8_03_r1_durability import (
+    atomic_json, checkpoint, classify_attempt, create_arm_marker,
+    durable_directory, load_protocol, reconcile, run_child)
+from scripts.p8_03_r1_remote import start, status
+from scripts.p8_03_score import manifest_check
+
+
+def check_source(head: str) -> dict:
+    actual = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                                     text=True).strip()
+    dirty = subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"],
+                                    text=True).strip()
+    if (actual != head or dirty or not socket.gethostname().startswith("jetsonthor")
+            or sys.version_info[:2] != (3, 12)):
+        raise RuntimeError("clean reviewed Thor Python 3.12 source required")
+    _, protocol, hashes = load_protocol(ROOT)
+    execution = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
+    for path_key, commit_key in (("microduck_path", "microduck_commit"),
+                                 ("microduck_rl_path", "microduck_rl_commit")):
+        upstream = subprocess.check_output(
+            ["git", "-C", execution[path_key], "rev-parse", "HEAD"],
+            text=True).strip()
+        if upstream != execution[commit_key]:
+            raise RuntimeError(f"pinned upstream mismatch: {path_key}")
+    for path_key, hash_key in (("graph_path", "graph_sha256"),
+                               ("walking_policy_path", "walking_policy_sha256")):
+        if hashlib.sha256(Path(execution[path_key]).read_bytes()).hexdigest() != execution[hash_key]:
+            raise RuntimeError(f"pinned material mismatch: {path_key}")
+    return {"head": head, "protocol_sha256": hashes["r1"],
+            "master_sha256": hashes["master"],
+            "development_seeds": protocol["development_seeds"]}
+
+
+def identity(head: str, seed: int, trial_id: str) -> dict:
+    execution = ROOT / "config/p8_03_r1_execution_v1.json"
+    return {"task": "P8-03-R1", "trial_id": trial_id, "seed": seed,
+            "attempt": 1, "source_head": head,
+            "config_sha256": hashlib.sha256(execution.read_bytes()).hexdigest()}
+
+
+def case_root(output: Path, letter: str) -> Path:
+    path = output / letter
+    durable_directory(path)
+    return path
+
+
+def save_case(path: Path, letter: str, seed: int, passed: bool, details: dict) -> None:
+    atomic_json(path / "result.json", {"case": letter, "development_seed": seed,
+                                       "result": "PASS" if passed else "FAIL",
+                                       "details": details})
+
+
+def prepare(output: Path, head: str) -> None:
+    source = check_source(head)
+    if output.exists():
+        raise FileExistsError(output)
+    durable_directory(output)
+    atomic_json(output / "source.json", source)
+    config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
+    if any(Path(config[key]).exists() for key in ("static_output", "receding_output")):
+        raise RuntimeError("R1 final output root already exists")
+
+    # A: no child and no marker; exact R1 source proves PRE_ARM.
+    a = case_root(output, "A")
+    attempt_dir = a / "DA00"
+    durable_directory(attempt_dir)
+    attempt_dir = attempt_dir / "attempt-01"
+    durable_directory(attempt_dir)
+    ia = identity(head, 887100, "DA00")
+    attempt = {"name": "attempt-01", "status": "ACQUIRING", "armed": False}
+    journal = {"schema_version": "p8-03-r1-batch-journal-v1", "stage": "D",
+               "source_head": head, "config_sha256": ia["config_sha256"],
+               "result": "RUNNING", "ids": [{"trial_id": "DA00",
+               "seed": 887100, "attempts": [attempt]}]}
+    checkpoint(a, journal, artifact_state="ACQUIRING")
+    report = reconcile(a, journal)
+    atomic_json(a / "recovery-report.json", report)
+    checkpoint(a, journal, artifact_state="RECOVERED")
+    save_case(a, "A", 887100, report["states"]["DA00/attempt-01"] == "PRE_ARM"
+              and manifest_check(a)["result"] == "PASS", report)
+    checkpoint(a, journal, artifact_state="RECOVERED")
+
+    # B: marker survives a stale journal and makes retry impossible.
+    b = case_root(output, "B")
+    b_trial = b / "DB00"
+    durable_directory(b_trial)
+    b_folder = b_trial / "attempt-01"
+    durable_directory(b_folder)
+    ib = identity(head, 887101, "DB00")
+    b_attempt = {"name": "attempt-01", "status": "TRIAL_CHILD_STARTED", "armed": False}
+    b_journal = dict(journal, ids=[{"trial_id": "DB00", "seed": 887101,
+                                    "attempts": [b_attempt]}])
+    checkpoint(b, b_journal, artifact_state="TRIAL_CHILD_STARTED")
+    create_arm_marker(b_folder / "armed.json", task=ib["task"],
+                      trial_id=ib["trial_id"], seed=ib["seed"],
+                      attempt=1, source_head=head,
+                      config_hash=ib["config_sha256"], arm_ns=time.monotonic_ns())
+    b_report = reconcile(b, b_journal)
+    atomic_json(b / "recovery-report.json", b_report)
+    checkpoint(b, b_journal, artifact_state="RECOVERED")
+    save_case(b, "B", 887101,
+              b_report["states"]["DB00/attempt-01"] == "ARMED" and
+              "DB00/attempt-01" in b_report["retry_prohibited"] and
+              manifest_check(b)["result"] == "PASS", b_report)
+    checkpoint(b, b_journal, artifact_state="RECOVERED")
+
+    # C: SIGINT during synthetic acquisition, authentic stop, down and probe.
+    c = case_root(output, "C")
+    c_trial = c / "DC00"
+    durable_directory(c_trial)
+    c_folder = c_trial / "attempt-01"
+    durable_directory(c_folder)
+    sim_state = Path("/tmp/p8-03-r1-development-state")
+    port = 7896
+    env = dict(os.environ, DUCK_SIM_VIEWER="0", DUCK_SIM_STATE=str(sim_state),
+               DUCK_SIM_RL=config["microduck_rl_path"], DUCK_SIM_PORT=str(port),
+               PYTHONPATH=str(ROOT))
+    env["PATH"] = (str(Path(config["microduck_path"]).parent /
+                       "rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin") +
+                   os.pathsep + env["PATH"])
+    c_journal = dict(journal, ids=[{"trial_id": "DC00", "seed": 887102,
+                                    "attempts": [{"name": "attempt-01",
+                                    "status": "ACQUIRING", "armed": False}]}])
+    checkpoint(c, c_journal, artifact_state="ACQUIRING")
+    preprobe = probe_final_sim_state(sim_state, port, phase="development_preflight")
+    up = subprocess.run([config["sim_executable"], "up"], env=env,
+                        capture_output=True, timeout=120, check=False)
+    (c / "sim-up.log").write_bytes(up.stdout + up.stderr)
+    interrupted = False
+    timer = None
+    try:
+        if up.returncode == 0:
+            timer = threading.Timer(.4, lambda: os.kill(os.getpid(), signal.SIGINT))
+            timer.start()
+            try:
+                run_child([sys.executable, "-B", "-c",
+                           "import time; time.sleep(30)"],
+                          c_folder / "acquisition.log", env,
+                          created=lambda: checkpoint(c, c_journal,
+                                                     artifact_state="ACQUIRING"))
+            except KeyboardInterrupt:
+                interrupted = True
+    finally:
+        if timer is not None:
+            timer.cancel()
+        stop = emergency_stop(sim_state / "duck-a.sock")
+        down = subprocess.run([config["sim_executable"], "down"], env=env,
+                              capture_output=True, timeout=120, check=False)
+        (c / "final-down.log").write_bytes(down.stdout + down.stderr)
+        probe = probe_final_sim_state(sim_state, port, phase="development_final_down")
+    c_journal["result"] = "FAIL"
+    c_journal["interrupt_stop"] = stop
+    c_journal["final_sim_down"] = {"exit": down.returncode,
+                                   "state_probe_result": probe["result"]}
+    atomic_json(c / "final-state-probe.json", probe)
+    checkpoint(c, c_journal, artifact_state="INTERRUPTED")
+    c_details = {"preprobe": preprobe, "up_exit": up.returncode,
+                 "interrupted": interrupted, "stop": stop,
+                 "down_exit": down.returncode, "probe": probe}
+    save_case(c, "C", 887102, preprobe["result"] == "PASS" and
+              up.returncode == 0 and interrupted and stop["result"] == "PASS"
+              and down.returncode == 0 and probe["result"] == "PASS"
+              and manifest_check(c)["result"] == "PASS", c_details)
+    checkpoint(c, c_journal, artifact_state="INTERRUPTED")
+
+    # E: zero-byte and partial logs are explicitly inventoried.
+    e = case_root(output, "E")
+    e_trial = e / "DE00"
+    durable_directory(e_trial)
+    e_folder = e_trial / "attempt-01"
+    durable_directory(e_folder)
+    e_journal = dict(journal, ids=[{"trial_id": "DE00", "seed": 887104,
+                                    "attempts": [{"name": "attempt-01",
+                                    "status": "ACQUIRING", "armed": False}]}])
+    log = e_folder / "down.log"
+    log.touch()
+    checkpoint(e, e_journal, artifact_state="ACQUIRING")
+    zero = manifest_check(e)["result"]
+    log.write_bytes(b"partial")
+    before = manifest_check(e)["result"]
+    checkpoint(e, e_journal, artifact_state="RECOVERED_PARTIAL")
+    after = manifest_check(e)["result"]
+    save_case(e, "E", 887104, (zero, before, after) ==
+              ("PASS", "FAIL", "PASS"),
+              {"zero_manifest": zero, "uncheckpointed_partial": before,
+               "reconciled_partial": after})
+    checkpoint(e, e_journal, artifact_state="RECOVERED_PARTIAL")
+
+    # F: a nonzero final down cannot be called PASS.
+    f = case_root(output, "F")
+    (f / "final-down.log").write_text("synthetic down failure\n")
+    f_final = {"exit": 3, "state_probe_result": "PASS"}
+    save_case(f, "F", 887105,
+              not final_gate_pass(False, {"result": "PASS"}, f_final),
+              {"final_down": f_final, "batch_pass": False})
+    atomic_json(output / "preliminary.json", {"source_head": head,
+                "completed_cases": ["A", "B", "C", "E", "F"]})
+
+
+def d_start(output: Path, head: str) -> None:
+    check_source(head)
+    d = case_root(output, "D")
+    command = [sys.executable, "-B", "-c", "import time; time.sleep(60)",
+               "--r1", "--output", str(d / "synthetic-output"),
+               "--reviewed-head", head]
+    launch = start(d / "launch", command)
+    atomic_json(d / "start-observation.json", launch)
+
+
+def d_finish(output: Path, head: str) -> None:
+    check_source(head)
+    d = output / "D"
+    launch_root = d / "launch"
+    before = status(launch_root)
+    duplicate_refused = False
+    try:
+        start(launch_root, ["python3.12", "--r1", "--output", "x",
+                            "--reviewed-head", head])
+    except FileExistsError:
+        duplicate_refused = True
+    if before.get("same_process_alive"):
+        os.kill(before["pid"], signal.SIGKILL)
+    time.sleep(.5)
+    after = status(launch_root)
+    passed = (before["state"] == "RUNNING" and duplicate_refused and
+              after["state"] == "LOST_REQUIRES_RECOVERY")
+    save_case(d, "D", 887103, passed,
+              {"reconnected_before": before, "duplicate_refused": duplicate_refused,
+               "after_forced_termination": after})
+
+
+def finalize(output: Path, head: str) -> None:
+    source = check_source(head)
+    cases = {letter: json.loads((output / letter / "result.json").read_text())
+             for letter in "ABCDEF"}
+    passed = all(row["result"] == "PASS" for row in cases.values())
+    atomic_json(output / "development-result.json", {
+        "schema_version": "p8-03-r1-development-v1",
+        "source_head": head, "source": source,
+        "cases": {key: value["result"] for key, value in cases.items()},
+        "result": "PASS" if passed else "FAIL",
+        "independent_review": "PENDING"})
+    files = inventory(output)
+    atomic_json(output / "development-manifest.json", {
+        "schema_version": "p8-03-r1-development-manifest-v1",
+        "source_head": head, "files": [
+            row for row in files if row["path"] != "development-manifest.json"]})
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("action", choices=("prepare", "d-start", "d-finish", "finalize"))
+    ap.add_argument("--output", type=Path, required=True)
+    ap.add_argument("--reviewed-head", required=True)
+    args = ap.parse_args()
+    {"prepare": prepare, "d-start": d_start, "d-finish": d_finish,
+     "finalize": finalize}[args.action](args.output, args.reviewed_head)
+    print(json.dumps({"action": args.action, "result": "COMPLETED",
+                      "output": str(args.output)}))
+
+
+if __name__ == "__main__":
+    main()
