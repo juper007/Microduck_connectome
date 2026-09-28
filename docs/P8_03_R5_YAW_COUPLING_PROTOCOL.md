@@ -97,9 +97,12 @@ command is `python3.12 -m scripts.p8_03_r5_yaw_coupling --output
 /home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r5-yaw-coupling-v1
 --reviewed-head <exact-sha>`. Retain every attempted raw journal, trace,
 preflight, logs, manifest, gate, and PENDING IDs. Publish one new versioned
-GitHub Release even on FAIL, preserving historical releases. Fresh-download
-the archive, compare bytes and SHA256, test archive integrity and manifest
-coverage, rerun the offline scorer, and reconstruct any trigger before final
+GitHub Release even on FAIL, preserving historical releases. The evidence
+root contains its frozen `protocol.json`, runner source, and standalone
+`p8_03_r5_score.py`; these are covered by the manifest. Fresh-download the
+archive, compare bytes and SHA256, test archive integrity and manifest
+coverage, run `python3.12 p8_03_r5_score.py <extracted-evidence-root>`, and
+reconstruct any trigger before final
 independent evidence review. R5 does not authorize P8-03 final execution,
 P8-04, or a correction implementation. A passing, eligible R5 stops and
 routes any correction to a separately reviewed P8-03-R6 task.

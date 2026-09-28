@@ -96,6 +96,19 @@ def durable_mkdir(path: Path) -> None:
         os.close(fd)
 
 
+def durable_copy(source: Path, target: Path) -> None:
+    with target.open("xb") as output:
+        output.write(source.read_bytes())
+        output.flush()
+        os.fsync(output.fileno())
+    if os.name != "nt":
+        fd = os.open(target.parent, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
 class SafetyAbort(RuntimeError):
     def __init__(self, reason: str, current: dict, previous: dict | None,
                  measured: float | None, threshold: float | None):
@@ -147,6 +160,17 @@ class SampleJournal:
 
     def close(self) -> None:
         os.close(self.fd)
+
+
+def stop_for_violation(journal: SampleJournal, error: SafetyAbort) -> SafetyAbort:
+    try:
+        journal.append("violation", {"trigger": error.trigger,
+                                      "host_monotonic_ns": time.monotonic_ns()})
+    finally:
+        stop = bounded_stop(STATE / "duck-a.sock")
+        error.trigger["immediate_stop"] = stop
+        journal.append("safety_stop_ack", stop)
+    return error
 
 
 def matrix(protocol: dict) -> list[dict]:
@@ -262,15 +286,18 @@ def validate_pose(record: dict, previous: dict | None, first: dict | None,
         heading = abs(wrapped_delta(pose["heading_rad"], REFERENCE["heading_rad"]))
         if heading > .35:
             breach("initial_heading_inclusion_exceeded", heading, .35)
-    elif moving:
-        for key in ("displacement_from_reset_start_m",
-                    "displacement_from_command_start_m"):
-            displacement = record[key]
-            if displacement >= .01:
-                breach(f"{key}_bound_exceeded", displacement, .01)
+    displacement = record["displacement_from_reset_start_m"]
+    if displacement >= .01:
+        breach("displacement_from_reset_start_m_bound_exceeded",
+               displacement, .01)
+    if moving:
+        displacement = record["displacement_from_command_start_m"]
+        if displacement >= .01:
+            breach("displacement_from_command_start_m_bound_exceeded",
+                   displacement, .01)
 
 
-def sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal,
+def _sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal,
             health_client: RobotdClient, first: dict | None,
             health_cache: dict, command_context: dict,
             *, phase: str, moving: bool, require_walk: bool = False) -> dict:
@@ -306,11 +333,11 @@ def sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal
             pose["x_m"] - origin["x_m"], pose["y_m"] - origin["y_m"])
         row["wrapped_heading_delta_rad"] = wrapped_delta(
             pose["heading_rad"], origin["heading_rad"])
+        validate_pose(row, previous, first, moving=moving, check_clock=False)
         journal.append("derived", {"pose_sample_index": row["sample_index"],
             "displacement_from_reset_start_m": row["displacement_from_reset_start_m"],
             "displacement_from_command_start_m": row["displacement_from_command_start_m"],
             "wrapped_heading_delta_rad": row["wrapped_heading_delta_rad"]})
-        validate_pose(row, previous, first, moving=moving, check_clock=False)
         fresh = (previous is None or
                  (pose["sim_time_s"] > previous["pose"]["sim_time_s"] and
                   pose["response_ns"] - previous["pose"]["response_ns"] >= 10_000_000))
@@ -359,6 +386,18 @@ def sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal
     return row
 
 
+def sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal,
+            health_client: RobotdClient, first: dict | None,
+            health_cache: dict, command_context: dict,
+            *, phase: str, moving: bool, require_walk: bool = False) -> dict:
+    try:
+        return _sampled(reader, stream, journal, health_client, first,
+                        health_cache, command_context, phase=phase, moving=moving,
+                        require_walk=require_walk)
+    except SafetyAbort as error:
+        raise stop_for_violation(journal, error) from error
+
+
 def plateau(reader, stream, journal, health_client, health_cache, first,
             label: str, command_context: dict) -> list[dict]:
     rows = []
@@ -370,17 +409,19 @@ def plateau(reader, stream, journal, health_client, health_cache, first,
                       health_cache, command_context, phase=label,
                       moving=first is not None)
         if previous is not None and row["robot_t_ns"] <= previous["robot_t_ns"]:
-            raise SafetyAbort("robotd_clock_not_advancing", row, previous,
-                              row["robot_t_ns"] - previous["robot_t_ns"], 1.)
+            raise stop_for_violation(journal, SafetyAbort(
+                "robotd_clock_not_advancing", row, previous,
+                row["robot_t_ns"] - previous["robot_t_ns"], 1.))
         if any(abs(v) > .005 for v in row["applied"]):
-            raise SafetyAbort("stopped_applied_velocity_exceeded", row, previous,
-                              max(abs(v) for v in row["applied"]), .005)
+            raise stop_for_violation(journal, SafetyAbort(
+                "stopped_applied_velocity_exceeded", row, previous,
+                max(abs(v) for v in row["applied"]), .005))
         rows.append(row)
     headings = [r["pose"]["heading_rad"] for r in rows]
     drift = abs(wrapped_delta(headings[-1], headings[0]))
     if drift > .005:
-        raise SafetyAbort("plateau_heading_drift_exceeded", rows[-1], rows[-2],
-                          drift, .005)
+        raise stop_for_violation(journal, SafetyAbort(
+            "plateau_heading_drift_exceeded", rows[-1], rows[-2], drift, .005))
     return rows
 
 
@@ -462,9 +503,10 @@ def pulse(reader, stream, journal, health_client, health_cache, command,
                       moving=True)
         trace["post_stop_trajectory"].append(row)
         if i >= 24 and any(abs(v) > .005 for v in row["applied"]):
-            raise SafetyAbort("motion_persisted_after_stop", row,
-                              trace["post_stop_trajectory"][-2],
-                              max(abs(v) for v in row["applied"]), .005)
+            raise stop_for_violation(journal, SafetyAbort(
+                "motion_persisted_after_stop", row,
+                trace["post_stop_trajectory"][-2],
+                max(abs(v) for v in row["applied"]), .005))
     trace["plateau"] = plateau(reader, stream, journal, health_client,
                                health_cache, first, "SETTLE",
                                command_context)
@@ -521,6 +563,10 @@ def run(output: Path, reviewed_head: str) -> None:
     if preprobe["result"] != "PASS":
         raise RuntimeError("dedicated simulator state is occupied")
     durable_mkdir(output)
+    atomic_json(output / "protocol.json", protocol)
+    durable_copy(ROOT / "scripts/p8_03_r5_score.py", output / "p8_03_r5_score.py")
+    durable_copy(ROOT / "scripts/p8_03_r5_yaw_coupling.py",
+                 output / "p8_03_r5_yaw_coupling.py")
     start_ticks = process_start_ticks()
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
@@ -639,7 +685,9 @@ def run(output: Path, reviewed_head: str) -> None:
                 reader.close()
                 stream.close()
         except BaseException as error:
-            row["result"] = "SAFETY_ABORT" if isinstance(error, SafetyAbort) else "DATA_INTEGRITY_ABORT"
+            row["result"] = ("SAFETY_ABORT" if isinstance(error, SafetyAbort)
+                             else "DATA_INTEGRITY_FAIL" if isinstance(error, OSError)
+                             else "INFRA_FAIL")
             row["error"] = f"{type(error).__name__}: {error}"
             if isinstance(error, SafetyAbort):
                 row["trigger"] = error.trigger
@@ -657,20 +705,21 @@ def run(output: Path, reviewed_head: str) -> None:
                 row["final_probe"] = {"result": "FAIL", "error": repr(error)}
             if (row["cleanup_stop"]["result"] != "PASS" or
                     row["down_after_exit"] != 0 or row["final_probe"]["result"] != "PASS"):
-                row["result"] = "CLEANUP_ABORT"
                 row["cleanup_failure"] = True
+                if row["result"] != "SAFETY_ABORT":
+                    row["result"] = "INFRA_FAIL"
             try:
                 journal.append("cleanup", {
                     "stop": row["cleanup_stop"], "down_exit": row.get("down_after_exit"),
                     "final_probe": row["final_probe"], "trigger": row.get("trigger")})
             except BaseException as error:
                 row["cleanup_journal_error"] = repr(error)
-                row["result"] = "DATA_INTEGRITY_ABORT"
+                row["result"] = "DATA_INTEGRITY_FAIL"
             try:
                 journal.close()
             except BaseException as error:
                 row["journal_close_error"] = repr(error)
-                row["result"] = "DATA_INTEGRITY_ABORT"
+                row["result"] = "DATA_INTEGRITY_FAIL"
             atomic_json(folder / "trace.json", row)
             records.append(row)
             atomic_json(output / "run.json", {

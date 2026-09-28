@@ -61,16 +61,19 @@ def test_raw_pose_fsynced_before_derivation_and_equal_bound_aborts(tmp_path):
     original = runner.validate_pose
     def validate_after_raw(*args, **kwargs):
         raw = read_journal(tmp_path / "samples.jsonl")
-        assert raw[-2]["kind"] == "pose" and raw[-1]["kind"] == "derived"
-        assert raw[-2]["pose"] == reader.read.return_value
+        assert raw[-1]["kind"] == "pose"
+        assert raw[-1]["pose"] == reader.read.return_value
         return original(*args, **kwargs)
-    with mock.patch.object(runner, "validate_pose", side_effect=validate_after_raw):
+    with (mock.patch.object(runner, "validate_pose", side_effect=validate_after_raw),
+          mock.patch.object(runner, "bounded_stop", return_value={"result": "PASS"})):
         with pytest.raises(runner.SafetyAbort) as error:
             runner.sampled(reader, stream, journal, health, base, cache,
                            {"vyaw_radps": .2, "ack": {}, "active_duration_s": .02,
                             "command_start_pose": base},
                            phase="COMMAND", moving=True)
     journal.close()
+    kinds = [entry["kind"] for entry in read_journal(tmp_path / "samples.jsonl")]
+    assert kinds[-3:] == ["pose", "violation", "safety_stop_ack"]
     assert error.value.trigger["threshold"] == .01
     assert error.value.trigger["measured"] >= .01
     equality_row = {"sample_index": 9, "pose": base,
@@ -78,6 +81,9 @@ def test_raw_pose_fsynced_before_derivation_and_equal_bound_aborts(tmp_path):
                     "displacement_from_command_start_m": 0.}
     with pytest.raises(runner.SafetyAbort):
         runner.validate_pose(equality_row, None, base, moving=True)
+    with pytest.raises(runner.SafetyAbort):
+        runner.validate_pose(equality_row, {"sample_index": 0, "pose": base},
+                             None, moving=False, check_clock=False)
 
 
 def test_abort_stops_after_first_move_without_feedback(tmp_path):
@@ -114,7 +120,8 @@ def test_phase_decomposition_includes_post_stop_translation():
     stop = row(3, 10, .002)
     post = [row(4 + i, 20 + 20 * i, .002 + i * .0001) for i in range(50)]
     settle = [row(54, 1100, .007), row(55, 1150, .007)]
-    record = {"initial_plateau": pre, "pulses": [{"trajectory": command,
+    record = {"initial_plateau": pre, "delta_heading_rad": .01,
+        "pulses": [{"trajectory": command,
         "stop_ack_pose": stop, "post_stop_trajectory": post,
         "plateau": settle, "stop": {"completed_ns": ns}}]}
     result = phase_metrics(record)
@@ -173,14 +180,16 @@ def test_offline_scorer_reconstructs_exact_abort(tmp_path):
         "displacement_from_reset_start_m": measured,
         "displacement_from_command_start_m": measured,
         "wrapped_heading_delta_rad": 0.})
-    stop = {"result": "PASS", "ack": {"accepted": True}}
-    journal.append("stop_ack", stop)
-    probe = {"result": "PASS"}
     trigger = {"reason": "displacement_from_command_start_m_bound_exceeded",
         "trigger_sample_index": trigger_row["sample_index"],
         "previous_sample_index": initial["sample_index"],
         "trigger_pose": crossing, "previous_pose": base,
         "measured": measured, "threshold": .01}
+    stop = {"result": "PASS", "ack": {"accepted": True}}
+    journal.append("violation", {"trigger": trigger})
+    journal.append("safety_stop_ack", stop)
+    journal.append("stop_ack", stop)
+    probe = {"result": "PASS"}
     journal.append("cleanup", {"stop": stop, "down_exit": 0,
                                 "final_probe": probe, "trigger": trigger})
     journal.close()
@@ -189,5 +198,13 @@ def test_offline_scorer_reconstructs_exact_abort(tmp_path):
                   cleanup_stop=stop, down_after_exit=0, final_probe=probe)
     rows = read_journal(tmp_path / "samples.jsonl")
     assert verify_trace(record, item, rows) == (True, "SAFETY_ABORT")
+    extra_pose = dict(trigger_row, sample_index=100,
+                      pose=pose(1.01, now + 10_000_000, .0105))
+    extra_distance = math.hypot(extra_pose["pose"]["x_m"] - base["x_m"], 0.)
+    extra_derived = dict(rows[4], sample_index=101, pose_sample_index=100,
+                         displacement_from_reset_start_m=extra_distance,
+                         displacement_from_command_start_m=extra_distance)
+    with_unscored_crossing = rows[:3] + [extra_pose, extra_derived] + rows[3:]
+    assert verify_trace(record, item, with_unscored_crossing)[0] is False
     record["trigger"] = dict(trigger, measured=.009)
     assert verify_trace(record, item, rows)[0] is False

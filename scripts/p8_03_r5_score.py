@@ -4,10 +4,13 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import argparse
 from pathlib import Path
 import statistics
 
-from scripts.p6_motion_fixture import wrapped_delta
+
+def wrapped_delta(final: float, initial: float) -> float:
+    return math.atan2(math.sin(final - initial), math.cos(final - initial))
 
 CONDITIONS = ("sham", "positive_low", "negative_low",
               "positive_medium", "negative_medium")
@@ -135,12 +138,45 @@ def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tupl
                if row.get("kind") == "derived"}
     if not poses:
         return False, "no raw pose"
-    if len(derived) != len(poses) or set(derived) != set(poses):
+    missing_derived = set(poses) - set(derived)
+    trigger_index = record.get("trigger", {}).get("trigger_sample_index")
+    if (set(derived) - set(poses) or
+            (missing_derived and
+             (record.get("result") != "SAFETY_ABORT" or
+              missing_derived != {trigger_index}))):
         return False, "derived/raw pose coverage mismatch"
     for index, pose_row in poses.items():
-        event = derived[index]
-        if event["sample_index"] != index + 1:
+        event = derived.get(index)
+        if event is not None and event["sample_index"] != index + 1:
             return False, "derived value preceded raw durability"
+    first_pose = next(iter(poses.values()))["pose"]
+    initial = record.get("initial_plateau", [])
+    command_origin = initial[-1]["pose"] if initial else None
+    first_crossing = None
+    for index, pose_row in poses.items():
+        body = pose_row["pose"]
+        if not all(_finite(body.get(axis)) for axis in ("x_m", "y_m")):
+            if record.get("result") == "VALID":
+                return False, "unscored malformed raw pose"
+            continue
+        reset_distance = math.hypot(body["x_m"] - first_pose["x_m"],
+                                    body["y_m"] - first_pose["y_m"])
+        if pose_row.get("phase") != "PRE" and command_origin is None:
+            return False, "missing command-start origin for raw pose"
+        origin = command_origin if pose_row.get("phase") != "PRE" else first_pose
+        command_distance = math.hypot(body["x_m"] - origin["x_m"],
+                                      body["y_m"] - origin["y_m"])
+        event = derived.get(index)
+        if event is not None and (
+                not math.isclose(event.get("displacement_from_reset_start_m"),
+                                 reset_distance, abs_tol=1e-10) or
+                not math.isclose(event.get("displacement_from_command_start_m"),
+                                 command_distance, abs_tol=1e-10)):
+            return False, "raw/derived displacement mismatch"
+        if reset_distance >= .01 or command_distance >= .01:
+            first_crossing = index if first_crossing is None else first_crossing
+    if record.get("result") == "VALID" and first_crossing is not None:
+        return False, "unscored raw translation crossing"
     last_robot_t = None
     last_advance_ns = None
     for pose_row in poses.values():
@@ -159,6 +195,17 @@ def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tupl
         if not isinstance(trigger, dict):
             return False, "safety abort missing trigger metadata"
         index = trigger.get("trigger_sample_index")
+        violations = [row for row in journal_rows if row.get("kind") == "violation"]
+        immediate_stops = [row for row in journal_rows
+                           if row.get("kind") == "safety_stop_ack"]
+        if (len(violations) != 1 or len(immediate_stops) != 1 or
+                violations[0]["sample_index"] <= index or
+                immediate_stops[0]["sample_index"] <= violations[0]["sample_index"] or
+                immediate_stops[0].get("result") != "PASS" or
+                violations[0].get("trigger", {}).get("trigger_sample_index") != index):
+            return False, "immediate violation/stop evidence missing"
+        if first_crossing is not None and index != first_crossing:
+            return False, "trigger does not identify first raw crossing"
         if index not in poses or poses[index].get("pose") != trigger.get("trigger_pose"):
             return False, "threshold-triggering pose absent or altered"
         if not _pose_record_retained(poses[index]):
@@ -194,8 +241,9 @@ def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tupl
                     not measured >= .01 or
                     not math.isclose(trigger.get("measured"), measured, abs_tol=1e-10) or
                     prior is None or
-                    not math.isclose(derived[index][trigger["reason"].removesuffix("_bound_exceeded")],
-                                     measured, abs_tol=1e-10)):
+                    (index in derived and
+                     not math.isclose(derived[index][trigger["reason"].removesuffix("_bound_exceeded")],
+                                      measured, abs_tol=1e-10))):
                 return False, "translation crossing cannot be reconstructed"
         return True, "SAFETY_ABORT"
     if record.get("result") != "VALID":
@@ -305,14 +353,18 @@ def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tupl
     return True, "VALID"
 
 
-def classify(condition: str, delta: float | None, floor: float,
+def classify(condition: str, delta: float | None, floor: float | None,
              status: str) -> str:
     if status == "SAFETY_ABORT":
         return "SAFETY_ABORT"
+    if status == "INFRA_FAIL":
+        return "INFRA_FAIL"
     if status != "VALID" or delta is None:
         return "DATA_INTEGRITY_FAIL"
     if condition == "sham":
         return "VALID"
+    if floor is None:
+        return "INCONCLUSIVE"
     sign = 1 if condition.startswith("positive") else -1
     signed = sign * delta
     return "VALID" if signed > floor else (
@@ -358,6 +410,12 @@ def phase_metrics(record: dict) -> dict:
         math.hypot(row["pose"]["x_m"] - origin["x_m"],
                    row["pose"]["y_m"] - origin["y_m"]) for row in all_motion)
     stop_pose = stop["pose"]
+    result["displacement_at_stop_ack_m"] = math.hypot(
+        stop_pose["x_m"] - origin["x_m"],
+        stop_pose["y_m"] - origin["y_m"])
+    peak = result["peak_planar_from_command_start_m"]
+    result["response_translation_ratio_rad_per_m"] = (
+        abs(record["delta_heading_rad"]) / peak if peak > 0 else None)
     result["post_stop_additional_excursion_m"] = max(
         math.hypot(row["pose"]["x_m"] - stop_pose["x_m"],
                    row["pose"]["y_m"] - stop_pose["y_m"]) for row in post + settle)
@@ -379,18 +437,6 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
                          "verification": reason, "result": record.get("result")})
     complete = (len(records) == len(planned) and
                 all(a.get("id") == b["id"] for a, b in zip(records, planned)))
-    shams = [abs(row["delta_heading_rad"]) for row in records
-             if row.get("condition") == "sham" and row.get("result") == "VALID"
-             and _finite(row.get("delta_heading_rad"))]
-    floor = max(.005, max(shams, default=0.) + .002)
-    classes = {
-        row["id"]: classify(row["condition"], row.get("delta_heading_rad"),
-                            floor, row.get("result", ""))
-        for row in records if "id" in row and "condition" in row}
-    cells = {condition: [
-        row.get("delta_heading_rad") for row in records
-        if row.get("condition") == condition and row.get("result") == "VALID"]
-        for condition in CONDITIONS}
     metrics = {}
     for row, check in zip(records, verified):
         if check["valid_raw"] and row.get("result") == "VALID":
@@ -404,6 +450,38 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
             except (KeyError, ValueError, IndexError, TypeError) as error:
                 check["valid_raw"] = False
                 check["verification"] = f"phase decomposition failed: {error}"
+    trusted = {entry["id"] for entry in verified if entry["valid_raw"]}
+    shams = [abs(row["delta_heading_rad"]) for row in records
+             if row.get("id") in trusted and row.get("condition") == "sham"
+             and row.get("result") == "VALID"
+             and _finite(row.get("delta_heading_rad"))]
+    floor = max(.005, max(shams) + .002) if len(shams) == 6 else None
+    classes = {
+        row["id"]: (classify(row["condition"], row.get("delta_heading_rad"),
+                            floor, row.get("result", ""))
+                    if row["id"] in trusted else "DATA_INTEGRITY_FAIL")
+        for row in records if "id" in row and "condition" in row}
+    cells = {condition: [
+        row.get("delta_heading_rad") for row in records
+        if row.get("id") in trusted and row.get("condition") == condition
+        and row.get("result") == "VALID"] for condition in CONDITIONS}
+    condition_summary = {}
+    for condition in CONDITIONS:
+        entries = [row for row in records if row.get("id") in metrics and
+                   row.get("condition") == condition]
+        peaks = [metrics[row["id"]]["peak_planar_from_command_start_m"]
+                 for row in entries]
+        headings = [row["delta_heading_rad"] for row in entries]
+        condition_summary[condition] = {
+            "count": len(entries),
+            "heading_median_rad": statistics.median(headings) if headings else None,
+            "heading_min_rad": min(headings, default=None),
+            "heading_max_rad": max(headings, default=None),
+            "peak_planar_median_m": statistics.median(peaks) if peaks else None,
+            "peak_planar_min_m": min(peaks, default=None),
+            "peak_planar_max_m": max(peaks, default=None),
+            "signed_above_floor_count": sum(classes[row["id"]] == "VALID"
+                                            for row in entries) if floor is not None else None}
     pass_gate = (complete and len(verified) == 30 and
                  all(v["valid_raw"] and v["result"] == "VALID" for v in verified) and
                  all(len(cells[condition]) == 6 for condition in CONDITIONS) and
@@ -420,6 +498,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
             "sham_floor_rad": floor,
             "sham_floor_final": len(shams) == 6,
             "classifications": classes, "cells": cells,
+            "condition_summary": condition_summary,
             "phase_metrics": metrics,
             "correction_strategy_eligible": bool(eligible),
             "raw_verification": verified, "development_only": True}
@@ -451,3 +530,12 @@ def score_root(root: Path, protocol_path: Path) -> dict:
             break
         records.append(json.loads((root / relative).read_text()))
     return score(protocol, records, root)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("evidence_root", type=Path)
+    args = parser.parse_args()
+    print(json.dumps(score_root(args.evidence_root,
+                                args.evidence_root / "protocol.json"),
+                     sort_keys=True))
