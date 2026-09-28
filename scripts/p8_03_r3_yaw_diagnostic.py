@@ -305,7 +305,7 @@ def trace_integrity(row: dict, expected: dict) -> bool:
                 row["policy_verified"]["loaded_walk_sha256"] !=
                 R1_CONFIG["walking_policy_sha256"]):
             return False
-        if len(row["initial_plateau"]) != 21 or len(row["pulses"]) != 2:
+        if len(row["initial_plateau"]) != 21 or len(row["pulses"]) != 1:
             return False
         expected_yaw = {"positive": .2, "negative": -.2, "sham": 0.}[row["condition"]]
         first = row["initial_plateau"][0]["pose"]
@@ -544,7 +544,7 @@ def run(output: Path, reviewed_head: str) -> None:
                 previous = row["initial_plateau"][-1]["pose"] | {
                     "robot_t_ns": row["initial_plateau"][-1]["robot_t_ns"]}
                 row["pulses"] = []
-                for number in (1, 2):
+                for number in (1,):
                     pulse_trace = {}
                     row["pulses"].append(pulse_trace)
                     atomic_json(folder / "trace.json", row)

@@ -21,7 +21,7 @@ rebound, saturation/clamp, stale pose timing, reset asymmetry, nonlinear
 contact response, or infrastructure fault. ACK, requested/applied velocities,
 `limited_by`, policy state, robotd clock, official body `sim_time`, pose and
 quaternion, stop ACK, and final down/probe are retained per reset. During-pulse,
-after-first-stop, and after-second-stop trajectories permit these classes to
+and after-stop trajectories permit these classes to
 be distinguished where the data support it. Unresolved mechanism is reported
 as unresolved, not inferred from sign alone.
 
@@ -31,12 +31,13 @@ blocks use `+,−,sham,−,+` for even blocks and `−,+,sham,+,−` for odd blo
 Thus there are 20 positive, 20 negative, and 10 sham fresh resets. Each reset
 starts with official `duck-sim down/up` at `SIT`, exact pinned upstream and
 model-1250 policy, zero-intent stop, one-second settle, then 21 fresh pose
-samples at 50 ms. Each active condition sends exactly two 0.20-second,
-±0.2-rad/s high-level yaw pulses at 50 Hz, with an acknowledged `robot.stop`
-after **each** pulse. Sham has identical timings and two zero-yaw pulses.
-One-second settle and 21 fresh 50-ms samples follow each stop. There is no
-feedback or response-dependent second pulse. A single reset never switches
-signs. Requested yaw integral is at most 0.08 rad/reset.
+samples at 50 ms. Each active condition sends exactly one 0.20-second,
+±0.2-rad/s high-level yaw pulse at 50 Hz, followed by acknowledged
+`robot.stop`. Sham has identical timing with zero yaw. One-second settle and
+21 fresh 50-ms samples follow the stop. There is no feedback or second pulse.
+A single reset never switches signs. The command-to-stop window is bounded at
+0.30 s, so even including stop latency the requested yaw integral is at most
+0.06 rad/reset, below the frozen 0.08 rad cap.
 
 The primary response is wrapped final plateau median minus initial plateau
 median. Its frozen detection floor is `max(0.005 rad, largest absolute sham

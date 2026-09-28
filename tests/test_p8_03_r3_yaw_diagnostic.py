@@ -24,6 +24,8 @@ def records():
 
 def test_frozen_matrix_is_disjoint_balanced_and_development_only():
     rows = matrix(PROTOCOL)
+    assert PROTOCOL["command"]["pulse_count"] == 1
+    assert (.2 * .3 < PROTOCOL["command"]["max_command_integral_rad"])
     assert len(rows) == 50
     assert [row["seed"] for row in rows] == list(range(887700, 887750))
     assert [sum(row["condition"] == condition for row in rows)
