@@ -38,6 +38,10 @@ STATE = Path("/tmp/p8-03-r2-reset-development-state")
 PORT = 7898
 
 
+def development_seed(kind: str, index: int, protocol: dict) -> int | None:
+    return protocol["development_reset_seeds"][index] if kind == "qualification" else None
+
+
 class PreparationFailure(RuntimeError):
     def __init__(self, trace: dict, reason: str):
         super().__init__(reason)
@@ -55,8 +59,10 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
     """Development-only controlled yaw offset; never part of qualification."""
     trace = {"direction": direction, "moves": [], "target_delta_rad": .09}
     reader = TimedPoseReader(port)
+    reader.sock.settimeout(.1)
     command = JsonLines(str(sock))
-    health = RobotdClient(str(sock), timeout_s=2)
+    command.socket.settimeout(.1)
+    health = RobotdClient(str(sock), timeout_s=.1)
     health.connect()
     try:
         initial_health = health.health()
@@ -66,13 +72,14 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
         trace["initial"] = first
         previous = first
         start = time.monotonic()
+        deadline = start + 1.0
         last_ack = None
         while True:
             delta = pose_deltas(previous["pose"])["heading_rad"] - (
                 pose_deltas(first["pose"])["heading_rad"])
             if direction * delta >= .09:
                 break
-            if time.monotonic() - start >= 1.0:
+            if time.monotonic() >= deadline:
                 raise TimeoutError("controlled perturbation did not reach 0.09 rad")
             if math.hypot(previous["pose"]["x_m"] - first["pose"]["x_m"],
                           previous["pose"]["y_m"] - first["pose"]["y_m"]) > .03:
@@ -80,6 +87,8 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             current_health = health.health()
             if current_health.get("healthy") is not True or current_health.get("degraded") is True:
                 raise RuntimeError("health lost during perturbation")
+            if time.monotonic() >= deadline:
+                raise TimeoutError("perturbation deadline elapsed during health read")
             tick = time.monotonic_ns()
             if last_ack is not None and tick - last_ack > 100_000_000:
                 raise RuntimeError("perturbation TTL elapsed")
@@ -88,6 +97,8 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             move = {"requested_vyaw_radps": direction * .2, "ack": ack,
                     "call_ns": call_ns, "write_ns": write_ns, "ack_ns": ack_ns}
             trace["moves"].append(move)
+            if time.monotonic() >= deadline:
+                raise TimeoutError("perturbation command ACK exceeded deadline")
             if (ack_ns - tick > 100_000_000 or
                     (last_ack is not None and ack_ns - last_ack > 100_000_000)):
                 raise RuntimeError("perturbation ACK exceeded TTL")
@@ -99,6 +110,8 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
     except BaseException as error:
         trace["error"] = f"{type(error).__name__}: {error}"
     finally:
+        if "start" in locals():
+            trace["duration_s"] = time.monotonic() - start
         for connection in (command, health, reader):
             try:
                 connection.close()
@@ -116,9 +129,10 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
     stop = emergency_stop(sock)
     if stop["result"] != "PASS":
         raise RuntimeError("acknowledged stop path unavailable")
-    client = RobotdClient(str(sock), timeout_s=2)
+    client = RobotdClient(str(sock), timeout_s=.1)
     client.connect()
     command = JsonLines(str(sock))
+    command.socket.settimeout(.1)
     trace = {"initial_stop": stop, "moves": []}
     try:
         health = client.health()
@@ -287,8 +301,8 @@ def run(output: Path, head: str, kind: str) -> None:
     for i in range(count):
         folder = output / f"D{i:02d}"
         durable_directory(folder)
-        row = {"index": i, "development_seed": None if kind == "pilot" else
-               protocol["development_reset_seeds"][i], "source_head": head,
+        row = {"index": i, "development_seed": development_seed(kind, i, protocol),
+               "source_head": head,
                "result": "RUNNING", "process_start_ticks": start_ticks}
         # This durable marker accounts for the reset even after SIGKILL or SSH loss.
         atomic_json(folder / "cycle-start.json", row)
@@ -322,6 +336,7 @@ def run(output: Path, head: str, kind: str) -> None:
                 if row["perturbation"]["result"] != "PASS":
                     raise RuntimeError("controlled development perturbation failed")
             reader = TimedPoseReader(PORT)
+            reader.sock.settimeout(.1)
             try:
                 row["preparation"] = prepare(reader, STATE / "duck-a.sock")
             finally:

@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import p8_03_r2_reset_development as dev
+from microduck_connectome.p8_03_r2_reset import REFERENCE
 
 
 class UnhealthyClient:
@@ -21,6 +22,9 @@ class UnhealthyClient:
 
 class CommandConnection:
     def __init__(self, *args, **kwargs):
+        self.socket = self
+
+    def settimeout(self, value):
         pass
 
     def close(self):
@@ -44,3 +48,53 @@ def test_stop_attempt_and_trace_survive_preparation_and_close_failures():
     assert trace["initial_stop"]["result"] == "PASS"
     assert len(trace["close_errors"]) == 2
     assert "unhealthy" in trace["error"]
+
+
+def test_perturbation_never_reuses_qualification_seed():
+    protocol = {"development_reset_seeds": [887400, 887401]}
+    assert dev.development_seed("pilot", 0, protocol) is None
+    assert dev.development_seed("perturbation", 0, protocol) is None
+    assert dev.development_seed("qualification", 0, protocol) == 887400
+
+
+class FixedReader:
+    def __init__(self, port):
+        self.sock = self
+
+    def settimeout(self, value):
+        pass
+
+    def read(self):
+        return {"request_ns": 1, "response_ns": 2, "sim_time_s": 1.0,
+                "roll_rad": 0.0, "pitch_rad": 0.0, "pose": dict(REFERENCE)}
+
+    def close(self):
+        pass
+
+
+class HealthyClient(UnhealthyClient):
+    def health(self):
+        return {"healthy": True, "degraded": False}
+
+    def close(self):
+        pass
+
+
+class QuietCommand(CommandConnection):
+    def close(self):
+        pass
+
+
+def test_perturbation_health_delay_cannot_send_after_deadline():
+    clock = iter([0.0, 0.0, 1.01, 1.02])
+    with patch.object(dev, "TimedPoseReader", FixedReader), \
+            patch.object(dev, "RobotdClient", HealthyClient), \
+            patch.object(dev, "JsonLines", QuietCommand), \
+            patch.object(dev.time, "monotonic", side_effect=lambda: next(clock)), \
+            patch.object(dev, "acknowledged_precondition_move") as move, \
+            patch.object(dev, "emergency_stop", return_value={"result": "PASS"}):
+        trace = dev.perturb_heading(7898, Path("/tmp/isolated.sock"), 1)
+    assert trace["result"] == "FAIL"
+    assert "deadline elapsed during health read" in trace["error"]
+    move.assert_not_called()
+    assert trace["stop"]["result"] == "PASS"
