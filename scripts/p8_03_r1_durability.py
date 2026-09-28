@@ -70,11 +70,68 @@ def create_arm_marker(path: Path, *, task: str, trial_id: str, seed: int,
     return marker
 
 
+def process_start_ticks(pid: int) -> str | None:
+    try:
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
+    except (OSError, IndexError):
+        return None
+
+
+def process_state(folder: Path) -> str:
+    """ACTIVE, QUIESCENT, or UNKNOWN for all recorded attempt children."""
+    records = list(folder.glob("*.process.json"))
+    if any(p.name.endswith(".log") for p in folder.iterdir()) and not records:
+        return "UNKNOWN"
+    for path in records:
+        try:
+            row = json.loads(path.read_text())
+            current = process_start_ticks(row["pid"])
+        except (OSError, ValueError, KeyError):
+            return "UNKNOWN"
+        if row.get("proc_start_ticks") is None:
+            return "UNKNOWN"
+        if current == row["proc_start_ticks"]:
+            return "ACTIVE"
+    return "QUIESCENT"
+
+
+def stop_orphan_children(root: Path) -> list[dict]:
+    """Stop only matching child process groups whose recorded parent is gone."""
+    result = []
+    for path in sorted(root.rglob("*.process.json")):
+        row = json.loads(path.read_text())
+        pid = row["pid"]
+        if process_start_ticks(pid) != row.get("proc_start_ticks"):
+            continue
+        parent_alive = (process_start_ticks(row["parent_pid"]) ==
+                        row.get("parent_start_ticks"))
+        if parent_alive:
+            result.append({"path": str(path), "state": "ACTIVE_PARENT_REFUSED"})
+            continue
+        actions = []
+        for sig, limit in ((signal.SIGINT, 8), (signal.SIGTERM, 5),
+                           (signal.SIGKILL, 1)):
+            if process_start_ticks(pid) != row.get("proc_start_ticks"):
+                break
+            os.killpg(pid, sig)
+            actions.append(sig.name)
+            deadline = time.monotonic() + limit
+            while time.monotonic() < deadline and (
+                    process_start_ticks(pid) == row.get("proc_start_ticks")):
+                time.sleep(.05)
+        result.append({"path": str(path), "state":
+                       "STOPPED" if process_start_ticks(pid) != row.get(
+                           "proc_start_ticks") else "STILL_ACTIVE",
+                       "signals": actions})
+    return result
+
+
 def classify_attempt(folder: Path, attempt: dict, identity: dict,
                      *, child_alive: bool = False) -> str:
     """Conservative recovery; journal false never overrides a durable marker."""
     marker_path = folder / "armed.json"
-    if child_alive:
+    in_flight = attempt.get("status") != "TRIAL_EXITED"
+    if child_alive or (in_flight and process_state(folder) == "ACTIVE"):
         return "ACTIVE"
     if marker_path.exists():
         try:
@@ -91,7 +148,10 @@ def classify_attempt(folder: Path, attempt: dict, identity: dict,
         return "COMPLETED" if attempt.get("status") == "TRIAL_EXITED" and (
             folder / "summary.json").is_file() else "ARMED"
     if attempt.get("armed") is True or attempt.get("status") in (
-            "NEURAL_OBSERVATION_ARMED", "TRIAL_EXITED", "ARMED_COMPLETE"):
+            "TRIAL_CHILD_STARTED", "NEURAL_OBSERVATION_ARMED",
+            "TRIAL_EXITED", "ARMED_COMPLETE"):
+        return "UNKNOWN_ARM"
+    if in_flight and process_state(folder) == "UNKNOWN":
         return "UNKNOWN_ARM"
     # R1 child source guarantees the marker is durable before any scored arm.
     # Missing marker is PRE_ARM only if no raw arm event or completion exists.
@@ -139,6 +199,15 @@ def run_child(command: list[str], log: Path, env: dict, *, progress=None,
         child = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                  stdout=out, stderr=subprocess.STDOUT,
                                  env=env, start_new_session=True)
+        atomic_json(log.with_name(log.name + ".process.json"), {
+            "schema_version": "p8-03-r1-child-v1", "pid": child.pid,
+            "proc_start_ticks": process_start_ticks(child.pid),
+            "parent_pid": os.getpid(),
+            "parent_start_ticks": process_start_ticks(os.getpid()),
+            "command": command,
+            "started_utc": now()})
+        if created is not None:
+            created()
         try:
             while True:
                 try:

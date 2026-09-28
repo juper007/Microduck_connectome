@@ -67,8 +67,9 @@ paths in `config/p8_03_r1_execution_v1.json`. A preflight mismatch assigns
 zero final IDs. Record source HEAD, config hashes, upstream hashes, ID,
 seed and attempt.
 
-Only documented exogenous simulator-up failure permits another same-seed
-pre-arm attempt, at most three. A durable marker means ARMED and bars retry.
+R1 makes one attempt per ID. A simulator-up failure stops the batch and
+requires a separately reviewed recovery decision; the harness never
+automatically retries. A durable marker means ARMED and bars retry.
 Missing marker is PRE_ARM only when exact reviewed code and raw data prove
 arm never happened. Corrupt, conflicting, or unprovable state is UNKNOWN_ARM;
 no retry and no PASS. The marker is written to a unique temporary file,

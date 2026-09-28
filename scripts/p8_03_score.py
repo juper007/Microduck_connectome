@@ -363,7 +363,8 @@ def score_batch(root: Path, master: dict, stage: str) -> dict:
                            "safety_limit_violations": None})
             continue
         attempts = item.get("attempts", [])
-        if (not 1 <= len(attempts) <= 3 or attempts[-1].get("armed") is not True
+        allowed_attempts = 1 if master.get("p8_03_r1_matrix") is not None else 3
+        if (not 1 <= len(attempts) <= allowed_attempts or attempts[-1].get("armed") is not True
                 or attempts[-1].get("status") != "TRIAL_EXITED"
                 or attempts[-1].get("trial_exit") != 0):
             trials.append({"trial_id": row["trial_id"], "seed": row["seed"],
@@ -442,10 +443,16 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw-root", type=Path, required=True)
     ap.add_argument("--master", type=Path, default=Path("config/p8_v2_final_protocol_v1.json"))
+    ap.add_argument("--r1-root", type=Path,
+                    help="R1 source root; binds the original master and frozen R1 matrix hashes")
     ap.add_argument("--stage", choices=("S", "R"), required=True)
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
-    master = json.loads(args.master.read_text(encoding="utf-8"))
+    if args.r1_root:
+        from scripts.p8_03_r1_durability import load_protocol
+        master = load_protocol(args.r1_root)[0]
+    else:
+        master = json.loads(args.master.read_text(encoding="utf-8"))
     score = score_batch(args.raw_root, master, args.stage)
     score["manifest"] = manifest_check(args.raw_root)
     if score["manifest"]["result"] != "PASS":

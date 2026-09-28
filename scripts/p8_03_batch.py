@@ -21,7 +21,8 @@ from scripts.p8_02_r1_batch import (append_audit, atomic_json, emergency_stop,
 from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_r1_durability import (
     checkpoint as r1_checkpoint, load_protocol, reconcile,
-    run_child as r1_run_child, atomic_json as r1_atomic_json)
+    run_child as r1_run_child, atomic_json as r1_atomic_json,
+    stop_orphan_children)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
@@ -61,6 +62,34 @@ def recover_only(root: Path) -> dict:
     journal = json.loads((root / "batch-journal.json").read_text())
     if journal.get("schema_version") == "p8-03-r1-batch-journal-v1":
         report = reconcile(root, journal)
+        if "ACTIVE" in report["states"].values():
+            source = Path(journal["source_path"])
+            config = json.loads((source / "config/p8_03_r1_execution_v1.json").read_text())
+            cleanup = {"emergency_stop": emergency_stop(
+                Path(config["state_dir"]) / "duck-a.sock")}
+            cleanup["children"] = stop_orphan_children(root)
+            if any(r["state"] in ("ACTIVE_PARENT_REFUSED", "STILL_ACTIVE")
+                   for r in cleanup["children"]):
+                cleanup["result"] = "FAIL_ACTIVE_PROCESS"
+            else:
+                env = dict(os.environ, DUCK_SIM_STATE=config["state_dir"],
+                           DUCK_SIM_PORT=str(config["body_port"]),
+                           DUCK_SIM_RL=config["microduck_rl_path"],
+                           DUCK_SIM_VIEWER="0")
+                try:
+                    code, _ = r1_run_child([config["sim_executable"], "down"],
+                                           root / "recovery-final-down.log", env,
+                                           created=lambda: checkpoint(root, journal))
+                    cleanup["down_exit"] = code
+                except BaseException as exc:
+                    cleanup["down_error"] = f"{type(exc).__name__}: {exc}"
+                cleanup["probe"] = probe_final_sim_state(
+                    Path(config["state_dir"]), config["body_port"],
+                    phase="r1_recovery_final_down")
+                cleanup["result"] = "PASS" if cleanup.get("down_exit") == 0 and (
+                    cleanup["probe"].get("result") == "PASS") else "FAIL"
+            report["cleanup"] = cleanup
+            report["post_cleanup_states"] = reconcile(root, journal)["states"]
         r1_atomic_json(root / "recovery-report.json", report)
         journal["result"] = "FAIL"
         checkpoint(root, journal)
@@ -273,7 +302,7 @@ def run(args) -> dict:
                     if was_interrupted:
                         raise KeyboardInterrupt("prearm acquisition interrupted")
                     if code:
-                        if name == "up":
+                        if name == "up" and not args.r1:
                             retry_up = True
                             break
                         raise RuntimeError(f"nonretryable prearm {name} failed")

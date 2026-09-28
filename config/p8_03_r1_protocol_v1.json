@@ -182,7 +182,7 @@
     "S",
     "R"
   ],
-  "max_prearm_attempts": 3,
+  "max_prearm_attempts": 1,
   "scored_window_ms": 1000,
   "max_false_stops_per_set": 1,
   "max_false_stops_pooled": 2,

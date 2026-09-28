@@ -46,6 +46,18 @@ class DurabilityTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             self.marker()
 
+    def test_active_or_untracked_child_cannot_be_prearm(self):
+        (self.folder / "trial.log").touch()
+        self.attempt["status"] = "TRIAL_CHILD_STARTED"
+        self.assertEqual(classify_attempt(self.folder, self.attempt,
+                                          self.identity), "UNKNOWN_ARM")
+        record = {"pid": 456, "proc_start_ticks": "789"}
+        (self.folder / "trial.log.process.json").write_text(json.dumps(record))
+        with patch("scripts.p8_03_r1_durability.process_start_ticks",
+                   return_value="789"):
+            self.assertEqual(classify_attempt(self.folder, self.attempt,
+                                              self.identity), "ACTIVE")
+
     def test_marker_disagreement_and_unknown_arm(self):
         self.marker()
         wrong = dict(self.identity, seed=887201)
@@ -135,7 +147,7 @@ class DurabilityTests(unittest.TestCase):
             with self.assertRaises(KeyboardInterrupt):
                 run_child(["sim", "down"], self.folder / "down.log", {},
                           created=lambda: checkpoints.append(True))
-        self.assertEqual(len(checkpoints), 2)
+        self.assertEqual(len(checkpoints), 3)
         kill.assert_called_once()
         self.assertTrue((self.folder / "down.log").is_file())
 

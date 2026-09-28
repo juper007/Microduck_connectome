@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from scripts.p8_03_score import manifest_check, score_batch, wilson_95
+from scripts.p8_03_r1_durability import load_protocol
 
 
 def finalize(static_root: Path, receding_root: Path, master: dict) -> dict:
@@ -41,10 +42,13 @@ def main() -> None:
     ap.add_argument("--static-root", type=Path, required=True)
     ap.add_argument("--receding-root", type=Path, required=True)
     ap.add_argument("--master", type=Path, default=Path("config/p8_v2_final_protocol_v1.json"))
+    ap.add_argument("--r1-root", type=Path,
+                    help="R1 source root; binds the original master and frozen R1 matrix hashes")
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
-    result = finalize(args.static_root, args.receding_root,
-                      json.loads(args.master.read_text(encoding="utf-8")))
+    master = (load_protocol(args.r1_root)[0] if args.r1_root else
+              json.loads(args.master.read_text(encoding="utf-8")))
+    result = finalize(args.static_root, args.receding_root, master)
     args.output.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"result": result["result"], "false_neural_stops": result["false_neural_stops"]}))
     if result["result"] != "PASS":

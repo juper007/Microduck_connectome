@@ -31,5 +31,5 @@
   "max_false_stops_per_set": 1,
   "max_false_stops_pooled": 2,
   "max_safety_limit_violations": 0,
-  "max_prearm_attempts": 3
+  "max_prearm_attempts": 1
 }
