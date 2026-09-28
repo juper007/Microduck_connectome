@@ -208,15 +208,18 @@ class RawScorerTests(unittest.TestCase):
     def test_original_ledgers_must_match_events(self):
         with tempfile.TemporaryDirectory() as dirname:
             folder = Path(dirname)
-            events = [{"kind": "visual_frame", "timestamp_ns": 10,
+            events = [{"kind": "visual_frame", "timestamp_ns": 1_000_000_000,
                        "source_valid": True, "image_area": .01},
-                      {"kind": "neural_step", "timestamp_ns": 11,
+                      {"kind": "neural_step", "timestamp_ns": 1_001_000_000,
                        "runtime_healthy": True, "dn_escape": 0,
                        "decoder_stop": False, "source_age_ms": 1,
                        "source_frame_id": 1}]
-            visual = [{"timestamp_ns": 10, "frame_id": 1, "perception_valid": True,
+            visual = [{"timestamp_ns": 1_000_000_000, "frame_id": 1, "perception_valid": True,
                        "perception_target_area": .01}]
-            neural = [{"neural_call_timestamp_ns": 11, "dn_runtime_healthy": True,
+            neural = [{"neural_call_timestamp_ns": 1_001_000_000,
+                       "neural_call_started_ns": 1_001_000_000,
+                       "perception_timestamp_ns": 1_000_000_000,
+                       "dn_runtime_healthy": True,
                        "male_cns_healthy": True, "dn_escape": 0,
                        "raw_decoder_stop": False, "perception_age_ms": 1,
                        "perception_frame_id": 1, "input_none": False,
@@ -228,6 +231,20 @@ class RawScorerTests(unittest.TestCase):
                        "visual_sha256": hashlib.sha256((folder / "visual-frames.jsonl").read_bytes()).hexdigest(),
                        "neural_ledger_sha256": hashlib.sha256((folder / "neural-ledger.jsonl").read_bytes()).hexdigest()}
             self.assertEqual(audit_original_ledgers(folder, events, summary), [])
+            neural[0]["perception_timestamp_ns"] = 100_000_000
+            (folder / "neural-ledger.jsonl").write_text(json.dumps(neural[0]) + "\n")
+            summary["neural_ledger_sha256"] = hashlib.sha256(
+                (folder / "neural-ledger.jsonl").read_bytes()).hexdigest()
+            self.assertIn("original_neural_visual_freshness_invalid",
+                          audit_original_ledgers(folder, events, summary))
+            neural[0]["perception_timestamp_ns"] = 1_000_000_000
+            neural[0]["neural_call_started_ns"] = 1_200_000_000
+            (folder / "neural-ledger.jsonl").write_text(json.dumps(neural[0]) + "\n")
+            summary["neural_ledger_sha256"] = hashlib.sha256(
+                (folder / "neural-ledger.jsonl").read_bytes()).hexdigest()
+            self.assertIn("original_neural_visual_freshness_invalid",
+                          audit_original_ledgers(folder, events, summary))
+            neural[0]["neural_call_started_ns"] = 1_001_000_000
             neural[0]["dn_escape"] = .6
             (folder / "neural-ledger.jsonl").write_text(json.dumps(neural[0]) + "\n")
             summary["neural_ledger_sha256"] = hashlib.sha256(

@@ -293,7 +293,11 @@ def audit_original_ledgers(folder: Path, events: list[dict], summary: dict) -> l
         errors.append("summary_raw_hash_mismatch")
     event_visual = [r for r in events if r.get("kind") == "visual_frame"]
     event_neural = [r for r in events if r.get("kind") == "neural_step"]
-    visual_ids = {r.get("frame_id") for r in visual}
+    visual_by_id = {r.get("frame_id"): r for r in visual}
+    if (len(visual_by_id) != len(visual)
+            or any(type(r.get("frame_id")) is not int or
+                   type(r.get("timestamp_ns")) is not int for r in visual)):
+        errors.append("original_visual_identity_invalid")
     if len(event_visual) != len(visual) or len(event_neural) != len(neural):
         errors.append("original_ledger_count_mismatch")
     for event, original in zip(event_visual, visual):
@@ -319,8 +323,20 @@ def audit_original_ledgers(folder: Path, events: list[dict], summary: dict) -> l
                 or original.get("perception_valid") is not True):
             errors.append("original_neural_input_invalid")
             break
-        if original.get("perception_frame_id") not in visual_ids:
+        source = visual_by_id.get(original.get("perception_frame_id"))
+        if source is None:
             errors.append("original_neural_visual_lineage_missing")
+            break
+        source_ns = original.get("perception_timestamp_ns")
+        started_ns = original.get("neural_call_started_ns")
+        age_ms = original.get("perception_age_ms")
+        if (type(source_ns) is not int or source_ns != source.get("timestamp_ns")
+                or type(started_ns) is not int or type(age_ms) not in (int, float)
+                or not math.isfinite(age_ms)
+                or not 0 <= started_ns - source_ns <= 100_000_000
+                or not math.isclose(age_ms, (started_ns - source_ns) / 1e6,
+                                    rel_tol=0, abs_tol=1e-6)):
+            errors.append("original_neural_visual_freshness_invalid")
             break
     return errors
 
