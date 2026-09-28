@@ -1,13 +1,15 @@
 """Frozen diagnostic matrix and non-result-driven scoring checks."""
 import copy
+import hashlib
 import json
 import math
 from pathlib import Path
+import tempfile
 import time
 from unittest import mock
 
 from scripts.p8_03_r3_yaw_diagnostic import (
-    R1_CONFIG, REFERENCE, heading_median, matrix, sampled, score,
+    R1_CONFIG, REFERENCE, heading_median, matrix, sampled, score, score_root,
     trace_integrity, wrapped_delta,
 )
 
@@ -132,6 +134,40 @@ def test_complete_raw_traces_score_and_safety_faults_fail():
     assert score(PROTOCOL, corrupted)["result"] == "FAIL"
 
 
+def test_downloaded_manifest_covers_every_scored_trace():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        entries = []
+        for item in matrix(PROTOCOL):
+            folder = root / item["id"]
+            folder.mkdir()
+            raw = json.dumps(complete_record(item), sort_keys=True).encode()
+            path = folder / "trace.json"
+            path.write_bytes(raw)
+            entries.append({"path": f"{item['id']}/trace.json",
+                            "sha256": hashlib.sha256(raw).hexdigest(),
+                            "bytes": len(raw), "record_count": 1})
+        manifest = {"schema_version": "p8-03-r3-manifest-v1",
+                    "files": entries, "source_head": "synthetic"}
+        (root / "manifest.json").write_text(json.dumps(manifest))
+        assert score_root(root)["result"] == "PASS"
+        (root / "D00" / "trace.json").write_bytes(b"{}")
+        try:
+            score_root(root)
+        except RuntimeError as error:
+            assert "manifest mismatch" in str(error)
+        else:
+            raise AssertionError("altered raw trace accepted")
+        (root / "D00" / "trace.json").write_bytes(
+            json.dumps(complete_record(matrix(PROTOCOL)[0]), sort_keys=True).encode())
+        manifest["files"] = entries[1:]
+        (root / "manifest.json").write_text(json.dumps(manifest))
+        try:
+            score_root(root)
+        except RuntimeError as error:
+            assert "inventory mismatch" in str(error)
+        else:
+            raise AssertionError("unlisted raw trace accepted")
 def test_pose_wait_accepts_next_sim_tick_and_rejects_wrong_policy():
     now = time.monotonic_ns()
     previous = {"request_ns": now - 20_000_000,

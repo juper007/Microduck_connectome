@@ -437,6 +437,13 @@ def score_root(root: Path) -> dict:
     if (manifest["schema_version"] != "p8-03-r3-manifest-v1" or
             len({entry["path"] for entry in manifest["files"]}) != len(manifest["files"])):
         raise RuntimeError("invalid raw manifest")
+    listed = {entry["path"] for entry in manifest["files"]}
+    actual = {path.relative_to(root).as_posix() for path in root.rglob("*")
+              if path.is_file() and path.name not in
+              ("manifest.json", "gate.json", "run.json")}
+    if listed != actual or any(
+            Path(name).is_absolute() or ".." in Path(name).parts for name in listed):
+        raise RuntimeError("raw inventory mismatch")
     for entry in manifest["files"]:
         path = root / entry["path"]
         if (not path.is_file() or sha(path) != entry["sha256"] or
@@ -445,7 +452,10 @@ def score_root(root: Path) -> dict:
             raise RuntimeError(f"raw manifest mismatch: {entry['path']}")
     traces = []
     for item in matrix(protocol):
-        path = root / item["id"] / "trace.json"
+        relative = f"{item['id']}/trace.json"
+        if relative not in listed:
+            break
+        path = root / relative
         if not path.is_file():
             break
         traces.append(json.loads(path.read_text()))
