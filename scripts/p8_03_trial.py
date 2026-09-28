@@ -130,6 +130,11 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict]:
     validate_loaded_walk_policy(json.loads(args.policy_readback.read_text()),
                                 Path(execution["walking_policy_path"]),
                                 execution["walking_policy_sha256"])
+    if args.pose_reset.resolve().parent != folder.resolve():
+        raise RuntimeError("pose reset proof path differs from frozen attempt")
+    reset = json.loads(args.pose_reset.read_text())
+    if reset.get("schema_version") != "p8-03-pose-reset-v1" or reset.get("result") != "PASS":
+        raise RuntimeError("fresh official pose reset tolerance was not verified")
     return master, execution, row, selected, load_config(root / "config/looming_scenario_v1.json")
 
 
@@ -147,6 +152,9 @@ def run(args) -> int:
     robot = RobotdClient(args.socket, timeout_s=2.0)
     robot.connect()
     robot.enable(True)
+    health_before = robot.health()
+    if health_before.get("healthy") is not True:
+        raise RuntimeError("robotd health is not healthy before neural arm")
     adapter = RobotMotionAdapter(robot, root / "config/motion_adapter_v1.json")
     publisher = IsolatedStopPublisher(adapter)
     move_client = JsonLines(args.socket)
@@ -162,12 +170,18 @@ def run(args) -> int:
     watchdog = ControllerWatchdog(root / "config/watchdog_v1.json")
     fault_latch = FaultStopLatch()
     events: list[dict] = []
+    events.append({"kind": "robotd_health_before", "timestamp_ns": time.monotonic_ns(),
+                   "healthy": health_before["healthy"]})
     geometry: list[dict] = []
     motion_errors: list[str] = []
     observer_errors: list[str] = []
     scheduler_errors: list[str] = []
     motion_rows: list[dict] = []
     precondition_rows: list[dict] = []
+    reset = json.loads(args.pose_reset.read_text())
+    events.append({"kind": "pose_reset", "timestamp_ns": time.monotonic_ns(),
+                   "result": reset["result"], "reference": reset["reference"],
+                   "pose": reset["second_pose"], "tolerance": reset["tolerance"]})
     arm_ns = None
     scheduler_result = None
     stop_acks: list[int] = []
@@ -212,13 +226,15 @@ def run(args) -> int:
                 source_neural_sequence=update.readout["sequence"],
                 source_intent_stop=bool(update.behavior_intent["stop"]))
         event = {"kind": "control_publish", "timestamp_ns": ack,
+                 "sequence": seq, "ack_ns": ack,
                  "transport": "robot.stop" if transport == "robot_stop_refreshed" else transport,
                  "neural_origin": bool(update is not None and update.trace is not None
                                        and update.trace["male_cns"]["healthy"]
                                        and update.trace["dn_readout"]["escape"] >= .5
                                        and update.trace["raw_decoded_intent"]["stop"]),
                  "watchdog_state": output["watchdog_state"],
-                 "stop": output["intent"]["stop"], "call_ns": call}
+                 "stop": output["intent"]["stop"], "call_ns": call,
+                 "intent": dict(output["intent"])}
         with lock:
             events.append(event)
 
@@ -296,14 +312,19 @@ def run(args) -> int:
                             move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
                             vyaw=pre["vyaw_radps"]))
                     state, state_ns = sampler.after(ack)
+                    with pose_lock:
+                        measured_pose = pose_reader.read()
                     with lock:
                         motion_rows.append({"kind": "motion_refresh", "timestamp_ns": ack,
                                             "positive_ack": result is not None,
+                                            "robot_move_result": result,
                                             "call_ns": call, "write_ns": write})
                         events.append({"kind": "robot_state", "timestamp_ns": state_ns,
                                        "deadman_limited": "deadman" in str(
                                            state["move"].get("limited_by", [])).lower(),
-                                       "applied_velocity": state["move"]["applied"]})
+                                       "requested_velocity": state["move"]["requested"],
+                                       "applied_velocity": state["move"]["applied"],
+                                       "pose": dict(measured_pose)})
                 except MotionLatched:
                     break
                 except BaseException as error:
@@ -338,6 +359,13 @@ def run(args) -> int:
         if scheduler._threads and not scheduler._fixture_complete.is_set():
             scheduler.request_complete()
         arbiter.latch("planned_cleanup" if arm_ns is not None else "safe_abort")
+        for name in ("motion_thread", "scheduler_thread"):
+            worker = locals().get(name)
+            if worker is not None and worker.is_alive():
+                worker.join(timeout=3)
+                if worker.is_alive():
+                    events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
+                                   "error": f"{name} did not stop before cleanup"})
         try:
             result = move_client.request("robot.stop", {})
             events.append({"kind": "cleanup", "timestamp_ns": time.monotonic_ns(),
@@ -345,6 +373,14 @@ def run(args) -> int:
         except BaseException as error:
             events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
                            "error": f"cleanup:{type(error).__name__}: {error}"})
+        try:
+            health_after = robot.health()
+        except BaseException as error:
+            health_after = {"healthy": False, "error": f"{type(error).__name__}: {error}"}
+            events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
+                           "error": "robotd health after trial unavailable"})
+        events.append({"kind": "robotd_health_after", "timestamp_ns": time.monotonic_ns(),
+                       "healthy": health_after.get("healthy") is True})
         move_client.close()
         sampler.close()
         pose_reader.close()
@@ -369,8 +405,10 @@ def run(args) -> int:
         events.append({"kind": "scheduler_exception", "timestamp_ns": time.monotonic_ns(),
                        "error": error})
     violation_count = sum(
-        any(not math.isfinite(v) for v in r.get("applied_velocity", []))
+        any(not math.isfinite(v) for v in
+            list(r.get("requested_velocity", [])) + list(r.get("applied_velocity", [])))
         or any(abs(v) > lim for v, lim in zip(r.get("applied_velocity", []), (.08, 0, .5)))
+        or any(abs(v) > lim for v, lim in zip(r.get("requested_velocity", []), (.08, 0, .5)))
         for r in events if r["kind"] == "robot_state")
     violation_count += publisher.nonzero_count + publisher.post_stop_move_count
     events.append({"kind": "safety_snapshot", "timestamp_ns": time.monotonic_ns(),
@@ -389,6 +427,8 @@ def run(args) -> int:
                "scheduler_exceptions": len(scheduler_errors),
                "safety_limit_violations": violation_count,
                "neural_stop_acks": len(stop_acks), "fixture_errors": fixture_errors}
+    summary["robotd_health_before"] = health_before
+    summary["robotd_health_after"] = health_after
     json_write(args.summary, summary)
     return 0 if not summary["fixture_errors"] and arm_ns is not None else 1
 
@@ -404,7 +444,7 @@ def main() -> None:
     ap.add_argument("--microduck", type=Path, required=True)
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--source-head", required=True)
-    for name in ("policy_readback", "armed_marker", "progress", "events", "ledger",
+    for name in ("policy_readback", "pose_reset", "armed_marker", "progress", "events", "ledger",
                  "visual", "summary"):
         ap.add_argument("--" + name.replace("_", "-"), type=Path, required=True)
     raise SystemExit(run(ap.parse_args()))

@@ -8,12 +8,13 @@ import json
 import math
 from pathlib import Path
 import tempfile
+from unittest.mock import patch
 
 from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
 from microduck_connectome.looming_scenario import load_config
 from microduck_connectome.p8_03_geometry import relative_trial
 from scripts.p8_03_score import manifest_check, score_raw, wilson_95
-from scripts.p8_03_batch import recover_only
+from scripts.p8_03_batch import pose_reset_probe, recover_only
 
 
 class ControlGeometryTests(unittest.TestCase):
@@ -33,6 +34,32 @@ class ControlGeometryTests(unittest.TestCase):
         self.assertAlmostEqual(trial.anchor_x_m - moved["x_m"],
                                .85 * math.cos(moved["heading_rad"]))
 
+    def test_fresh_reset_pose_tolerance(self):
+        class Reader:
+            def __init__(self, _port):
+                self.rows = iter(({"x_m": 0.0, "y_m": 0.0, "heading_rad": 0.0,
+                                   "trunk_z_m": .3},
+                                  {"x_m": .001, "y_m": 0.0, "heading_rad": .001,
+                                   "trunk_z_m": .301}))
+
+            def read(self):
+                return next(self.rows)
+
+            def close(self):
+                pass
+
+        tolerance = {"x_m": .03, "y_m": .03, "heading_rad": .08,
+                     "trunk_z_m": .025}
+        with patch("scripts.p8_03_batch.OfficialPoseReader", Reader), patch(
+                "scripts.p8_03_batch.time.sleep"):
+            reference = {"x_m": 0.0, "y_m": 0.0, "heading_rad": 0.0,
+                         "trunk_z_m": .3}
+            self.assertEqual(pose_reset_probe(7894, reference=reference,
+                                              tolerance=tolerance)["result"], "PASS")
+            displaced = dict(reference, x_m=.10)
+            self.assertEqual(pose_reset_probe(7894, reference=displaced,
+                                              tolerance=tolerance)["result"], "FAIL")
+
 
 def clean_raw(stage="S"):
     start = 1_000_000_000
@@ -42,6 +69,15 @@ def clean_raw(stage="S"):
              "precondition_displacement_m": .03, "precondition_applied_vx_mps": .06}]
     rows.append({"kind": "prearm_visual_anchor", "timestamp_ns": start - 1,
                  "distance_m": .85, "image_area": .01})
+    rows.append({"kind": "robotd_health_before", "timestamp_ns": start - 3,
+                 "healthy": True})
+    rows.append({"kind": "pose_reset", "timestamp_ns": start - 2,
+                 "result": "PASS", "pose": {"x_m": 0.0, "y_m": 0.0, "heading_rad": 0.0,
+                                             "trunk_z_m": .3},
+                 "reference": {"x_m": 0.0, "y_m": 0.0, "heading_rad": 0.0,
+                               "trunk_z_m": .3},
+                 "tolerance": {"x_m": .03, "y_m": .03, "heading_rad": .08,
+                               "trunk_z_m": .025}})
     for i in range(21):
         distance = .85 + (.01 * i if stage == "R" else 0)
         rows.append({"kind": "visual_frame", "timestamp_ns": start + i * 50_000_000,
@@ -54,9 +90,22 @@ def clean_raw(stage="S"):
         t = start + i * 20_000_000
         rows.extend(({"kind": "neural_step", "timestamp_ns": t, "runtime_healthy": True,
                       "dn_escape": 0, "decoder_stop": False, "source_age_ms": 0},
-                     {"kind": "motion_refresh", "timestamp_ns": t, "positive_ack": True},
-                     {"kind": "robot_state", "timestamp_ns": t, "deadman_limited": False}))
+                     {"kind": "motion_refresh", "timestamp_ns": t, "positive_ack": True,
+                      "robot_move_result": {"ok": True}, "call_ns": t - 2,
+                      "write_ns": t - 1},
+                     {"kind": "robot_state", "timestamp_ns": t, "deadman_limited": False,
+                      "applied_velocity": [.07, 0.0, 0.0],
+                      "requested_velocity": [.07, 0.0, 0.0],
+                      "pose": {"x_m": .004 * i, "y_m": 0.0, "heading_rad": 0.0}} ,
+                     {"kind": "control_publish", "timestamp_ns": t,
+                      "sequence": i + 1, "call_ns": t - 1, "ack_ns": t,
+                      "transport": "suppressed_neutral_for_stop_causality_fixture",
+                      "neural_origin": False, "watchdog_state": "healthy",
+                      "stop": False, "intent": {"stop": False, "vx": 0.0,
+                                                  "vy": 0.0, "vyaw": 0.0}}))
     rows += [{"kind": "window_complete", "timestamp_ns": start + 1_000_000_000},
+             {"kind": "robotd_health_after", "timestamp_ns": start + 1_000_000_001,
+              "healthy": True},
              {"kind": "safety_snapshot", "timestamp_ns": start + 1_000_000_001,
               "violations": 0, "scheduler_result": {"scheduler_exceptions": 0}}]
     return rows
@@ -118,6 +167,21 @@ class RawScorerTests(unittest.TestCase):
         self.assertFalse(result["false_neural_stop"])
         self.assertFalse(result["clean_true_negative"])
         self.assertIn("fault_stop", result["failure_causes"])
+
+    def test_empty_control_ledger_and_stopped_body_fail(self):
+        rows = [r for r in clean_raw() if r["kind"] != "control_publish"]
+        result = score_raw(rows, trial_id="S00", seed=881000, stage="S")
+        self.assertIn("control_publish_missing_or_invalid", result["failure_causes"])
+        rows = clean_raw()
+        for row in rows:
+            if row["kind"] == "robot_state":
+                row["applied_velocity"][0] = 0.0
+            if row["kind"] == "visual_frame":
+                row["pose"]["x_m"] = 0.0
+                row["virtual_center_x_m"] = row["distance_m"]
+        result = score_raw(rows, trial_id="S00", seed=881000, stage="S")
+        self.assertIn("applied_motion_missing", result["failure_causes"])
+        self.assertIn("body_not_moving", result["failure_causes"])
 
     def test_recovery_is_audit_only(self):
         with tempfile.TemporaryDirectory() as dirname:
