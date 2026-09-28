@@ -39,3 +39,21 @@ The manifest covers **every** regular final artifact except the manifest itself,
 Independent review of the **exact final implementation HEAD** must give explicit scientific, safety, and reproducibility PASS before Thor development execution. Review must check the null, robot-relative nonapproaching geometry, movement, denominator and false-positive rule, health/startup bounds, unchanged stop/safety/motor ownership, fresh IDs, raw lineage, conservative retries, and no result tuning. Any commit after review invalidates it. Fetch current `origin/main` before merge; update and re-review if it advanced. Final 20+20 execution needs a **later explicit reviewed execution task**. No P8-04, final regression, G8 or Phase 9 begins here.
 
 Old PRs #79–#86 are historical drafts, not behavioral PASS. After exact heads, outcomes, Release URLs/assets and digests have been indexed and checked, they may be closed with a `historical evidence / superseded` note; no automatic closure or merge of failed PRs. PR #87 remains decision history or may merge by normal workflow. The Thor handoff is written only when implementation tests and exact-head review pass; it must freeze source/config/upstream hashes and exact commands before any run.
+
+### Live historical index and cleanup conditions
+
+The PR metadata below was read from the connected GitHub repository on 2026-09-28. Digest values are the published-asset digests stated in the PR descriptions/decision record; the assets have **not** been freshly downloaded for this task. No row below is a P8-03 behavioral PASS.
+
+| PR | Exact draft head | Outcome | Durable evidence tag / asset SHA256 |
+| --- | --- | --- | --- |
+| [#79](https://github.com/juper007/Microduck_connectome/pull/79) | `89ae0f479dd0ef68207083fd30cf29b5499efee1` | S00 interrupted / BLOCKED | `p8-03-s00-interruption-v1` / `a05c8031d5e15b6f8d07c3ab8fad3b2e02243dbca729ddc42e58dbf3ed5c840b` |
+| [#80](https://github.com/juper007/Microduck_connectome/pull/80) | `ff1bf42f801f9962c6addecda3720a88f2724d83` | R1 terminal FAIL | `p8-03-r1-evidence-v1` / `9a0a7f8bd59e56d21ebb3429a1fb4a60acadcd1e9c7ae524d4efadc44974a961` |
+| [#81](https://github.com/juper007/Microduck_connectome/pull/81) | `b73df9a76ebe7803f34c8e5be4c215c78c5750bf` | R2 development FAIL | no Release; PR records pilot/v4 manifest digests |
+| [#82](https://github.com/juper007/Microduck_connectome/pull/82) | `5de4f30628aaf1477786405b563397c888447db5` | R3 development FAIL | `p8-03-r3-yaw-diagnostic-evidence-v1` / `f0720ff6d2b341c8b071a93639cf90dced5ad92c4b29c24de007bc926f0ab82c` |
+| [#83](https://github.com/juper007/Microduck_connectome/pull/83) | `243263725b5c3798cb917515e6b54effa123f310` | R4 development FAIL | `p8-03-r4-actuator-pose-evidence-v1` / `606c57e13c2e4cd08d1160484167d91cba24b33c9db3adbb46438192cc35cb6c` |
+| [#84](https://github.com/juper007/Microduck_connectome/pull/84) | `e961b07940018887f2e0f0c3dffeae428a3d8e24` | R5 development FAIL | `p8-03-r5-yaw-coupling-evidence-v1` / `633890d945a838d6698c7d1f94c906a387bd97945f7449a670e4e15852688467` |
+| [#85](https://github.com/juper007/Microduck_connectome/pull/85) | `e31557aea92dd6299570269151a18cfcdbb84d67` | R6 diagnostic PASS only | `p8-03-r6-sit-reset-pose-evidence-v1` / `a2769f15825264438f4cf734fa8ede92fc74471cab437181c44b7559c639a657` |
+| [#86](https://github.com/juper007/Microduck_connectome/pull/86) | `1c11d05c3d59893f464dde320fce907c0712849c` | R7 v1/v2 FAIL, v3 diagnostic PASS only | `p8-03-r7-startup-interval-evidence-v1/v2/v3`; v3 digest `666075649d1b691020002bfe9ddd3f7c329e583c632bd373216471871c0aad4b`; v1/v2 asset digests still require indexing |
+| [#87](https://github.com/juper007/Microduck_connectome/pull/87) | `9465cb0c233abeabf9a8493445d273acf0f37836` | architecture decision PASS | no data Release |
+
+Before closing a draft, verify its current head still equals this table, independently record its Release asset URL, byte count and digest (or explicit absence for R2), and retain the corresponding raw evidence. R7 v1/v2 digest indexing is outstanding. Close only with the historical outcome in the note; closure is not scientific approval. Do not merge terminal FAIL drafts as behavioral PASS.
