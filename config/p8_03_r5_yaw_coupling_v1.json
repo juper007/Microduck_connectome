@@ -1,0 +1,50 @@
+{
+  "schema_version": "p8-03-r5-yaw-coupling-v1",
+  "task_id": "P8-03-R5-YAW-TRANSLATION-COUPLING-DIAGNOSTIC",
+  "base_commit": "57161251c63be912a002d236d18e7c13cd48b1cc",
+  "development_only": true,
+  "development_reset_id_first": 888200,
+  "development_reset_id_last": 888229,
+  "reset_id_semantics": "unique_label_only",
+  "simulator_rng_seeded": false,
+  "reset_method": "independent official SIT down/up for each reset; qualify from observed fresh pose and robotd state",
+  "blocks": 6,
+  "even_block": ["sham", "positive_low", "negative_low", "positive_medium", "negative_medium"],
+  "odd_block": ["sham", "negative_low", "positive_low", "negative_medium", "positive_medium"],
+  "sham_ticks_by_block": [3, 5, 3, 5, 3, 5],
+  "dose": {
+    "low_ticks": 3,
+    "medium_ticks": 5,
+    "tick_s": 0.02,
+    "abs_vyaw_radps": 0.2,
+    "vx_mps": 0.0,
+    "vy_mps": 0.0,
+    "max_through_stop_s": 0.30,
+    "max_command_integral_rad": 0.08,
+    "ttl_s": 0.10
+  },
+  "pose": {
+    "sample_s": 0.02,
+    "plateau_count": 21,
+    "settle_s": 1.0,
+    "max_age_s": 0.10,
+    "max_heading_drift_rad": 0.005,
+    "max_stopped_applied_velocity": 0.005,
+    "max_initial_reference_heading_error_rad": 0.35,
+    "max_initial_xy_error_m": 0.03,
+    "max_initial_z_error_m": 0.025,
+    "max_motion_xy_from_initial_m": 0.01,
+    "max_abs_roll_pitch_rad": 0.5
+  },
+  "measurement": {
+    "minimum_abs_delta_rad": 0.005,
+    "sham_margin_rad": 0.002,
+    "floor": "max(0.005, max_abs_sham_settled_delta + 0.002)",
+    "required_valid_per_cell": 6,
+    "no_feedback_or_retry": true
+  },
+  "matrix_stop_rule": "stop entire matrix on first safety, timing, storage, stale-state, ACK, cleanup, or raw-integrity abort; leave later IDs PENDING; continue on valid weak or wrong-sign responses",
+  "unchanged_final_reset_heading_tolerance_rad": 0.08,
+  "unchanged_r2_qualification_guard_rad": 0.06,
+  "evidence_release_tag": "p8-03-r5-yaw-coupling-evidence-v1"
+}
