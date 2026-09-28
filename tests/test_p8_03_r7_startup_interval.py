@@ -225,6 +225,22 @@ def test_startup_unready_is_narrow_and_one_way():
     before_tick = {**healthy, "control_loop": {"ticks": 0}}
     assert runner.health_transition(before_tick, BASE, BASE+2_000_000_000,
                                     False, PROTOCOL) == (True, None)
+    for optional in ("imu", "control_loop"):
+        nullable = {**healthy, optional: None}
+        assert score.health_phase(nullable) == "HEALTHY"
+        assert runner.health_transition(nullable, BASE, BASE+2_000_000_000,
+                                        False, PROTOCOL) == (True, None)
+    null_optional = json.loads(json.dumps(rows))
+    for row in null_optional:
+        if row["kind"] == "robotd_health":
+            row["health"]["imu"] = None
+    assert score.derive_timeline(null_optional, PROTOCOL)["IMU_READY"]["status"] == "NOT_OBSERVED"
+    assert score.derive_timeline(null_optional, PROTOCOL)["FIRST_HEALTHY"]["status"] == "OBSERVED"
+    null_optional = json.loads(json.dumps(rows))
+    for row in null_optional:
+        if row["kind"] == "robotd_health" and row["health"]["healthy"]:
+            row["health"]["control_loop"] = None
+    assert score.derive_timeline(null_optional, PROTOCOL)["FIRST_CONTROL_TICK"]["status"] == "NOT_OBSERVED"
     assert runner.health_transition(valid, BASE, BASE+3_000_000_000,
                                     True, PROTOCOL) == (
         True, ("SAFETY_FAIL", "robotd_unhealthy_after_cycle"))

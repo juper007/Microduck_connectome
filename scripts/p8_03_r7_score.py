@@ -20,15 +20,22 @@ def finite(value) -> bool:
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def optional_object(parent: dict, key: str) -> dict:
+    if not isinstance(parent, dict):
+        return {}
+    value = parent.get(key)
+    return value if isinstance(value, dict) else {}
+
+
 def health_phase(health: dict) -> str:
     """Classify only the observed, bounded pre-cycle robotd health tuple."""
-    loop = health.get("control_loop", {})
-    imu = health.get("imu", {})
+    if not isinstance(health, dict):
+        return "CONTRADICTORY_STARTUP_HEALTH"
+    loop = optional_object(health, "control_loop")
+    imu = optional_object(health, "imu")
     if (health.get("healthy") is True and
             health.get("degraded") in (None, False) and
-            "reason" not in health and
-            type(loop.get("ticks")) is int and loop["ticks"] >= 0 and
-            type(imu.get("ready")) is bool):
+            "reason" not in health):
         return "HEALTHY"
     if (health.get("healthy") is False and
             "degraded" not in health and
@@ -229,9 +236,9 @@ def derive_timeline(rows: list[dict], protocol: dict) -> dict:
     health_predicates = {
         "STARTUP_UNREADY": lambda h: health_phase(h) == "STARTUP_UNREADY",
         "FIRST_HEALTHY": lambda h: health_phase(h) == "HEALTHY",
-        "FIRST_CONTROL_TICK": lambda h: type(h.get("control_loop", {}).get("ticks")) is int
-        and h["control_loop"]["ticks"] >= 1,
-        "IMU_READY": lambda h: h.get("imu", {}).get("ready") is True}
+        "FIRST_CONTROL_TICK": lambda h: type(optional_object(h, "control_loop").get("ticks")) is int
+        and optional_object(h, "control_loop")["ticks"] >= 1,
+        "IMU_READY": lambda h: optional_object(h, "imu").get("ready") is True}
     for name, predicate in health_predicates.items():
         row = next((r for r in health_rows if predicate(r["health"])), None)
         preceding = (health_rows[health_rows.index(row)-1] if row is not None and
@@ -500,19 +507,25 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
             rows, capture_end, lambda h: health_phase(h) == "HEALTHY"):
         return False, "first healthy response after capture ended"
     if not health_event_before_capture_end(
-            rows, capture_end, lambda h: type(h.get("control_loop", {}).get("ticks")) is int
-            and h["control_loop"]["ticks"] >= 1):
+            rows, capture_end, lambda h: type(optional_object(h, "control_loop").get("ticks")) is int
+            and optional_object(h, "control_loop")["ticks"] >= 1):
         return False, "first control tick after capture ended"
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
     had_healthy_cycle = False
     previous_ticks = None
     for health_row in health_rows:
         phase = health_phase(health_row["health"])
-        ticks = health_row["health"].get("control_loop", {}).get("ticks")
-        if type(ticks) is not int or ticks < 0 or (
-                previous_ticks is not None and ticks < previous_ticks):
+        health = health_row["health"]
+        if (not isinstance(health, dict) or
+                any(health.get(k) is not None and not isinstance(health[k], dict)
+                    for k in ("control_loop", "imu"))):
+            return False, "malformed optional health object"
+        ticks = optional_object(health, "control_loop").get("ticks")
+        if ticks is not None and (type(ticks) is not int or ticks < 0 or (
+                previous_ticks is not None and ticks < previous_ticks)):
             return False, "invalid control tick timeline"
-        previous_ticks = ticks
+        if ticks is not None:
+            previous_ticks = ticks
         if phase == "HEALTHY":
             had_healthy_cycle = True
         elif (phase != "STARTUP_UNREADY" or had_healthy_cycle or
