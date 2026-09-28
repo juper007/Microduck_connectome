@@ -222,7 +222,7 @@ def derive_timeline(rows: list[dict], protocol: dict) -> dict:
         preceding=body[body.index(deviation[0])-1] if deviation and
         body.index(deviation[0]) else None)
     up_exit = lookup("up_exit")
-    settled = settled_candidate(body, up_exit["host_monotonic_ns"], protocol) if up_exit else None
+    settled = settled_candidate(body, source_ns(up_exit), protocol) if up_exit else None
     timeline["STAND_SETTLED"] = _event(
         "STAND_SETTLED", settled,
         status="OBSERVED" if settled else "MISSING",

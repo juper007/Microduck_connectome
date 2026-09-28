@@ -192,6 +192,8 @@ def test_source_receipt_times_control_order_not_journal_delay():
     delayed = json.loads(json.dumps(rows))
     first = original["FIRST_POSE_DEVIATION"]["source_sample_index"]
     delayed[first]["host_monotonic_ns"] += 500_000_000
+    up_exit = original["UP_EXIT"]["source_sample_index"]
+    delayed[up_exit]["host_monotonic_ns"] += 500_000_000
     assert score.derive_timeline(delayed, PROTOCOL) == original
     assert score.event_relation(original["POLICY_STAND"],
                                 original["FIRST_POSE_DEVIATION"]) == "BEFORE"
