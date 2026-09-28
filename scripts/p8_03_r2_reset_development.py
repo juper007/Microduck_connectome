@@ -56,6 +56,12 @@ def perturbation_pass(trace: dict) -> bool:
             trace.get("stop", {}).get("result") == "PASS")
 
 
+def perturbation_settled(first: dict, second: dict) -> tuple[bool, float, float]:
+    drift = abs(second["pose"]["heading_rad"] - first["pose"]["heading_rad"])
+    remaining_error = abs(pose_deltas(second["pose"])["heading_rad"])
+    return drift <= .005 and remaining_error > .06, drift, remaining_error
+
+
 class PreparationFailure(RuntimeError):
     def __init__(self, trace: dict, reason: str):
         super().__init__(reason)
@@ -256,7 +262,7 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
 def run(output: Path, head: str, kind: str) -> None:
     expected = PARENT / ({
         "pilot": "p8-03-r2-reset-pilot-v1",
-        "perturbation": "p8-03-r2-alignment-perturbation-v2",
+        "perturbation": "p8-03-r2-alignment-perturbation-v3",
         "qualification": "p8-03-r2-reset-qualification-v1",
     }[kind])
     if output != expected or output.exists():
@@ -278,7 +284,7 @@ def run(output: Path, head: str, kind: str) -> None:
                 "max_duration_s": 1,
                 "max_abs_yaw_rate_radps": .2,
                 "requested_vx_mps": 0, "requested_vy_mps": 0,
-                "evidence_version": "v2",
+                "evidence_version": "v3", "post_perturbation_settle_s": 1,
                 "outside_qualification_and_final_matrix": True}):
         raise RuntimeError("R2 reset protocol/code mismatch")
     config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
@@ -350,6 +356,26 @@ def run(output: Path, head: str, kind: str) -> None:
                 atomic_json(folder / "trace.json", row)
                 if row["perturbation"]["result"] != "PASS":
                     raise RuntimeError("controlled development perturbation failed")
+                settle_start_ns = time.monotonic_ns()
+                time.sleep(1.0)
+                settle_reader = TimedPoseReader(PORT)
+                settle_reader.sock.settimeout(.1)
+                try:
+                    first = pose_row(settle_reader, None)
+                    time.sleep(.05)
+                    second = pose_row(settle_reader, first)
+                finally:
+                    settle_reader.close()
+                settled, drift, remaining_error = perturbation_settled(first, second)
+                row["perturbation_settle"] = {
+                    "start_ns": settle_start_ns,
+                    "completed_ns": time.monotonic_ns(),
+                    "pose_rows": [first, second], "heading_drift_rad": drift,
+                    "remaining_heading_error_rad": remaining_error,
+                    "result": "PASS" if settled else "FAIL"}
+                atomic_json(folder / "trace.json", row)
+                if not settled:
+                    raise RuntimeError("perturbed body not stable and outside guard after settle")
             reader = TimedPoseReader(PORT)
             reader.sock.settimeout(.1)
             try:

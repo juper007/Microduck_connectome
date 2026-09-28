@@ -329,7 +329,8 @@
     "max_abs_yaw_rate_radps": 0.2,
     "requested_vx_mps": 0,
     "requested_vy_mps": 0,
-    "evidence_version": "v2",
+    "evidence_version": "v3",
+    "post_perturbation_settle_s": 1,
     "outside_qualification_and_final_matrix": true
   },
   "preparation": {

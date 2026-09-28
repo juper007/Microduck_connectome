@@ -76,6 +76,16 @@ def test_perturbation_stop_ack_must_precede_one_second_deadline():
     assert not dev.perturbation_pass(dict(trace, stop={"result": "FAIL"}))
 
 
+def test_perturbation_settle_requires_stable_offset_outside_guard():
+    first = {"pose": dict(REFERENCE, heading_rad=REFERENCE["heading_rad"] + .09)}
+    second = {"pose": dict(REFERENCE, heading_rad=REFERENCE["heading_rad"] + .091)}
+    assert dev.perturbation_settled(first, second)[0]
+    second["pose"]["heading_rad"] = REFERENCE["heading_rad"] + .05
+    assert not dev.perturbation_settled(first, second)[0]
+    second["pose"]["heading_rad"] = REFERENCE["heading_rad"] + .097
+    assert not dev.perturbation_settled(first, second)[0]
+
+
 class FixedReader:
     def __init__(self, port):
         self.sock = self

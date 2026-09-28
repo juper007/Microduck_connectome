@@ -70,10 +70,16 @@ the original moving-body precondition and arm checks still apply.
 
 The pilot uses three unnumbered development resets and cannot qualify finals.
 The first perturbation development output, `p8-03-r2-alignment-perturbation-v1`,
-is terminal FAIL: a pose read immediately after the first accepted command did
-not show advancing simulator time. It remains immutable and is excluded from
-the held-out batch. Version 2 waits for the fixed 50 ms control tick before
-reading the post-command pose; the freshness gate remains strict.
+is terminal FAIL: a pose read immediately after the first accepted command
+failed freshness or bounds; the rejected pose was not retained, so unchanged
+simulator time is an inference from timing. It remains immutable and is
+excluded from the held-out batch. Version 2 waited for the fixed 50 ms tick,
+then failed the corrective path after its first negative command: the next
+fresh pose increased error by 0.016366 rad. Residual motion after the deliberate
+turn is a plausible cause, not a proven yaw-sign error. Version 3 adds a fixed
+one-second post-perturbation settle and requires a stable offset still outside
+the guard before attempting correction. Both earlier outputs remain terminal
+FAIL and cannot count toward qualification.
 If those resets never require alignment, a separate two-reset development
 perturbation deliberately turns the body once in each yaw direction by at
 least 0.09 rad through bounded high-level robotd intent, stops, then runs the
@@ -119,7 +125,7 @@ python3.12 -B scripts/p8_03_r2_reset_development.py --kind pilot --reviewed-head
 
 If the reviewed pilot PASSes and the protocol/code are frozen on a newly
 reviewed exact head, run `--kind perturbation` with
-`p8-03-r2-alignment-perturbation-v2` as output, then run
+`p8-03-r2-alignment-perturbation-v3` as output, then run
 `--kind qualification` with
 `p8-03-r2-reset-qualification-v1` as output. Do not infer qualification from
 the pilot or launch a final seed from a protocol without a PASS gate.
