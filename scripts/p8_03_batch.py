@@ -22,7 +22,7 @@ from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_r1_durability import (
     checkpoint as r1_checkpoint, load_protocol, reconcile,
     run_child as r1_run_child, atomic_json as r1_atomic_json,
-    stop_orphan_children, process_start_ticks)
+    stop_orphan_children, process_start_ticks, supervisor_liveness)
 from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
@@ -61,15 +61,17 @@ def recover_only(root: Path) -> dict:
     """Never rewrite an interrupted journal or guess whether a trial was armed."""
     journal = json.loads((root / "batch-journal.json").read_text())
     if journal.get("schema_version") == "p8-03-r1-batch-journal-v1":
-        parent_pid = journal.get("supervisor_pid")
-        if (type(parent_pid) is int and process_start_ticks(parent_pid) is not None and
-                process_start_ticks(parent_pid) == journal.get("supervisor_start_ticks")):
+        liveness = supervisor_liveness(journal.get("supervisor_pid"),
+                                       journal.get("supervisor_start_ticks"))
+        if liveness != "ABSENT":
             return {"schema_version": "p8-03-r1-recovery-v1",
-                    "result": "REFUSED_ACTIVE_SUPERVISOR",
-                    "supervisor_pid": parent_pid}
+                    "result": "REFUSED_" + liveness + "_SUPERVISOR",
+                    "supervisor_pid": journal.get("supervisor_pid")}
+        if (root / "recovery-report.json").exists():
+            return {"schema_version": "p8-03-r1-recovery-v1",
+                    "result": "REFUSED_ALREADY_RECOVERED"}
         report = reconcile(root, journal)
-        if any(state in ("ACTIVE", "UNKNOWN_ARM")
-               for state in report["states"].values()):
+        if journal.get("result") == "RUNNING" or journal.get("final_sim_down") is None:
             source = Path(journal["source_path"])
             config = json.loads((source / "config/p8_03_r1_execution_v1.json").read_text())
             cleanup = {"emergency_stop": emergency_stop(
@@ -100,6 +102,7 @@ def recover_only(root: Path) -> dict:
                     cleanup["probe"].get("result") == "PASS") else "FAIL"
             report["cleanup"] = cleanup
             report["post_cleanup_states"] = reconcile(root, journal)["states"]
+        report["result"] = "FAIL"
         r1_atomic_json(root / "recovery-report.json", report)
         journal["result"] = "FAIL"
         checkpoint(root, journal)
@@ -265,6 +268,10 @@ def run(args) -> dict:
         append_audit(args.audit, report)
         return report
     master, config, rows, preflight_record = preflight(args)
+    supervisor_ticks = process_start_ticks(os.getpid()) if args.r1 else None
+    if args.r1:
+        require(supervisor_ticks is not None,
+                "cannot durably identify R1 supervisor")
     output = args.output
     output.mkdir(parents=True, exist_ok=False)
     journal = {"schema_version": "p8-03-r1-batch-journal-v1" if args.r1 else
@@ -278,7 +285,7 @@ def run(args) -> dict:
         journal["config_sha256"] = sha(args.root / "config/p8_03_r1_execution_v1.json")
         journal["protocol_sha256"] = sha(args.root / "config/p8_03_r1_protocol_v1.json")
         journal["supervisor_pid"] = os.getpid()
-        journal["supervisor_start_ticks"] = process_start_ticks(os.getpid())
+        journal["supervisor_start_ticks"] = supervisor_ticks
     scenario = json.loads((args.root / "config/looming_scenario_v1.json").read_text())
     tolerance = scenario["initial_pose_tolerance"]
     if args.stage == "R":

@@ -123,12 +123,55 @@ class DurabilityTests(unittest.TestCase):
                    "stage": "S", "source_head": "a" * 40, "ids": []}
         raw = json.dumps(journal).encode()
         (self.root / "batch-journal.json").write_bytes(raw)
-        with patch("scripts.p8_03_batch.process_start_ticks",
-                   return_value="42"):
+        with patch("scripts.p8_03_batch.supervisor_liveness",
+                   return_value="ACTIVE"):
             report = recover_only(self.root)
         self.assertEqual(report["result"], "REFUSED_ACTIVE_SUPERVISOR")
         self.assertEqual((self.root / "batch-journal.json").read_bytes(), raw)
         self.assertFalse((self.root / "recovery-report.json").exists())
+
+    def test_recovery_refuses_unprovable_supervisor(self):
+        journal = {"schema_version": "p8-03-r1-batch-journal-v1",
+                   "supervisor_pid": 1234, "supervisor_start_ticks": None}
+        raw = json.dumps(journal).encode()
+        (self.root / "batch-journal.json").write_bytes(raw)
+        with patch("scripts.p8_03_batch.supervisor_liveness",
+                   return_value="UNPROVABLE"):
+            report = recover_only(self.root)
+        self.assertEqual(report["result"], "REFUSED_UNPROVABLE_SUPERVISOR")
+        self.assertEqual((self.root / "batch-journal.json").read_bytes(), raw)
+
+    def test_prearm_recovery_still_stops_and_probes(self):
+        source = self.root / "source"
+        (source / "config").mkdir(parents=True)
+        execution = {"state_dir": str(self.root / "state"), "body_port": 7895,
+                     "microduck_rl_path": str(self.root / "rl"),
+                     "sim_executable": str(self.root / "sim")}
+        (source / "config/p8_03_r1_execution_v1.json").write_text(
+            json.dumps(execution))
+        journal = {"schema_version": "p8-03-r1-batch-journal-v1",
+                   "supervisor_pid": 1234, "supervisor_start_ticks": "42",
+                   "source_path": str(source), "stage": "S",
+                   "source_head": "a" * 40, "config_sha256": "b" * 64,
+                   "result": "RUNNING", "final_sim_down": None,
+                   "ids": [{"trial_id": "RS00", "seed": 887200,
+                            "attempts": [self.attempt]}]}
+        checkpoint(self.root, journal, artifact_state="RUNNING")
+        with patch("scripts.p8_03_batch.supervisor_liveness",
+                   return_value="ABSENT"), patch(
+                       "scripts.p8_03_batch.emergency_stop",
+                       return_value={"result": "PASS"}), patch(
+                       "scripts.p8_03_batch.stop_orphan_children",
+                       return_value=[]), patch(
+                       "scripts.p8_03_batch.r1_run_child",
+                       return_value=(0, False)), patch(
+                       "scripts.p8_03_batch.probe_final_sim_state",
+                       return_value={"result": "PASS"}):
+            report = recover_only(self.root)
+        self.assertEqual(report["states"]["RS00/attempt-01"], "PRE_ARM")
+        self.assertEqual(report["cleanup"]["result"], "PASS")
+        self.assertEqual(report["result"], "FAIL")
+        self.assertEqual(manifest_check(self.root)["result"], "PASS")
 
     def test_scientific_matrix_only_changes_identity(self):
         root = Path(__file__).resolve().parents[1]

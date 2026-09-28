@@ -78,6 +78,22 @@ def process_start_ticks(pid: int) -> str | None:
         return None
 
 
+def supervisor_liveness(pid: object, expected_ticks: object) -> str:
+    """ACTIVE, ABSENT, or UNPROVABLE; never equate unreadable with absent."""
+    if type(pid) is not int or not isinstance(expected_ticks, str) or not expected_ticks:
+        return "UNPROVABLE"
+    try:
+        os.stat(f"/proc/{pid}")
+    except FileNotFoundError:
+        return "ABSENT"
+    except OSError:
+        return "UNPROVABLE"
+    current = process_start_ticks(pid)
+    if current is None:
+        return "UNPROVABLE"
+    return "ACTIVE" if current == expected_ticks else "ABSENT"
+
+
 def process_state(folder: Path) -> str:
     """ACTIVE, QUIESCENT, or UNKNOWN for all recorded attempt children."""
     records = list(folder.glob("*.process.json"))

@@ -90,6 +90,10 @@ the command. A supervisor death during the launch-to-PID-record gap
 therefore prevents the child from arming; recovery still reports UNKNOWN_ARM
 for that gap and performs stop/down/probe. Recovery refuses to touch a
 batch whose recorded supervisor PID and process start identity are alive.
+An unreadable or missing recorded identity also blocks recovery writes.
+After verified supervisor death, recovery performs stop/down/probe even
+for a provably PRE_ARM attempt; arm classification and simulator cleanup
+are separate decisions.
 
 Start Thor's authoritative supervisor once with
 `python3.12 -B scripts/p8_03_r1_remote.py start --state <unused-root> --
