@@ -186,6 +186,54 @@ def test_fsync_failure_prevents_pose_evaluation():
         journal.close()
 
 
+def test_new_directory_parent_is_fsynced_before_any_child_write():
+    if os.name == "nt":
+        return  # Directory-fsync semantics are exercised on Thor/Linux.
+    with tempfile.TemporaryDirectory() as directory:
+        parent = Path(directory)
+        child = parent / "A00"
+        events = []
+        real_fsync = os.fsync
+        def fsync_spy(fd):
+            events.append(os.readlink(f"/proc/self/fd/{fd}") if os.name != "nt" else "fsync")
+            return real_fsync(fd)
+        with mock.patch.object(runner.os, "fsync", side_effect=fsync_spy):
+            runner.durable_mkdir(child)
+            journal = runner.SampleJournal(child / "samples.jsonl")
+            journal.close()
+        assert child.is_dir()
+        assert len(events) >= 2
+        if os.name != "nt":
+            assert events[0] == str(parent)
+            assert events[1] == str(child)
+
+
+def test_frozen_robotd_clock_aborts_after_fsynced_pose():
+    with tempfile.TemporaryDirectory() as directory:
+        journal = runner.SampleJournal(Path(directory) / "samples.jsonl")
+        now = time.monotonic_ns()
+        base = pose(1., now - 150_000_000)
+        journal.append("pose", baseline_payload(base))
+        journal.last_robot_t_ns = 123
+        journal.last_robot_advance_ns = now - 150_000_000
+        reader = mock.Mock()
+        reader.read.return_value = pose(1.15, now)
+        stream, health, health_cache = telemetry(now)
+        stream.latest["t_ns"] = 123
+        try:
+            runner.sampled(reader, stream, journal, health, base, health_cache,
+                           {}, phase="pulse:0", moving=True)
+        except runner.SafetyAbort as error:
+            assert error.trigger["reason"] == "robotd_clock_frozen"
+            assert error.trigger["trigger_sample_index"] == 1
+        else:
+            raise AssertionError("frozen robotd clock was accepted")
+        journal.close()
+        raw = [json.loads(line) for line in
+               (Path(directory) / "samples.jsonl").read_text().splitlines()]
+        assert raw[-1]["pose"] == reader.read.return_value
+
+
 def test_response_classes_keep_safety_separate():
     assert classify("positive_low", .001, .005, "VALID") == "INCONCLUSIVE"
     assert classify("positive_low", -.006, .005, "VALID") == "WRONG_SIGN"

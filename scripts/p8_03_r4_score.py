@@ -133,6 +133,19 @@ def verify_trace(record: dict, expected: dict, journal_rows: list[dict]) -> tupl
     poses = {row["sample_index"]: row for row in journal_rows if row.get("kind") == "pose"}
     if not poses:
         return False, "no raw pose"
+    last_robot_t = None
+    last_advance_ns = None
+    for pose_row in poses.values():
+        robot_t = pose_row.get("robot_t_ns")
+        response_ns = pose_row.get("pose", {}).get("response_ns")
+        if type(robot_t) is not int or not _finite(response_ns):
+            break  # The aborting row itself can document malformed telemetry.
+        if last_robot_t is None or robot_t > last_robot_t:
+            last_robot_t, last_advance_ns = robot_t, response_ns
+        elif robot_t < last_robot_t or response_ns - last_advance_ns > 100_000_000:
+            if record.get("result") != "SAFETY_ABORT" or pose_row["sample_index"] != record.get("trigger", {}).get("trigger_sample_index"):
+                return False, "robotd clock failed before trigger"
+            break
     if record.get("result") == "SAFETY_ABORT":
         trigger = record.get("trigger")
         if not isinstance(trigger, dict):

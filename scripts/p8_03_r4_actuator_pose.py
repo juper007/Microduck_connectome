@@ -85,6 +85,17 @@ def atomic_json(path: Path, data: dict) -> None:
         os.close(fd)
 
 
+def durable_mkdir(path: Path) -> None:
+    path.mkdir(parents=False, exist_ok=False)
+    if os.name == "nt":
+        return  # R4 execution is pinned to Thor/Linux; Windows supports local logic tests.
+    fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 class SafetyAbort(RuntimeError):
     def __init__(self, reason: str, current: dict, previous: dict | None,
                  measured: float | None, threshold: float | None):
@@ -107,6 +118,8 @@ class SampleJournal:
         self.next_index = 0
         self.last_pose: dict | None = None
         self.first_pose: dict | None = None
+        self.last_robot_t_ns: int | None = None
+        self.last_robot_advance_ns: int | None = None
         if os.name != "nt":
             directory_fd = os.open(path.parent, os.O_RDONLY)
             try:
@@ -305,6 +318,18 @@ def sampled(reader: TimedPoseReader, stream: StateStream, journal: SampleJournal
         time.sleep(.002)
     if state is None or state_received_ns is None or pose["response_ns"] - state_received_ns > 100_000_000:
         raise SafetyAbort("robotd_state_stale", row, previous, None, .1)
+    robot_t_ns = row["robot_t_ns"]
+    if type(robot_t_ns) is not int:
+        raise SafetyAbort("robotd_clock_malformed", row, previous, None, None)
+    if journal.last_robot_t_ns is None or robot_t_ns > journal.last_robot_t_ns:
+        journal.last_robot_t_ns = robot_t_ns
+        journal.last_robot_advance_ns = pose["response_ns"]
+    elif robot_t_ns < journal.last_robot_t_ns:
+        raise SafetyAbort("robotd_clock_regressed", row, previous,
+                          robot_t_ns - journal.last_robot_t_ns, 0.)
+    elif pose["response_ns"] - journal.last_robot_advance_ns > 100_000_000:
+        raise SafetyAbort("robotd_clock_frozen", row, previous,
+                          (pose["response_ns"] - journal.last_robot_advance_ns) / 1e9, .1)
     if not isinstance(state.get("safety"), dict) or not isinstance(state.get("move"), dict):
         raise SafetyAbort("robotd_state_malformed", row, previous, None, None)
     if state["safety"].get("fallen") or state["safety"].get("limp"):
@@ -486,7 +511,7 @@ def run(output: Path, reviewed_head: str) -> None:
     preprobe = probe_final_sim_state(STATE, PORT, phase="r4_preflight")
     if preprobe["result"] != "PASS":
         raise RuntimeError("dedicated simulator state is occupied")
-    output.mkdir(parents=True, exist_ok=False)
+    durable_mkdir(output)
     start_ticks = process_start_ticks()
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
@@ -509,7 +534,7 @@ def run(output: Path, reviewed_head: str) -> None:
     records = []
     for item in matrix(protocol):
         folder = output / item["id"]
-        folder.mkdir()
+        durable_mkdir(folder)
         row = dict(item, source_head=reviewed_head, result="RUNNING",
                    started_ns=time.monotonic_ns())
         atomic_json(folder / "trace.json", row)
