@@ -58,6 +58,35 @@ def checkpoint(root: Path, journal: dict) -> None:
         "source_head": journal["source_head"], "files": inventory(root)})
 
 
+def r1_final_cleanup(output: Path, journal: dict, sim_executable: Path,
+                     sim_state: Path, body_port: int, env: dict,
+                     *, interrupted: bool, error: str | None = None) -> dict:
+    """Shared production/development stop, down, probe and checkpoints."""
+    if interrupted:
+        journal["interrupt_stop"] = emergency_stop(sim_state / "duck-a.sock")
+        checkpoint(output, journal)
+    final = {}
+    try:
+        code, was_interrupted = r1_run_child(
+            [str(sim_executable), "down"], output / "final-down.log", env,
+            created=lambda: checkpoint(output, journal))
+        final.update({"exit": code, "interrupted": was_interrupted,
+                      "sha256": sha(output / "final-down.log")})
+    except BaseException as exc:
+        final["error"] = f"{type(exc).__name__}: {exc}"
+    try:
+        probe = probe_final_sim_state(sim_state, body_port, phase="final_down")
+    except BaseException as exc:
+        probe = {"result": "FAIL", "error": f"{type(exc).__name__}: {exc}"}
+    r1_atomic_json(output / "final-state-probe.json", probe)
+    final["state_probe_result"] = probe["result"]
+    final["state_probe_sha256"] = sha(output / "final-state-probe.json")
+    journal["final_sim_down"] = final
+    journal["error"] = error
+    checkpoint(output, journal)
+    return final
+
+
 def recover_only(root: Path) -> dict:
     """Never rewrite an interrupted journal or guess whether a trial was armed."""
     journal = json.loads((root / "batch-journal.json").read_text())
@@ -424,29 +453,32 @@ def run(args) -> dict:
                 item["status"] = "INTERRUPTED_UNKNOWN_ARM"
         checkpoint(output, journal)
     finally:
-        if interrupted:
-            journal["interrupt_stop"] = emergency_stop(args.sim_state / "duck-a.sock")
+        if args.r1:
+            final = r1_final_cleanup(output, journal, args.sim_executable,
+                                     args.sim_state, args.body_port, env,
+                                     interrupted=interrupted, error=error)
+        else:
+            if interrupted:
+                journal["interrupt_stop"] = emergency_stop(args.sim_state / "duck-a.sock")
+                checkpoint(output, journal)
+            final = {}
+            try:
+                code, was_interrupted = run_child([str(args.sim_executable), "down"],
+                                                  output / "final-down.log", env)
+                final.update({"exit": code, "interrupted": was_interrupted,
+                              "sha256": sha(output / "final-down.log")})
+            except BaseException as exc:
+                final["error"] = f"{type(exc).__name__}: {exc}"
+            try:
+                probe = probe_final_sim_state(args.sim_state, args.body_port, phase="final_down")
+            except BaseException as exc:
+                probe = {"result": "FAIL", "error": f"{type(exc).__name__}: {exc}"}
+            atomic_json(output / "final-state-probe.json", probe)
+            final["state_probe_result"] = probe["result"]
+            final["state_probe_sha256"] = sha(output / "final-state-probe.json")
+            journal["final_sim_down"] = final
+            journal["error"] = error
             checkpoint(output, journal)
-        final = {}
-        try:
-            runner = r1_run_child if args.r1 else run_child
-            extra = {"created": lambda: checkpoint(output, journal)} if args.r1 else {}
-            code, was_interrupted = runner([str(args.sim_executable), "down"],
-                                           output / "final-down.log", env, **extra)
-            final.update({"exit": code, "interrupted": was_interrupted,
-                          "sha256": sha(output / "final-down.log")})
-        except BaseException as exc:
-            final["error"] = f"{type(exc).__name__}: {exc}"
-        try:
-            probe = probe_final_sim_state(args.sim_state, args.body_port, phase="final_down")
-        except BaseException as exc:
-            probe = {"result": "FAIL", "error": f"{type(exc).__name__}: {exc}"}
-        atomic_json(output / "final-state-probe.json", probe)
-        final["state_probe_result"] = probe["result"]
-        final["state_probe_sha256"] = sha(output / "final-state-probe.json")
-        journal["final_sim_down"] = final
-        journal["error"] = error
-        checkpoint(output, journal)
     try:
         score = score_batch(output, master, args.stage)
     except BaseException as exc:

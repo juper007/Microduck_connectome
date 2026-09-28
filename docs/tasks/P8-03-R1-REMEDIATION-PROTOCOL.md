@@ -176,7 +176,11 @@ PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py finalize --output "$OUT"
 
 `prepare` runs A/B/C/E/F with distinct development-only IDs/seeds;
 C starts the official simulator only at the isolated development state/port
-and records authentic stop, down and probe. D uses a detached synthetic
+after a PASS isolation probe. Its interrupted acquisition invokes the same
+`r1_final_cleanup` callable used by the production batch, recording
+authentic stop, down and probe even if simulator up times out. F invokes
+that same callable with an observed failing synthetic down and retains
+the failed journal/manifest. D uses a detached synthetic
 supervisor across two SSH invocations, rejects duplicate launch, then
 forces termination. `finalize` leaves an evidence manifest and a
 `development-result.json` with independent review PENDING. A reviewer

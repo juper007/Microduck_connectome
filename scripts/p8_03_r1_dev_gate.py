@@ -23,7 +23,7 @@ if str(ROOT) not in sys.path:
 
 from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_batch import emergency_stop, inventory
-from scripts.p8_03_batch import final_gate_pass
+from scripts.p8_03_batch import final_gate_pass, r1_final_cleanup
 from scripts.p8_03_r1_durability import (
     atomic_json, checkpoint, classify_attempt, create_arm_marker,
     durable_directory, load_protocol, reconcile, run_child)
@@ -149,13 +149,31 @@ def prepare(output: Path, head: str) -> None:
                                     "status": "ACQUIRING", "armed": False}]}])
     checkpoint(c, c_journal, artifact_state="ACQUIRING")
     preprobe = probe_final_sim_state(sim_state, port, phase="development_preflight")
-    up = subprocess.run([config["sim_executable"], "up"], env=env,
-                        capture_output=True, timeout=120, check=False)
-    (c / "sim-up.log").write_bytes(up.stdout + up.stderr)
+    atomic_json(c / "preflight-probe.json", preprobe)
+    checkpoint(c, c_journal, artifact_state="PREFLIGHT")
+    if preprobe["result"] != "PASS":
+        save_case(c, "C", 887102, False, {"preprobe": preprobe,
+                                         "up_started": False})
+        checkpoint(c, c_journal, artifact_state="PREFLIGHT_FAIL")
+        raise RuntimeError("development simulator state/port occupied; no up attempted")
+    up_exit = None
+    up_error = None
     interrupted = False
     timer = None
     try:
-        if up.returncode == 0:
+        try:
+            up = subprocess.run([config["sim_executable"], "up"], env=env,
+                                capture_output=True, timeout=120, check=False)
+            up_exit = up.returncode
+            (c / "sim-up.log").write_bytes(up.stdout + up.stderr)
+        except BaseException as exc:
+            up_error = f"{type(exc).__name__}: {exc}"
+            retained = (getattr(exc, "stdout", None) or b"") + (
+                getattr(exc, "stderr", None) or b"")
+            (c / "sim-up.log").write_bytes(retained)
+        checkpoint(c, c_journal, artifact_state="UP_EXITED" if up_exit is not None
+                   else "UP_INTERRUPTED")
+        if up_exit == 0:
             timer = threading.Timer(.4, lambda: os.kill(os.getpid(), signal.SIGINT))
             timer.start()
             try:
@@ -169,23 +187,17 @@ def prepare(output: Path, head: str) -> None:
     finally:
         if timer is not None:
             timer.cancel()
-        stop = emergency_stop(sim_state / "duck-a.sock")
-        down = subprocess.run([config["sim_executable"], "down"], env=env,
-                              capture_output=True, timeout=120, check=False)
-        (c / "final-down.log").write_bytes(down.stdout + down.stderr)
-        probe = probe_final_sim_state(sim_state, port, phase="development_final_down")
+        final = r1_final_cleanup(c, c_journal, Path(config["sim_executable"]),
+                                 sim_state, port, env, interrupted=True,
+                                 error=up_error)
     c_journal["result"] = "FAIL"
-    c_journal["interrupt_stop"] = stop
-    c_journal["final_sim_down"] = {"exit": down.returncode,
-                                   "state_probe_result": probe["result"]}
-    atomic_json(c / "final-state-probe.json", probe)
     checkpoint(c, c_journal, artifact_state="INTERRUPTED")
-    c_details = {"preprobe": preprobe, "up_exit": up.returncode,
-                 "interrupted": interrupted, "stop": stop,
-                 "down_exit": down.returncode, "probe": probe}
-    save_case(c, "C", 887102, preprobe["result"] == "PASS" and
-              up.returncode == 0 and interrupted and stop["result"] == "PASS"
-              and down.returncode == 0 and probe["result"] == "PASS"
+    c_details = {"preprobe": preprobe, "up_exit": up_exit,
+                 "up_error": up_error, "interrupted": interrupted,
+                 "stop": c_journal["interrupt_stop"], "final": final}
+    save_case(c, "C", 887102, up_exit == 0 and interrupted and
+              c_journal["interrupt_stop"]["result"] == "PASS" and
+              final.get("exit") == 0 and final["state_probe_result"] == "PASS"
               and manifest_check(c)["result"] == "PASS", c_details)
     checkpoint(c, c_journal, artifact_state="INTERRUPTED")
 
@@ -212,13 +224,25 @@ def prepare(output: Path, head: str) -> None:
                "reconciled_partial": after})
     checkpoint(e, e_journal, artifact_state="RECOVERED_PARTIAL")
 
-    # F: a nonzero final down cannot be called PASS.
+    # F: the production cleanup path observes a nonzero final down.
     f = case_root(output, "F")
-    (f / "final-down.log").write_text("synthetic down failure\n")
-    f_final = {"exit": 3, "state_probe_result": "PASS"}
-    save_case(f, "F", 887105,
-              not final_gate_pass(False, {"result": "PASS"}, f_final),
-              {"final_down": f_final, "batch_pass": False})
+    fake_down = f / "synthetic-down-failure"
+    fake_down.write_text("#!/usr/bin/env python3\nimport sys\n"
+                         "print('synthetic final-down failure')\nsys.exit(3)\n")
+    fake_down.chmod(0o755)
+    f_journal = dict(journal, result="RUNNING", ids=[
+        {"trial_id": "DF00", "seed": 887105, "attempts": []}])
+    checkpoint(f, f_journal, artifact_state="FINAL_DOWN")
+    f_final = r1_final_cleanup(f, f_journal, fake_down, sim_state, port, env,
+                               interrupted=False)
+    f_pass = final_gate_pass(False, {"result": "PASS"}, f_final)
+    f_journal["result"] = "PASS" if f_pass else "FAIL"
+    checkpoint(f, f_journal, artifact_state="FINAL_DOWN_FAILED")
+    save_case(f, "F", 887105, f_final.get("exit") == 3 and not f_pass
+              and f_journal["result"] == "FAIL" and
+              manifest_check(f)["result"] == "PASS",
+              {"final_down": f_final, "batch_result": f_journal["result"]})
+    checkpoint(f, f_journal, artifact_state="FINAL_DOWN_FAILED")
     atomic_json(output / "preliminary.json", {"source_head": head,
                 "completed_cases": ["A", "B", "C", "E", "F"]})
 

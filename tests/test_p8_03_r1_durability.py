@@ -286,11 +286,30 @@ class DurabilityTests(unittest.TestCase):
         self.assertEqual(rows[0]["state"], "UNKNOWN_IDENTITY")
 
     def test_final_down_failure_is_fail_closed(self):
-        from scripts.p8_03_batch import final_gate_pass
+        from scripts.p8_03_batch import final_gate_pass, r1_final_cleanup
         self.assertFalse(final_gate_pass(False, {"result": "PASS"},
                                          {"exit": 1, "state_probe_result": "PASS"}))
         self.assertFalse(final_gate_pass(False, {"result": "PASS"},
                                          {"exit": 0, "state_probe_result": "FAIL"}))
+        journal = {"schema_version": "p8-03-r1-batch-journal-v1",
+                   "stage": "D", "source_head": "a" * 40,
+                   "result": "RUNNING", "ids": []}
+        checkpoint(self.root, journal, artifact_state="RUNNING")
+        def failed_down(command, log, env, *, created):
+            log.write_text("synthetic failure\n")
+            created()
+            return 3, False
+        with patch("scripts.p8_03_batch.r1_run_child",
+                   side_effect=failed_down), patch(
+                       "scripts.p8_03_batch.probe_final_sim_state",
+                       return_value={"result": "PASS"}):
+            final = r1_final_cleanup(self.root, journal, self.root / "sim",
+                                     self.root / "state", 7896, {},
+                                     interrupted=False)
+        self.assertEqual(final["exit"], 3)
+        self.assertEqual(journal["final_sim_down"]["exit"], 3)
+        self.assertFalse(final_gate_pass(False, {"result": "PASS"}, final))
+        self.assertEqual(manifest_check(self.root)["result"], "PASS")
 
 
 if __name__ == "__main__":
