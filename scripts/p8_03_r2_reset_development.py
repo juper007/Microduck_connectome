@@ -42,6 +42,13 @@ def development_seed(kind: str, index: int, protocol: dict) -> int | None:
     return protocol["development_reset_seeds"][index] if kind == "qualification" else None
 
 
+def perturbation_target_reached(delta: float, direction: int,
+                                now: float, deadline: float) -> bool:
+    if now >= deadline:
+        raise TimeoutError("controlled perturbation exceeded one-second deadline")
+    return direction * delta >= .09
+
+
 class PreparationFailure(RuntimeError):
     def __init__(self, trace: dict, reason: str):
         super().__init__(reason)
@@ -77,10 +84,10 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
         while True:
             delta = pose_deltas(previous["pose"])["heading_rad"] - (
                 pose_deltas(first["pose"])["heading_rad"])
-            if direction * delta >= .09:
+            now = time.monotonic()
+            if perturbation_target_reached(delta, direction, now, deadline):
+                trace["active_phase_s"] = now - start
                 break
-            if time.monotonic() >= deadline:
-                raise TimeoutError("controlled perturbation did not reach 0.09 rad")
             if math.hypot(previous["pose"]["x_m"] - first["pose"]["x_m"],
                           previous["pose"]["y_m"] - first["pose"]["y_m"]) > .03:
                 raise RuntimeError("perturbation translation bound exceeded")
@@ -121,6 +128,7 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
         trace["stop"] = emergency_stop(sock)
     trace["result"] = ("PASS" if "error" not in trace and
                        not trace.get("close_errors") and
+                       trace.get("active_phase_s", 2) < 1.0 and
                        trace["stop"]["result"] == "PASS" else "FAIL")
     return trace
 

@@ -57,6 +57,17 @@ def test_perturbation_never_reuses_qualification_seed():
     assert dev.development_seed("qualification", 0, protocol) == 887400
 
 
+def test_perturbation_target_at_deadline_is_failure():
+    assert dev.perturbation_target_reached(.09, 1, .999, 1.0)
+    assert not dev.perturbation_target_reached(.089, 1, .999, 1.0)
+    try:
+        dev.perturbation_target_reached(.2, 1, 1.0, 1.0)
+    except TimeoutError:
+        pass
+    else:
+        raise AssertionError("late target was accepted")
+
+
 class FixedReader:
     def __init__(self, port):
         self.sock = self
