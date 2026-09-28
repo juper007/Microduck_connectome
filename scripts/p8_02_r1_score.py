@@ -5,7 +5,7 @@ import argparse
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import random
 from statistics import median
 
@@ -221,7 +221,8 @@ def raw_motion_geometry_audit(events: list[dict], first: dict, origin: dict | No
                     "stop_ack": ack_boundary, "stopped_confirmation": stop_boundary}
 
 
-def score_attempt(folder: Path, expected: dict) -> dict:
+def score_attempt(folder: Path, expected: dict, recorded_raw_root: str | None = None,
+                  extracted_raw_root: Path | None = None) -> dict:
     outcome = {"trial_id": expected["trial_id"], "seed": expected["seed"],
                "arm_elapsed_s": expected["arm_elapsed_s"], "success": False,
                "failure_causes": [], "latencies_ms": {}, "raw_accounted": False,
@@ -245,8 +246,20 @@ def score_attempt(folder: Path, expected: dict) -> dict:
                       ("trace.jsonl", "trace_artifact")):
         path = folder / name
         artifact = summary.get(key)
+        recorded_path = artifact.get("path", "") if isinstance(artifact, dict) else ""
+        if recorded_raw_root is None:
+            path_matches = Path(recorded_path).resolve() == path.resolve()
+        else:
+            try:
+                relative = PurePosixPath(recorded_path).relative_to(
+                    PurePosixPath(recorded_raw_root))
+                path_matches = (".." not in relative.parts and relative.parts
+                                and (extracted_raw_root / Path(*relative.parts)).resolve()
+                                == path.resolve())
+            except ValueError:
+                path_matches = False
         if (not path.is_file() or not isinstance(artifact, dict)
-                or Path(artifact.get("path", "")).resolve() != path.resolve()
+                or not path_matches
                 or artifact.get("sha256") != sha(path)):
             outcome["failure_causes"].append(f"raw_hash_or_path_{name}")
             return outcome
@@ -466,7 +479,8 @@ def score_attempt(folder: Path, expected: dict) -> dict:
     return outcome
 
 
-def score_batch(root: Path, protocol: dict, journal: dict) -> dict:
+def score_batch(root: Path, protocol: dict, journal: dict,
+                recorded_raw_root: str | None = None) -> dict:
     """Score only retained armed attempts; every planned ID stays in denominator."""
     stage = journal.get("stage")
     planned = (protocol["development_gate"]["ordered_runs"] if stage == "D"
@@ -489,7 +503,7 @@ def score_batch(root: Path, protocol: dict, journal: dict) -> dict:
         if len(armed) == 1:
             folder = root / row["trial_id"] / armed[0]["name"]
             try:
-                result = score_attempt(folder,row)
+                result = score_attempt(folder,row,recorded_raw_root,root)
             except (OSError,ValueError,KeyError,TypeError,IndexError) as error:
                 result = {"trial_id":row["trial_id"],"seed":row["seed"],"success":False,
                           "raw_accounted":False,"safety_limit_violations":None,"latencies_ms":{},
@@ -528,9 +542,11 @@ def main() -> None:
     ap.add_argument("--raw-root", type=Path, required=True)
     ap.add_argument("--protocol", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
+    ap.add_argument("--recorded-raw-root", help="Original absolute batch root recorded in an immutable extracted archive")
     args = ap.parse_args()
     score = score_batch(args.raw_root, json.loads(args.protocol.read_text()),
-                        json.loads((args.raw_root / "batch-journal.json").read_text()))
+                        json.loads((args.raw_root / "batch-journal.json").read_text()),
+                        args.recorded_raw_root)
     args.output.write_text(json.dumps(score, sort_keys=True, indent=2, allow_nan=False) + "\n",
                            encoding="utf-8", newline="\n")
     print(json.dumps({"result": score["result"], "successes": score["successes"]}))
