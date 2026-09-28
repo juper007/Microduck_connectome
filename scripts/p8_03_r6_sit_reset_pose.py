@@ -134,7 +134,12 @@ class TimedPoseReader:
         self.stream.flush()
         raw = self.stream.readline()
         response_ns = time.monotonic_ns()
-        packet = json.loads(raw)
+        try:
+            packet = json.loads(raw)
+        except (ValueError, UnicodeDecodeError):
+            packet = {}
+        if not isinstance(packet, dict):
+            packet = {}
         trunk, imu = packet.get("trunk"), packet.get("imu")
         quat = imu.get("quat") if isinstance(imu, dict) else None
         sim_time = packet.get("sim_time")
@@ -216,11 +221,14 @@ def check_sample(row: dict, previous: dict | None, protocol: dict) -> tuple[str,
             return "SAFETY_FAIL", "robotd_unhealthy"
         if (pose["response_ns"] - row["state_received_ns"]) / 1e9 > protocol["max_state_age_s"]:
             return "DATA_INTEGRITY_FAIL", "stale_robotd_state"
-        applied = state.get("move", {}).get("applied", {})
-        for key, bound in (("vx", "max_abs_vx_mps"), ("vy", "max_abs_vy_mps"),
-                           ("vyaw", "max_abs_vyaw_radps")):
-            value = applied.get(key)
-            if type(value) in (int, float) and abs(value) > protocol["genuine_safety"][bound]:
+        applied = state.get("move", {}).get("applied")
+        if not isinstance(applied, list) or len(applied) != 3 or not all(
+                type(value) in (int, float) and math.isfinite(value)
+                for value in applied):
+            return "DATA_INTEGRITY_FAIL", "malformed_applied_motion"
+        for value, bound in zip(applied, ("max_abs_vx_mps", "max_abs_vy_mps",
+                                          "max_abs_vyaw_radps")):
+            if abs(value) > protocol["genuine_safety"][bound]:
                 return "SAFETY_FAIL", "unexpected_applied_motion"
     return None
 
@@ -257,6 +265,15 @@ def wait_body(port: int, deadline: float) -> TimedPoseReader:
         except (OSError, TimeoutError, ValueError, json.JSONDecodeError):
             time.sleep(.02)
     raise TimeoutError("body server not reachable during official up")
+
+
+def unix_connectable(path: Path) -> bool:
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
+            probe.settimeout(.1)
+            return probe.connect_ex(str(path)) == 0
+    except OSError:
+        return False
 
 
 def wait_robotd(sock: Path, deadline: float) -> tuple[RobotdClient, StateStream]:
@@ -296,6 +313,9 @@ def run_one(expected: dict, root: Path, protocol: dict, sim: Path,
             journal.add("official_up_started", pid=up.pid)
             deadline = time.monotonic() + 120
             reader = wait_body(port, deadline)
+            row["body_robotd_connectable"] = unix_connectable(sock)
+            journal.add("body_reachable", robotd_socket_connectable=
+                        row["body_robotd_connectable"])
             previous, failure = capture(reader, None, None, journal,
                                         "B_BODY_REACHABLE", 0, previous, protocol)
             if failure:

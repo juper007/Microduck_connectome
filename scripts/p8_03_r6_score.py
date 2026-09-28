@@ -26,6 +26,31 @@ def finite(value) -> bool:
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def raw_pose_matches(pose: dict) -> bool:
+    """Recompute body pose independently from the retained official packet."""
+    try:
+        packet = json.loads(pose["raw_body_packet"])
+        trunk, quat = packet["trunk"], packet["imu"]["quat"]
+        sim_time = packet["sim_time"]
+        if (not isinstance(trunk, list) or len(trunk) != 3 or
+                not isinstance(quat, list) or len(quat) != 4 or
+                not all(finite(v) for v in trunk + quat + [sim_time])):
+            return False
+        w, x, y, z = quat
+        roll = math.atan2(2 * (w*x + y*z), 1 - 2 * (x*x + y*y))
+        pitch = math.asin(max(-1., min(1., 2 * (w*y - z*x))))
+        heading = math.atan2(2 * (w*z + x*y), 1 - 2 * (y*y + z*z))
+        expected = {"sim_time_s": float(sim_time), "x_m": trunk[0],
+                    "y_m": trunk[1], "trunk_z_m": trunk[2],
+                    "roll_rad": roll, "pitch_rad": pitch,
+                    "heading_rad": heading}
+        return (pose["imu_quat_wxyz"] == quat and
+                all(math.isclose(pose[key], value, abs_tol=1e-10, rel_tol=0)
+                    for key, value in expected.items()))
+    except (ValueError, TypeError, KeyError, IndexError):
+        return False
+
+
 def expected_matrix(protocol: dict) -> list[dict]:
     if (protocol.get("schema_version") != "p8-03-r6-sit-reset-pose-v1" or
             protocol.get("development_only") is not True or
@@ -132,6 +157,8 @@ def verify_trace(record: dict, expected: dict, rows: list[dict],
                 len(pose["imu_quat_wxyz"]) != 4 or
                 not finite(row.get("host_monotonic_ns"))):
             return False, "pose packet/timestamp invalid"
+        if not raw_pose_matches(pose):
+            return False, "derived pose disagrees with raw body packet"
         state = row.get("robotd_state")
         if row["checkpoint"] == "B_BODY_REACHABLE":
             if state is not None:
@@ -160,12 +187,31 @@ def verify_trace(record: dict, expected: dict, rows: list[dict],
                 for index, row in enumerate(selected[stage])) or
                 any(b["pose"]["sim_time_s"] <= a["pose"]["sim_time_s"]
                     for a, b in zip(poses, poses[1:])) or
-                [row["checkpoint"] for row in poses[:3]] != [
-                    "B_BODY_REACHABLE", "C_ROBOTD_REACHABLE", "A_UP_COMPLETE"]):
+                [row["checkpoint"] for row in poses] != [
+                    "B_BODY_REACHABLE", "C_ROBOTD_REACHABLE", "A_UP_COMPLETE",
+                    "D_POLICY_LOADED", "E_STOP_ACK", "F_SHORT_SETTLE"] +
+                    ["G_FINAL_PLATEAU"] * protocol["plateau_samples"]):
             return False, "checkpoint order or simulator clock invalid"
-        if (not any(row.get("kind") == "stop_ack" and row.get("result") == "PASS"
-                    for row in rows) or
-                not any(row.get("kind") == "up_complete" for row in rows) or
+        positions = {kind: [i for i, row in enumerate(rows) if row.get("kind") == kind]
+                     for kind in ("reset_start", "official_up_started", "body_reachable", "up_complete",
+                                  "policy_verified", "stop_ack", "cleanup")}
+        if (any(len(values) != 1 for values in positions.values()) or
+                not (positions["reset_start"][0] < positions["official_up_started"][0] <
+                     positions["body_reachable"][0] <
+                     selected["B_BODY_REACHABLE"][0]["sample_index"] <
+                     selected["C_ROBOTD_REACHABLE"][0]["sample_index"] <
+                     positions["up_complete"][0] <
+                     selected["A_UP_COMPLETE"][0]["sample_index"] <
+                     positions["policy_verified"][0] <
+                     selected["D_POLICY_LOADED"][0]["sample_index"] <
+                     positions["stop_ack"][0] <
+                     selected["E_STOP_ACK"][0]["sample_index"] <
+                     selected["F_SHORT_SETTLE"][0]["sample_index"] <
+                     selected["G_FINAL_PLATEAU"][0]["sample_index"] <
+                     positions["cleanup"][0]) or
+                type(rows[positions["body_reachable"][0]].get("robotd_socket_connectable")) is not bool or
+                record.get("body_robotd_connectable") != rows[positions["body_reachable"][0]]["robotd_socket_connectable"] or
+                rows[positions["stop_ack"][0]].get("result") != "PASS" or
                 record.get("checkpoint_metrics") != checkpoint_metrics(views, protocol)):
             return False, "raw lifecycle/derived metrics mismatch"
         return True, "OBSERVED"
@@ -263,24 +309,22 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
                     for stage in ("A_UP_COMPLETE", "G_FINAL_PLATEAU")}
     drift = {f"{a}->{b}": [record["checkpoint_metrics"]["stage_drift"][f"{a}->{b}"]
                             for record, _ in valid] for a, b in PAIRS}
+    stage_associations = {name: {
+        "median_planar_m": statistics.median(v["planar_m"] for v in values),
+        "max_planar_m": max(v["planar_m"] for v in values),
+        "count_over_2mm": sum(v["planar_m"] > .002 for v in values),
+        "sample_count": len(values), "causal_status": "OBSERVATIONAL_ONLY"}
+        for name, values in drift.items() if values}
     root_class = "UNRESOLVED"
-    if valid:
-        stage_peak = {name: max((v["planar_m"] for v in values), default=0.)
-                      for name, values in drift.items()}
-        dominant = max(stage_peak, key=stage_peak.get)
-        if stage_peak[dominant] <= .002:
-            root_class = "SIMULATOR_SPAWN_RESET_VARIABILITY" if any(
-                flags(view["B_BODY_REACHABLE"], protocol) for _, view in valid
-            ) else "UNRESOLVED"
-        else:
-            root_class = {
-                "B_BODY_REACHABLE->C_ROBOTD_REACHABLE": "ROBOTD_STARTUP_MOVEMENT",
-                "C_ROBOTD_REACHABLE->A_UP_COMPLETE": "ROBOTD_STARTUP_MOVEMENT",
-                "A_UP_COMPLETE->D_POLICY_LOADED": "POLICY_LOAD_MOVEMENT",
-                "D_POLICY_LOADED->E_STOP_ACK": "STOP_SETTLE_MOVEMENT",
-                "E_STOP_ACK->F_SHORT_SETTLE": "STOP_SETTLE_MOVEMENT",
-                "F_SHORT_SETTLE->G_FINAL_PLATEAU": "STOP_SETTLE_MOVEMENT",
-            }[dominant]
+    if len(valid) == 48 and all(record.get("body_robotd_connectable") is False
+                                for record, _ in valid):
+        b_poses = [view["B_BODY_REACHABLE"] for _, view in valid]
+        span = max(max(p["x_m"] for p in b_poses) - min(p["x_m"] for p in b_poses),
+                   max(p["y_m"] for p in b_poses) - min(p["y_m"] for p in b_poses))
+        if (span > .005 and all(
+                item["median_planar_m"] <= .002 and item["count_over_2mm"] <= 4
+                for item in stage_associations.values())):
+            root_class = "SIMULATOR_SPAWN_RESET_VARIABILITY_CANDIDATE"
     pass_gate = (complete and len(valid) == 48 and
                  all(check["valid_raw"] and check["result"] == "OBSERVED"
                      for check in checks))
@@ -289,6 +333,7 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
             "attempted": len(records), "valid_resets": len(valid),
             "in_envelope_count": inside, "outside_envelope_count": outside,
             "distributions": distributions, "checkpoint_drift": drift,
+            "stage_associations": stage_associations,
             "reset_to_reset_deltas": reset_deltas,
             "order_diagnostics": order_diagnostics(valid),
             "root_cause_class": root_class if pass_gate else "UNRESOLVED",

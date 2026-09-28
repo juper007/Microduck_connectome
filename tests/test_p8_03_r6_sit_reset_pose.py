@@ -1,6 +1,7 @@
 """R6 contract tests; no simulator or robotd connection is made."""
 import ast
 import json
+import math
 from pathlib import Path
 import statistics
 
@@ -20,8 +21,22 @@ def test_frozen_labels_and_final_envelope():
     assert PROTOCOL["simulator_rng_seeded"] is False
     assert PROTOCOL["unchanged_final_envelope"] == {
         "x_m": .03, "y_m": .03, "trunk_z_m": .025, "heading_rad": .08}
-    assert not set(range(888200, 888230)).intersection(
-        r["development_reset_id"] for r in matrix)
+    labels = {r["development_reset_id"] for r in matrix}
+    assert not set(range(888200, 888230)).intersection(labels)  # R5
+    def referenced_seeds(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == "seed" and type(item) is int:
+                    yield item
+                yield from referenced_seeds(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from referenced_seeds(item)
+    frozen_final = set()
+    for path in (ROOT / "config").glob("p8_*.json"):
+        if path.name != "p8_03_r6_sit_reset_pose_v1.json":
+            frozen_final.update(referenced_seeds(json.loads(path.read_text())))
+    assert labels.isdisjoint(frozen_final)
 
 
 def test_runner_has_no_motion_command_path():
@@ -55,23 +70,39 @@ def test_observed_outside_pose_retained_and_scored(tmp_path):
               "down_before_exit": 0, "up_exit": 0, "policy_load_exit": 0,
               "policy_readback_exit": 0, "initial_stop": {"result": "PASS"},
               "cleanup_stop": {"result": "PASS"}, "down_after_exit": 0,
-              "final_probe": {"result": "PASS"}}
+              "final_probe": {"result": "PASS"},
+              "body_robotd_connectable": False}
+    heading = PROTOCOL["final_reference"]["heading_rad"]
+    quat = [math.cos(heading/2), 0., 0., math.sin(heading/2)]
     pose = {"request_ns": 1, "response_ns": 2, "sim_time_s": 1.,
             "x_m": PROTOCOL["final_reference"]["x_m"] + .031,
             "y_m": PROTOCOL["final_reference"]["y_m"],
             "trunk_z_m": PROTOCOL["final_reference"]["trunk_z_m"],
-            "heading_rad": PROTOCOL["final_reference"]["heading_rad"],
-            "roll_rad": 0., "pitch_rad": 0., "imu_quat_wxyz": [1., 0., 0., 0.],
-            "raw_body_packet": "raw"}
+            "heading_rad": heading,
+            "roll_rad": 0., "pitch_rad": 0., "imu_quat_wxyz": quat}
     folder = tmp_path / "S00"
     folder.mkdir()
     rows = []
+    def event(kind, **fields):
+        rows.append({"sample_index": len(rows), "kind": kind, **fields})
+    event("reset_start")
+    event("official_up_started")
+    event("body_reachable", robotd_socket_connectable=False)
     for i, stage in enumerate(("B_BODY_REACHABLE", "C_ROBOTD_REACHABLE",
                                "A_UP_COMPLETE", "D_POLICY_LOADED", "E_STOP_ACK",
                                "F_SHORT_SETTLE") + ("G_FINAL_PLATEAU",)*21):
         sample = pose | {"request_ns": i*100_000_000+1,
                          "response_ns": i*100_000_000+2,
-                         "sim_time_s": 1+i*.1}
+                         "sim_time_s": 1+i*.1,
+                         "raw_body_packet": json.dumps({
+                             "trunk": [pose["x_m"], pose["y_m"], pose["trunk_z_m"]],
+                             "imu": {"quat": quat}, "sim_time": 1+i*.1})}
+        if stage == "A_UP_COMPLETE":
+            event("up_complete")
+        elif stage == "D_POLICY_LOADED":
+            event("policy_verified")
+        elif stage == "E_STOP_ACK":
+            event("stop_ack", result="PASS")
         rows.append({"sample_index": len(rows), "kind": "pose", "checkpoint": stage,
                      "checkpoint_index": sum(r.get("checkpoint") == stage for r in rows),
                      "host_monotonic_ns": sample["response_ns"], "pose": sample,
@@ -79,11 +110,7 @@ def test_observed_outside_pose_retained_and_scored(tmp_path):
                      "robotd_t_ns": None if stage == "B_BODY_REACHABLE" else i,
                      "state_received_ns": None if stage == "B_BODY_REACHABLE" else sample["response_ns"],
                      "health": None if stage == "B_BODY_REACHABLE" else {}})
-    # Insert actual lifecycle acknowledgments and reindex the durable journal.
-    rows.extend([{"kind": "up_complete"}, {"kind": "stop_ack", "result": "PASS"},
-                 {"kind": "cleanup"}])
-    for i, row in enumerate(rows):
-        row["sample_index"] = i
+    event("cleanup")
     (folder / "samples.jsonl").write_text("".join(json.dumps(r)+"\n" for r in rows))
     record["checkpoint_metrics"] = score.checkpoint_metrics(score.stage_views(rows, PROTOCOL), PROTOCOL)
     report = score.score(PROTOCOL, [record], tmp_path)
@@ -92,6 +119,16 @@ def test_observed_outside_pose_retained_and_scored(tmp_path):
     assert report["in_envelope_count"] == 0
     assert report["per_reset"]["S00"]["final_classification"] == "OUTSIDE_X"
     assert report["result"] == "FAIL"  # incomplete 48-reset matrix, not an envelope abort
+    # Independent scoring rejects a plausible altered derived x with intact raw packet.
+    altered = json.loads(json.dumps(rows))
+    altered[-2]["pose"]["x_m"] = PROTOCOL["final_reference"]["x_m"]
+    assert score.verify_trace(record, matrix[0], altered, PROTOCOL)[0] is False
+    # All seven stage labels and their lifecycle placement are part of validity.
+    altered = json.loads(json.dumps(rows))
+    d = next(r for r in altered if r.get("checkpoint") == "D_POLICY_LOADED")
+    e = next(r for r in altered if r.get("checkpoint") == "E_STOP_ACK")
+    d["checkpoint"], e["checkpoint"] = e["checkpoint"], d["checkpoint"]
+    assert score.verify_trace(record, matrix[0], altered, PROTOCOL)[0] is False
 
 
 def test_observed_pose_only_and_raw_integrity(tmp_path):
@@ -125,3 +162,19 @@ def test_outside_final_envelope_is_not_a_runner_abort():
     row["pose"] = pose | {"roll_rad": .6}
     assert runner.check_sample(row, None, PROTOCOL) == (
         "SAFETY_FAIL", "body_attitude_exceeded")
+
+
+def test_official_applied_motion_list_contract():
+    pose = {"request_ns": 1, "response_ns": 2, "sim_time_s": 1.,
+            "x_m": 0., "y_m": 0., "trunk_z_m": .1,
+            "heading_rad": 0., "roll_rad": 0., "pitch_rad": 0.,
+            "imu_quat_wxyz": [1., 0., 0., 0.]}
+    row = {"checkpoint": "C_ROBOTD_REACHABLE", "pose": pose,
+           "robotd_state": {"safety": {"fallen": False, "limp": False},
+                            "move": {"applied": [0., 0., 0.]}},
+           "health": {"healthy": True, "degraded": False},
+           "state_received_ns": 1}
+    assert runner.check_sample(row, None, PROTOCOL) is None
+    row["robotd_state"]["move"]["applied"] = [.09, 0., 0.]
+    assert runner.check_sample(row, None, PROTOCOL) == (
+        "SAFETY_FAIL", "unexpected_applied_motion")
