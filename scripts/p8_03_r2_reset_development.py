@@ -113,11 +113,18 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
         trace["error"] = f"{type(error).__name__}: {error}"
         raise PreparationFailure(trace, trace["error"]) from error
     finally:
-        command.close()
-        client.close()
+        trace["close_errors"] = []
+        for label, connection in (("command", command), ("health", client)):
+            try:
+                connection.close()
+            except BaseException as error:
+                trace["close_errors"].append(
+                    f"{label}: {type(error).__name__}: {error}")
         trace["final_stop"] = emergency_stop(sock)
     if trace["final_stop"]["result"] != "PASS":
-        raise RuntimeError("post-alignment stop was not acknowledged")
+        raise PreparationFailure(trace, "post-alignment stop was not acknowledged")
+    if trace["close_errors"]:
+        raise PreparationFailure(trace, "connection close failed")
     # Fixed post-stop settling is separate from the subsequent qualification dwell.
     stop_ns = time.monotonic_ns()
     time.sleep(1.0)
