@@ -86,6 +86,18 @@ def test_pose_wait_accepts_next_sim_tick_and_rejects_wrong_policy():
     assert sampled(reader, stream, previous, previous, moving=False)["pose"] == fresh
     assert reader.read.call_count == 2
     reader.read.side_effect = [fresh]
+    try:
+        sampled(reader, stream, previous, previous,
+                moving=True, require_walk=True)
+    except RuntimeError as error:
+        assert "walk policy" in str(error)
+    else:
+        raise AssertionError("stand accepted during active yaw")
+    reader.read.side_effect = [fresh]
+    stream.state.return_value["policy"] = "walk"
+    assert sampled(reader, stream, previous, previous,
+                   moving=True, require_walk=True)["policy"] == "walk"
+    reader.read.side_effect = [fresh]
     stream.state.return_value["policy"] = "sit"
     try:
         sampled(reader, stream, previous, previous, moving=False)

@@ -156,7 +156,7 @@ def validate_pose(row: dict, previous: dict | None, first: dict | None, *, movin
 
 
 def sampled(reader: TimedPoseReader, stream: StateStream, previous: dict | None,
-            first: dict | None, *, moving: bool) -> dict:
+            first: dict | None, *, moving: bool, require_walk: bool = False) -> dict:
     deadline = time.monotonic() + .05
     while True:
         pose = reader.read()
@@ -173,6 +173,8 @@ def sampled(reader: TimedPoseReader, stream: StateStream, previous: dict | None,
         raise RuntimeError("robotd safety fault")
     if state["policy"] not in ("stand", "walk"):
         raise RuntimeError("unexpected robotd policy state")
+    if require_walk and state["policy"] != "walk":
+        raise RuntimeError("walk policy not active during yaw pulse")
     return {"pose": pose, "robot_t_ns": state["t_ns"],
             "requested": state["move"]["requested"],
             "applied": state["move"]["applied"],
@@ -218,7 +220,7 @@ def pulse(reader, stream, command, first, previous, condition: str, number: int,
         for tick in range(10):
             due = started + tick * .02
             time.sleep(max(0, due - time.monotonic()))
-            if time.monotonic() - due > .08:
+            if time.monotonic() - due > .01:
                 raise RuntimeError("50 Hz command refresh deadline exceeded")
             ack, call_ns, write_ns, ack_ns = acknowledged_precondition_move(
                 command, vx=0., vy=0., vyaw=vyaw)
@@ -229,7 +231,8 @@ def pulse(reader, stream, command, first, previous, condition: str, number: int,
                                       "write_ns": write_ns, "ack_ns": ack_ns})
             last_ack_ns = ack_ns
             time.sleep(max(0, due + .015 - time.monotonic()))
-            row = sampled(reader, stream, previous, first, moving=True)
+            row = sampled(reader, stream, previous, first, moving=True,
+                          require_walk=tick >= 2 and vyaw != 0.)
             row["tick"] = tick
             trace["trajectory"].append(row)
             previous = row["pose"] | {"robot_t_ns": row["robot_t_ns"]}
@@ -330,6 +333,14 @@ def trace_integrity(row: dict, expected: dict) -> bool:
             if any(b["ack_ns"] - a["ack_ns"] > 100_000_000
                    for a, b in zip(pulse_row["requests"],
                                    pulse_row["requests"][1:])):
+                return False
+            if any(not 10_000_000 <= b["call_ns"] - a["call_ns"] <= 30_000_000
+                   for a, b in zip(pulse_row["requests"],
+                                   pulse_row["requests"][1:])):
+                return False
+            if expected_yaw != 0. and any(
+                    sample["policy"] != "walk"
+                    for sample in pulse_row["trajectory"][2:]):
                 return False
             if any(any(abs(v) > .005 for v in sample["applied"])
                    for sample in pulse_row["post_stop_trajectory"][9:]):

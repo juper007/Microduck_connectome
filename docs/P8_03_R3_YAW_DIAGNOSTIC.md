@@ -58,7 +58,10 @@ Pre-command simulator and robotd clocks must advance, body-response age must
 be at most 100 ms, health must be nondegraded, and pinned walk policy must be
 loaded. The robotd lifecycle field may be `stand` while stopped and `walk`
 while moving; any other lifecycle state aborts. A body read may wait at most
-50 ms for a newer simulator clock tick. Initial x/y/z must be inside the
+50 ms for a newer simulator clock tick. The first two 20-ms command ticks
+permit the stand-to-walk transition; ticks 3–10 require `walk` for active
+yaw. Command starts must be spaced 10–30 ms apart (50 Hz ±10 ms); missed
+cadence invalidates that reset. Initial x/y/z must be inside the
 unchanged R2 reference envelope;
 initial heading may be up to 0.35 rad from that reference for diagnostic
 inclusion, without qualifying it for P8. Roll and pitch stay within ±0.5 rad,
