@@ -109,17 +109,31 @@ def pose_agrees(row: dict) -> bool:
         return False
 
 
+def source_ns(row: dict) -> int:
+    """Host monotonic receipt time of the source, before journal/fsync latency."""
+    return {"body_sample": lambda: row["pose"]["response_ns"],
+            "robotd_state": lambda: row["received_ns"],
+            "robotd_health": lambda: row["received_ns"],
+            "body_reachable": lambda: row["reached_ns"],
+            "robotd_reachable": lambda: row["connected_ns"],
+            "up_exit": lambda: row["observed_exit_ns"],
+            "process_log": lambda: row["received_ns"]}.get(
+                row["kind"], lambda: row["host_monotonic_ns"])()
+
+
 def _event(name: str, row: dict | None, *, status: str = "OBSERVED",
            preceding: dict | None = None) -> dict:
     if row is None:
         return {"name": name, "status": status, "source_sample_index": None,
                 "host_monotonic_ns": None, "interval_start_ns": None,
                 "interval_end_ns": None}
-    time_ns = row["host_monotonic_ns"]
+    time_ns = source_ns(row)
     return {"name": name, "status": status,
             "source_sample_index": row["sample_index"],
             "host_monotonic_ns": time_ns,
-            "interval_start_ns": (preceding or row)["host_monotonic_ns"],
+            "interval_start_ns": (row["last_alive_poll_ns"]
+                                  if row["kind"] == "up_exit" else
+                                  source_ns(preceding or row)),
             "interval_end_ns": time_ns}
 
 
@@ -134,21 +148,21 @@ def pose_deviates(pose: dict, base: dict, protocol: dict) -> bool:
 
 def settled_candidate(body: list[dict], up_exit_ns: int,
                       protocol: dict) -> dict | None:
-    if not body or body[-1]["host_monotonic_ns"] < up_exit_ns + int(
+    if not body or source_ns(body[-1]) < up_exit_ns + int(
             protocol["post_up_min_capture_s"] * 1e9):
         return None
     window_ns = int(protocol["settle_window_s"] * 1e9)
     for start in body:
-        if start["host_monotonic_ns"] < up_exit_ns + int(.5e9):
+        if source_ns(start) < up_exit_ns + int(.5e9):
             continue
-        end_ns = start["host_monotonic_ns"] + window_ns
-        if end_ns > body[-1]["host_monotonic_ns"]:
+        end_ns = source_ns(start) + window_ns
+        if end_ns > source_ns(body[-1]):
             break
-        window = [r for r in body if start["host_monotonic_ns"] <=
-                  r["host_monotonic_ns"] <= end_ns]
+        window = [r for r in body if source_ns(start) <=
+                  source_ns(r) <= end_ns]
         if (len(window) < 10 or
-                window[-1]["host_monotonic_ns"] -
-                start["host_monotonic_ns"] < window_ns - int(.06e9)):
+                source_ns(window[-1]) -
+                source_ns(start) < window_ns - int(.06e9)):
             continue
         first = start["pose"]
         if all(math.hypot(r["pose"]["x_m"]-first["x_m"],
@@ -227,16 +241,33 @@ def final_flags(pose: dict, protocol: dict) -> list[str]:
          bounds["heading_rad"])) if outside]
 
 
+def event_relation(first: dict, second: dict) -> str:
+    if first["status"] != "OBSERVED" or second["status"] != "OBSERVED":
+        return "NOT_OBSERVED"
+    if first["interval_end_ns"] < second["interval_start_ns"]:
+        return "BEFORE"
+    if second["interval_end_ns"] < first["interval_start_ns"]:
+        return "AFTER"
+    return "ORDER_UNRESOLVED_INTERVAL_OVERLAP"
+
+
 def trial_metrics(rows: list[dict], protocol: dict) -> dict:
     body = [r for r in rows if r["kind"] == "body_sample"]
     states = [r for r in rows if r["kind"] == "robotd_state"]
     timeline = derive_timeline(rows, protocol)
+    event_order = {
+        "POLICY_STAND_vs_FIRST_POSE_DEVIATION": event_relation(
+            timeline["POLICY_STAND"], timeline["FIRST_POSE_DEVIATION"]),
+        "FIRST_NONZERO_APPLIED_vs_FIRST_POSE_DEVIATION": event_relation(
+            timeline["FIRST_NONZERO_APPLIED"], timeline["FIRST_POSE_DEVIATION"]),
+        "FIRST_NONZERO_APPLIED_vs_POLICY_STAND": event_relation(
+            timeline["FIRST_NONZERO_APPLIED"], timeline["POLICY_STAND"])}
     up_ns = timeline["UP_EXIT"]["host_monotonic_ns"]
-    c_ns = states[0]["host_monotonic_ns"] if states else None
+    c_ns = source_ns(states[0]) if states else None
     c = next((r for r in body if c_ns is not None and
-              r["host_monotonic_ns"] >= c_ns), None)
+              source_ns(r) >= c_ns), None)
     a = next((r for r in body if up_ns is not None and
-              r["host_monotonic_ns"] >= up_ns), None)
+              source_ns(r) >= up_ns), None)
     c_to_a = None
     if c and a:
         cp, ap = c["pose"], a["pose"]
@@ -254,12 +285,31 @@ def trial_metrics(rows: list[dict], protocol: dict) -> dict:
                       for key in ("x_m", "y_m", "trunk_z_m")}
         final_pose["heading_rad"] = anchor + statistics.median(
             wrap(r["pose"]["heading_rad"]-anchor) for r in final)
-    return {"timeline": timeline, "c_to_a": c_to_a,
+    trajectory = None
+    if body:
+        base = body[0]["pose"]
+        speeds = [math.hypot(b["pose"]["x_m"]-a["pose"]["x_m"],
+                             b["pose"]["y_m"]-a["pose"]["y_m"]) /
+                  (b["pose"]["sim_time_s"]-a["pose"]["sim_time_s"])
+                  for a, b in zip(body, body[1:])
+                  if b["pose"]["sim_time_s"] > a["pose"]["sim_time_s"]]
+        trajectory = {
+            "peak_planar_from_sit_m": max(math.hypot(
+                r["pose"]["x_m"]-base["x_m"],
+                r["pose"]["y_m"]-base["y_m"]) for r in body),
+            "peak_abs_heading_from_sit_rad": max(abs(wrap(
+                r["pose"]["heading_rad"]-base["heading_rad"])) for r in body),
+            "peak_planar_speed_mps": max(speeds, default=0.),
+            "min_z_m": min(r["pose"]["trunk_z_m"] for r in body),
+            "max_z_m": max(r["pose"]["trunk_z_m"] for r in body)}
+    return {"timeline": timeline, "event_order": event_order,
+            "c_to_a": c_to_a,
+            "trajectory": trajectory,
             "settled_pose": final_pose,
             "final_flags": final_flags(final_pose, protocol) if final_pose else [],
             "body_sample_count": len(body), "robotd_state_count": len(states),
-            "max_body_gap_s": max(((b["host_monotonic_ns"]-
-                                  a["host_monotonic_ns"])/1e9
+            "max_body_gap_s": max(((source_ns(b)-
+                                  source_ns(a))/1e9
                                   for a, b in zip(body, body[1:])), default=None)}
 
 
@@ -278,6 +328,8 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
         return False, "forbidden command path recorded"
     body = [r for r in rows if r["kind"] == "body_sample"]
     states = [r for r in rows if r["kind"] == "robotd_state"]
+    notifications = [r for r in rows if r["kind"] == "robotd_raw_notification"]
+    by_index = {r["sample_index"]: r for r in rows}
     if not body:
         return False, "no durable body samples"
     for index, r in enumerate(body):
@@ -293,15 +345,31 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
     for index, r in enumerate(states):
         try:
             state = json.loads(r["raw_state_line"])
+            raw_source = by_index.get(r.get("raw_notification_index"))
             if (r.get("state_index") != index or state.get("method") != "robot.state" or
                     state["params"] != r["state"] or
+                    raw_source is None or raw_source["kind"] != "robotd_raw_notification" or
+                    raw_source["sample_index"] >= r["sample_index"] or
+                    raw_source["raw_line"] != r["raw_state_line"] or
+                    raw_source["received_ns"] != r["received_ns"] or
                     not finite(r["state"]["t_ns"]) or
                     not isinstance(r["state"].get("move", {}).get("applied"), list) or
                     len(r["state"]["move"]["applied"]) != 3):
                 return False, "robotd state raw/index invalid"
         except (KeyError, TypeError, ValueError):
             return False, "robotd state unreadable"
-    by_index = {r["sample_index"]: r for r in rows}
+    paired_notifications = {r.get("raw_notification_index") for r in states}
+    for notification in notifications:
+        try:
+            parsed = json.loads(notification["raw_line"])
+            if not isinstance(parsed, dict):
+                raise ValueError("notification is not an object")
+            if (parsed.get("method") == "robot.state" and
+                    notification["sample_index"] not in paired_notifications):
+                return False, "unpaired raw robotd state notification"
+        except (ValueError, TypeError):
+            if record.get("result") == "OBSERVED":
+                return False, "malformed raw robotd notification in observed trial"
     for sample in body:
         state_ref = sample.get("snapshot_state_index")
         health_ref = sample.get("snapshot_health_index")
@@ -331,6 +399,11 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
             len(states) < 10 or len(body) < 50 or
             record.get("capture_end_reason") != "STAND_SETTLED"):
         return False, "successful lifecycle/capture incomplete"
+    if any(source_ns(r) > r["host_monotonic_ns"] for r in rows
+           if r["kind"] in ("body_sample", "robotd_state", "robotd_health",
+                            "body_reachable", "robotd_reachable", "up_exit",
+                            "process_log")):
+        return False, "source timestamp after durable journal timestamp"
     kinds = ("reset_start", "official_down", "official_up_started",
              "body_reachable", "robotd_reachable", "up_exit",
              "capture_end", "cleanup")
@@ -343,43 +416,54 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
                  loc["up_exit"][0] < loc["capture_end"][0] < loc["cleanup"][0]) or
             rows[loc["official_down"][0]].get("exit") != 0 or
             rows[loc["up_exit"][0]].get("exit") != 0 or
-            body[-1]["host_monotonic_ns"] <
-            rows[loc["up_exit"][0]]["host_monotonic_ns"] + int(
+            not finite(rows[loc["up_exit"][0]].get("last_alive_poll_ns")) or
+            rows[loc["up_exit"][0]]["last_alive_poll_ns"] >
+            source_ns(rows[loc["up_exit"][0]]) or
+            source_ns(body[-1]) <
+            source_ns(rows[loc["up_exit"][0]]) + int(
                 protocol["post_up_min_capture_s"] * 1e9)):
         return False, "lifecycle event order/timing invalid"
-    if (body[0]["host_monotonic_ns"] -
-            rows[loc["body_reachable"][0]]["host_monotonic_ns"] >
+    if (source_ns(body[0]) -
+            source_ns(rows[loc["body_reachable"][0]]) >
             protocol["max_body_gap_s"] * 1e9 or
-            any((b["host_monotonic_ns"]-a["host_monotonic_ns"]) >
+            any((source_ns(b)-source_ns(a)) >
                 protocol["max_body_gap_s"] * 1e9
                 for a, b in zip(body, body[1:])) or
             any(b["pose"]["sim_time_s"] < a["pose"]["sim_time_s"]
                 for a, b in zip(body, body[1:]))):
         return False, "continuous body capture gap/clock failure"
-    if (states[0]["host_monotonic_ns"] <
-            rows[loc["robotd_reachable"][0]]["host_monotonic_ns"] or
+    if (source_ns(states[0]) <
+            source_ns(rows[loc["robotd_reachable"][0]]) or
             any(b["state"]["t_ns"] < a["state"]["t_ns"] or
-                b["host_monotonic_ns"]-a["host_monotonic_ns"] >
+                source_ns(b)-source_ns(a) >
                 protocol["max_robotd_state_age_s"] * 1e9
                 for a, b in zip(states, states[1:])
-                if b["host_monotonic_ns"] <=
-                rows[loc["up_exit"][0]]["host_monotonic_ns"])):
+                if source_ns(b) <=
+                source_ns(rows[loc["up_exit"][0]]))):
         return False, "robotd state stream gap/clock failure"
-    reached_ns = rows[loc["robotd_reachable"][0]]["host_monotonic_ns"]
+    reached_ns = source_ns(rows[loc["robotd_reachable"][0]])
     if any(sample.get("snapshot_state_index") is None or
            sample.get("snapshot_health_index") is None or
-           sample["host_monotonic_ns"] - by_index[
-               sample["snapshot_state_index"]]["host_monotonic_ns"] >
+           source_ns(sample) - source_ns(by_index[
+               sample["snapshot_state_index"]]) >
                protocol["max_robotd_state_age_s"] * 1e9 or
-           sample["host_monotonic_ns"] - by_index[
-               sample["snapshot_health_index"]]["host_monotonic_ns"] >
+           source_ns(sample) - source_ns(by_index[
+               sample["snapshot_health_index"]]) >
                protocol["max_health_age_s"] * 1e9
-           for sample in body if sample["host_monotonic_ns"] > reached_ns +
+           for sample in body if source_ns(sample) > reached_ns +
            int(.25e9)):
         return False, "body has stale or missing robotd snapshot"
     if not any(r["kind"] == "process_log" and
                "standing up" in r.get("line", "") for r in rows):
         return False, "official stand lifecycle log absent"
+    snapshots = [r for r in rows if r["kind"] == "daemon_log_snapshot"]
+    if (len(snapshots) != 2 or
+            {r.get("source") for r in snapshots} != {"body.log", "duck-a.log"} or
+            any(type(r.get("available")) is not bool or
+                not finite(r.get("captured_ns")) or
+                r["captured_ns"] > r["host_monotonic_ns"]
+                for r in snapshots)):
+        return False, "daemon log availability evidence missing"
     timeline = derive_timeline(rows, protocol)
     if (any(timeline[name]["status"] != "OBSERVED" for name in (
             "BODY_REACHABLE", "ROBOTD_REACHABLE", "POLICY_HELD",
@@ -407,6 +491,17 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
         try:
             rows = read_journal(root / plan["id"] / "samples.jsonl")
             good, reason = verify_trial(record, plan, rows, protocol)
+            if good and record.get("result") == "OBSERVED":
+                for snapshot in (r for r in rows if r["kind"] == "daemon_log_snapshot"):
+                    path = root / plan["id"] / f"official-{snapshot['source']}"
+                    if snapshot["available"]:
+                        if (not path.is_file() or path.stat().st_size != snapshot.get("bytes") or
+                                hashlib.sha256(path.read_bytes()).hexdigest() != snapshot.get("sha256")):
+                            good, reason = False, "daemon log snapshot/file mismatch"
+                            break
+                    elif path.exists():
+                        good, reason = False, "daemon log unexpectedly present"
+                        break
         except (OSError, ValueError, TypeError, KeyError) as error:
             good, reason, rows = False, f"raw unreadable: {error}", []
         checks.append({"id": plan["id"], "valid_raw": good,
@@ -420,17 +515,12 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
     c_to_a = [m["c_to_a"] for _, m in valid if m["c_to_a"]]
     event_order = {}
     for _, metrics in valid:
-        t = metrics["timeline"]
-        policy, pose = t["POLICY_STAND"], t["FIRST_POSE_DEVIATION"]
-        if policy["interval_end_ns"] < pose["interval_start_ns"]:
-            category = "POLICY_STAND_BEFORE_POSE"
-        elif pose["interval_end_ns"] < policy["interval_start_ns"]:
-            category = "POSE_BEFORE_POLICY_STAND"
-        else:
-            category = "ORDER_UNRESOLVED_INTERVAL_OVERLAP"
-        event_order[category] = event_order.get(category, 0) + 1
+        for pair, relation in metrics["event_order"].items():
+            category = f"{pair}:{relation}"
+            event_order[category] = event_order.get(category, 0) + 1
     root_class = "UNRESOLVED"
-    if len(valid) == 96 and event_order.get("POLICY_STAND_BEFORE_POSE", 0) >= 87:
+    if len(valid) == 96 and event_order.get(
+            "POLICY_STAND_vs_FIRST_POSE_DEVIATION:BEFORE", 0) >= 87:
         root_class = "B_ROBOTD_STAND_TRANSITION_ASSOCIATED"
     passed = complete and len(valid) == 96 and all(
         c["valid_raw"] and c["result"] == "OBSERVED" for c in checks)
@@ -451,6 +541,15 @@ def score(protocol: dict, records: list[dict], root: Path) -> dict:
                            "median_policy_to_pose_s": statistics.median(
                                (m["timeline"]["FIRST_POSE_DEVIATION"]["host_monotonic_ns"] -
                                 m["timeline"]["POLICY_STAND"]["host_monotonic_ns"])/1e9
+                               for m in values) if values else None,
+                           "median_peak_planar_from_sit_m": statistics.median(
+                               m["trajectory"]["peak_planar_from_sit_m"]
+                               for m in values) if values else None,
+                           "median_peak_abs_heading_from_sit_rad": statistics.median(
+                               m["trajectory"]["peak_abs_heading_from_sit_rad"]
+                               for m in values) if values else None,
+                           "median_peak_planar_speed_mps": statistics.median(
+                               m["trajectory"]["peak_planar_speed_mps"]
                                for m in values) if values else None}
                                   for name, values in groups.items()}}
     return {"schema_version": "p8-03-r7-raw-score-v1",

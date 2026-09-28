@@ -27,13 +27,16 @@ def synthetic_trial():
     add("reset_start", BASE)
     add("official_down", BASE+1_000_000, exit=0)
     add("official_up_started", BASE+2_000_000, pid=123)
-    add("body_reachable", BASE+4_000_000, body_port=7900)
+    add("body_reachable", BASE+4_000_000, body_port=7900,
+        reached_ns=BASE+3_900_000)
     for i in range(121):
         t = BASE + i*TICK
         if i == 1:
-            add("robotd_reachable", t, socket_path="/tmp/duck-a.sock")
+            add("robotd_reachable", t, socket_path="/tmp/duck-a.sock",
+                connected_ns=t-100_000)
         if i == 5:
-            add("process_log", t, line="standing up", stream="official_up_combined")
+            add("process_log", t, line="standing up", stream="official_up_combined",
+                received_ns=t-100_000)
         if i:
             state = {"t_ns": i*TICK, "policy": "held" if i < 5 else "stand",
                      "move": {"requested": [0., 0., 0.], "applied": [0., 0., 0.],
@@ -42,9 +45,12 @@ def synthetic_trial():
                      "joints": [0.01*i]*15, "targets": [0.01*i]*15}
             raw = json.dumps({"jsonrpc": "2.0", "method": "robot.state",
                               "params": state}, sort_keys=True)
+            raw_ref = add("robotd_raw_notification", t+900_000,
+                          raw_line=raw, received_ns=t+900_000)
             state_ref = add("robotd_state", t+1_000_000, state_index=i-1,
+                            raw_notification_index=raw_ref["sample_index"],
                             raw_state_line=raw, state=state,
-                            received_ns=t+1_000_000, robotd_t_ns=i*TICK)
+                            received_ns=t+900_000, robotd_t_ns=i*TICK)
             if i == 1 or i % 10 == 0:
                 health_ref = add("robotd_health", t+2_000_000,
                                  health={"healthy": True, "degraded": False},
@@ -78,12 +84,20 @@ def synthetic_trial():
             safety=state["safety"] if state else None,
             health=health_ref["health"] if health_ref else None)
         if i == 50:
-            add("up_exit", t+10_000_000, exit=0, pid=123)
+            add("up_exit", t+10_000_000, exit=0, pid=123,
+                last_alive_poll_ns=t-10_000_000,
+                observed_exit_ns=t+9_900_000)
     add("capture_end", BASE+121*TICK, reason="STAND_SETTLED")
     timeline = score.derive_timeline(rows, PROTOCOL)
     for i, name in enumerate(score.EVENTS):
         add("timeline_event", BASE+121*TICK+1_000_000+i,
             name=name, event=timeline[name])
+    add("daemon_log_snapshot", BASE+121*TICK+2_000_000,
+        source="body.log", available=False,
+        captured_ns=BASE+121*TICK+1_900_000)
+    add("daemon_log_snapshot", BASE+121*TICK+3_000_000,
+        source="duck-a.log", available=False,
+        captured_ns=BASE+121*TICK+2_900_000)
     add("cleanup", BASE+122*TICK, stop={"result": "PASS"},
         down_exit=0, final_probe={"result": "PASS"})
     plan = score.matrix(PROTOCOL)[0]
@@ -167,12 +181,42 @@ def test_nonzero_applied_is_recomputed_from_raw():
     timeline = score.derive_timeline(rows, PROTOCOL)
     assert timeline["FIRST_NONZERO_APPLIED"]["status"] == "OBSERVED"
     assert timeline["FIRST_NONZERO_APPLIED"]["source_sample_index"] == state_rows[2]["sample_index"]
+    relations = score.trial_metrics(rows, PROTOCOL)["event_order"]
+    assert relations["FIRST_NONZERO_APPLIED_vs_POLICY_STAND"] == "BEFORE"
+    assert relations["FIRST_NONZERO_APPLIED_vs_FIRST_POSE_DEVIATION"] == "BEFORE"
+
+
+def test_source_receipt_times_control_order_not_journal_delay():
+    _, rows = synthetic_trial()
+    original = score.derive_timeline(rows, PROTOCOL)
+    delayed = json.loads(json.dumps(rows))
+    first = original["FIRST_POSE_DEVIATION"]["source_sample_index"]
+    delayed[first]["host_monotonic_ns"] += 500_000_000
+    assert score.derive_timeline(delayed, PROTOCOL) == original
+    assert score.event_relation(original["POLICY_STAND"],
+                                original["FIRST_POSE_DEVIATION"]) == "BEFORE"
+
+
+def test_malformed_robotd_wire_is_durable_before_failure(tmp_path):
+    journal = runner.Journal(tmp_path / "wire.jsonl")
+    faults = runner.FaultBox()
+    message, raw_row, _ = runner.persist_notification(b'{broken-json\n', journal, faults)
+    journal.close()
+    rows = score.read_journal(tmp_path / "wire.jsonl")
+    assert message is None
+    assert rows[0]["kind"] == "robotd_raw_notification"
+    assert rows[0]["raw_line"] == "{broken-json"
+    assert rows[1]["kind"] == "robotd_malformed_notification"
+    assert rows[1]["raw_source_sample_index"] == raw_row["sample_index"]
+    assert faults.value["category"] == "DATA_INTEGRITY_FAIL"
 
 
 def test_body_gap_and_missing_timeline_cannot_pass():
     trace, rows = synthetic_trial()
     broken = json.loads(json.dumps(rows))
     sample = next(r for r in broken if r.get("body_index") == 25)
+    sample["pose"]["request_ns"] += 150_000_000
+    sample["pose"]["response_ns"] += 150_000_000
     sample["host_monotonic_ns"] += 150_000_000
     assert score.verify_trial(trace, score.matrix(PROTOCOL)[0], broken, PROTOCOL)[0] is False
     broken = [r for r in rows if not (r["kind"] == "timeline_event" and

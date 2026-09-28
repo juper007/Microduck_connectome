@@ -125,6 +125,27 @@ def unix_connectable(path: Path) -> bool:
         return False
 
 
+def persist_notification(raw: bytes, journal: Journal,
+                         faults: FaultBox) -> tuple[dict | None, dict, int]:
+    """Durably store wire bytes before parsing or classifying a notification."""
+    received_ns = time.monotonic_ns()
+    raw_text = raw.decode("utf-8", errors="replace").rstrip("\n")
+    raw_row = journal.add("robotd_raw_notification", received_ns=received_ns,
+                          raw_line=raw_text)
+    try:
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("robotd notification is not an object")
+        return parsed, raw_row, received_ns
+    except (ValueError, UnicodeDecodeError) as error:
+        journal.add("robotd_malformed_notification",
+                    raw_source_sample_index=raw_row["sample_index"],
+                    raw_bytes_hex=raw.hex(), error=repr(error))
+        faults.set("DATA_INTEGRITY_FAIL", "malformed_robotd_notification",
+                   raw_row["sample_index"])
+        return None, raw_row, received_ns
+
+
 class StateSubscriber:
     """Dedicated read-only stream; persist every robot.state notification."""
 
@@ -150,13 +171,16 @@ class StateSubscriber:
                 raw = self.stream.readline()
                 if not raw:
                     raise RuntimeError("robotd state stream closed")
-                message = json.loads(raw)
+                message, raw_row, received_ns = persist_notification(
+                    raw, self.journal, self.faults)
+                if message is None:
+                    break
                 if message.get("method") != "robot.state":
                     continue
                 state = message["params"]
-                received_ns = time.monotonic_ns()
                 row = self.journal.add("robotd_state", state_index=self.state_index,
-                                       raw_state_line=raw.decode("utf-8").rstrip("\n"),
+                                       raw_notification_index=raw_row["sample_index"],
+                                       raw_state_line=raw_row["raw_line"],
                                        state=state, received_ns=received_ns,
                                        robotd_t_ns=state.get("t_ns"))
                 self.latest = row
@@ -226,16 +250,19 @@ class RobotdMonitor:
                     time.sleep(.01)
             if client is None:
                 return
+            connected_ns = time.monotonic_ns()
             self.reachable_row = self.journal.add("robotd_reachable",
-                                                  socket_path=str(self.sock))
+                                                  socket_path=str(self.sock),
+                                                  connected_ns=connected_ns)
             self.subscriber = StateSubscriber(self.sock, self.journal,
                                               self.faults, self.protocol)
             period = self.protocol["health_poll_period_s"]
             while not self.stop_event.is_set():
                 try:
                     health = client.health()
+                    received_ns = time.monotonic_ns()
                     row = self.journal.add("robotd_health", health=health,
-                                           received_ns=time.monotonic_ns())
+                                           received_ns=received_ns)
                     self.latest_health = row
                     if health.get("healthy") is not True or health.get("degraded"):
                         self.faults.set("SAFETY_FAIL", "robotd_unhealthy",
@@ -340,11 +367,11 @@ def body_fault(row: dict, previous: dict | None, last_advance_ns: int,
     if not 0 <= (pose["response_ns"]-pose["request_ns"])/1e9 <= protocol["max_body_response_age_s"]:
         return "DATA_INTEGRITY_FAIL", "body_response_stale"
     if previous:
-        if row["host_monotonic_ns"]-previous["host_monotonic_ns"] > protocol["max_body_gap_s"]*1e9:
+        if pose["response_ns"]-previous["pose"]["response_ns"] > protocol["max_body_gap_s"]*1e9:
             return "DATA_INTEGRITY_FAIL", "body_capture_gap"
         if pose["sim_time_s"] < previous["pose"]["sim_time_s"]:
             return "DATA_INTEGRITY_FAIL", "simulator_clock_reversed"
-    if row["host_monotonic_ns"]-last_advance_ns > protocol["max_body_gap_s"]*1e9:
+    if pose["response_ns"]-last_advance_ns > protocol["max_body_gap_s"]*1e9:
         return "DATA_INTEGRITY_FAIL", "simulator_clock_stalled"
     if max(abs(pose["roll_rad"]), abs(pose["pitch_rad"])) > protocol["genuine_safety"]["max_abs_roll_pitch_rad"]:
         return "SAFETY_FAIL", "body_attitude_bound"
@@ -364,6 +391,7 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
     up = reader = monitor = log_thread = None
     body_rows = []
     up_exit_ns = None
+    last_up_alive_poll_ns = None
     try:
         journal.add("reset_start", development_reset_id=plan["development_reset_id"])
         trace["down_before_exit"] = captured([str(sim), "down"], env,
@@ -374,14 +402,17 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
         up = subprocess.Popen([str(sim), "up"], env=env,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               text=True, bufsize=1)
+        last_up_alive_poll_ns = time.monotonic_ns()
         journal.add("official_up_started", pid=up.pid)
 
         def pump_log() -> None:
             with (folder / "up.log").open("x", encoding="utf-8") as output:
                 for line in up.stdout:
+                    received_ns = time.monotonic_ns()
                     event = journal.add("process_log", line=line.rstrip("\n"),
-                                        stream="official_up_combined")
-                    output.write(f"{event['host_monotonic_ns']} {line}")
+                                        stream="official_up_combined",
+                                        received_ns=received_ns)
+                    output.write(f"{event['received_ns']} {line}")
                     output.flush()
                     os.fsync(output.fileno())
 
@@ -389,10 +420,11 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
         log_thread.start()
         deadline = time.monotonic() + protocol["startup_timeout_s"]
         reader = wait_body(port, deadline)
-        journal.add("body_reachable", body_port=port)
+        reached_ns = time.monotonic_ns()
+        journal.add("body_reachable", body_port=port, reached_ns=reached_ns)
         first = capture_body(reader, None, sock, journal, 0)
         body_rows.append(first)
-        last_advance_ns = first["host_monotonic_ns"]
+        last_advance_ns = first["pose"]["response_ns"]
         problem = body_fault(first, None, last_advance_ns, protocol)
         if problem:
             faults.set(*problem, first["sample_index"])
@@ -408,38 +440,44 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
             body_rows.append(row)
             if row["pose"]["sim_time_s"] is not None and (
                     row["pose"]["sim_time_s"] > previous["pose"]["sim_time_s"]):
-                last_advance_ns = row["host_monotonic_ns"]
+                last_advance_ns = row["pose"]["response_ns"]
             problem = body_fault(row, previous, last_advance_ns, protocol)
             if problem:
                 faults.set(*problem, row["sample_index"])
                 break
             if (monitor.reachable_row is not None and
-                    row["host_monotonic_ns"]-
-                    monitor.reachable_row["host_monotonic_ns"] > int(.25e9)):
+                    row["pose"]["response_ns"]-
+                    monitor.reachable_row["connected_ns"] > int(.25e9)):
                 state_row, health_row = monitor.snapshot()
                 if (state_row is None or
-                        row["host_monotonic_ns"]-state_row["host_monotonic_ns"] >
+                        row["pose"]["response_ns"]-state_row["received_ns"] >
                         protocol["max_robotd_state_age_s"]*1e9):
                     faults.set("DATA_INTEGRITY_FAIL", "robotd_state_stale",
                                row["sample_index"])
                     break
                 if (health_row is None or
-                        row["host_monotonic_ns"]-health_row["host_monotonic_ns"] >
+                        row["pose"]["response_ns"]-health_row["received_ns"] >
                         protocol["max_health_age_s"]*1e9):
                     faults.set("DATA_INTEGRITY_FAIL", "robotd_health_stale",
                                row["sample_index"])
                     break
-            if up.poll() is not None and up_exit_ns is None:
-                trace["up_exit"] = up.returncode
-                up_row = journal.add("up_exit", exit=up.returncode,
-                                     pid=up.pid)
-                up_exit_ns = up_row["host_monotonic_ns"]
-                if up.returncode != 0:
-                    faults.set("INFRA_FAIL", "official_up_nonzero_exit",
-                               up_row["sample_index"])
-                    break
+            if up_exit_ns is None:
+                status = up.poll()
+                observed_poll_ns = time.monotonic_ns()
+                if status is None:
+                    last_up_alive_poll_ns = observed_poll_ns
+                else:
+                    trace["up_exit"] = status
+                    up_row = journal.add("up_exit", exit=status, pid=up.pid,
+                                         last_alive_poll_ns=last_up_alive_poll_ns,
+                                         observed_exit_ns=observed_poll_ns)
+                    up_exit_ns = observed_poll_ns
+                    if status != 0:
+                        faults.set("INFRA_FAIL", "official_up_nonzero_exit",
+                                   up_row["sample_index"])
+                        break
             if up_exit_ns is not None:
-                elapsed = (row["host_monotonic_ns"]-up_exit_ns)/1e9
+                elapsed = (row["pose"]["response_ns"]-up_exit_ns)/1e9
                 if elapsed >= protocol["post_up_min_capture_s"]:
                     settled = settled_candidate(body_rows, up_exit_ns, protocol)
                     if settled is not None:
@@ -503,6 +541,20 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
             except BaseException as error:
                 trace["result"] = "DATA_INTEGRITY_FAIL"
                 trace["analysis_error"] = f"{type(error).__name__}: {error}"
+        for log_name in ("body.log", "duck-a.log"):
+            source = state_dir / log_name
+            try:
+                if source.is_file():
+                    destination = folder / f"official-{log_name}"
+                    shutil.copyfile(source, destination)
+                    journal.add("daemon_log_snapshot", source=log_name,
+                                available=True, captured_ns=time.monotonic_ns(),
+                                sha256=sha(destination), bytes=destination.stat().st_size)
+                else:
+                    journal.add("daemon_log_snapshot", source=log_name,
+                                available=False, captured_ns=time.monotonic_ns())
+            except BaseException as error:
+                trace.setdefault("daemon_log_errors", []).append(repr(error))
         trace["cleanup_stop"] = bounded_stop(sock)
         try:
             trace["down_after_exit"] = captured([str(sim), "down"], env,
@@ -515,7 +567,7 @@ def run_one(plan: dict, root: Path, protocol: dict, sim: Path,
                 trace["down_after_exit"] != 0 or
                 trace["final_probe"]["result"] != "PASS" or
                 trace.get("monitor_close_error") or trace.get("body_close_error") or
-                trace.get("log_thread_error")):
+                trace.get("log_thread_error") or trace.get("daemon_log_errors")):
             if trace["result"] != "SAFETY_FAIL":
                 trace["result"] = "INFRA_FAIL"
         trace["completed_utc_ns"] = time.time_ns()
