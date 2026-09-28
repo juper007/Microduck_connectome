@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -18,6 +19,7 @@ from scripts.p8_02_final_batch import probe_final_sim_state
 from scripts.p8_02_r1_batch import (append_audit, atomic_json, emergency_stop,
                                     inventory, now, run_child)
 from scripts.p8_03_score import manifest_check, planned, score_batch
+from scripts.p8_looming_scenario_smoke import OfficialPoseReader
 
 
 def sha(path: Path) -> str:
@@ -55,6 +57,34 @@ def recover_only(root: Path) -> dict:
             "source_journal_sha256": sha(root / "batch-journal.json"),
             "manifest": manifest_check(root), "in_flight_unknown_arm": in_flight,
             "files": inventory(root)}
+
+
+def pose_reset_probe(port: int, *, reference: dict | None,
+                     tolerance: dict) -> dict:
+    """Audit a fresh duck-sim up against the fixed first-reset pose."""
+    reader = OfficialPoseReader(port)
+    try:
+        first = reader.read()
+        time.sleep(.1)
+        second = reader.read()
+    finally:
+        reader.close()
+    expected = reference or first
+
+    def delta(key: str, value: float) -> float:
+        difference = value - expected[key]
+        return abs((difference + math.pi) % (2 * math.pi) - math.pi) if key == "heading_rad" else abs(difference)
+
+    spread = {key: delta(key, second[key]) for key in tolerance}
+    stable = {key: (abs((second[key] - first[key] + math.pi) % (2 * math.pi) - math.pi)
+                    if key == "heading_rad" else abs(second[key] - first[key]))
+              for key in tolerance}
+    result = (all(spread[key] <= tolerance[key] and stable[key] <= tolerance[key]
+                  for key in tolerance) and all(math.isfinite(v) for v in second.values()))
+    return {"schema_version": "p8-03-pose-reset-v1", "result": "PASS" if result else "FAIL",
+            "reference": expected, "first_pose": first, "second_pose": second,
+            "delta_from_reference": spread, "within_reset_stability": stable,
+            "tolerance": tolerance, "source": "official MuJoCo trunk pose after fresh duck-sim down/up"}
 
 
 def preflight(args) -> tuple[dict, dict, list[dict], dict]:
@@ -157,7 +187,13 @@ def run(args) -> dict:
                "result": "RUNNING", "preflight": preflight_record,
                "ids": [{"trial_id": r["trial_id"], "seed": r["seed"],
                         "status": "PENDING", "attempts": []} for r in rows],
-               "final_sim_down": None}
+               "final_sim_down": None, "reset_reference": None}
+    scenario = json.loads((args.root / "config/looming_scenario_v1.json").read_text())
+    tolerance = scenario["initial_pose_tolerance"]
+    if args.stage == "R":
+        static_root = Path(config["static_output"])
+        journal["reset_reference"] = json.loads(
+            (static_root / "batch-journal.json").read_text())["reset_reference"]
     checkpoint(output, journal)
     env = dict(os.environ)
     env.update({"DUCK_SIM_VIEWER": "0", "DUCK_SIM_STATE": str(args.sim_state),
@@ -207,6 +243,19 @@ def run(args) -> dict:
                         item["status"] = "PREARM_FAILED"
                     checkpoint(output, journal)
                     continue
+                probe = pose_reset_probe(args.body_port,
+                    reference=journal["reset_reference"], tolerance=tolerance)
+                atomic_json(folder / "pose-reset.json", probe)
+                attempt["pose_reset"] = probe
+                checkpoint(output, journal)
+                if probe["result"] != "PASS":
+                    attempt["status"] = "PREARM_POSE_RESET_INVALID"
+                    item["status"] = "PREARM_POSE_RESET_INVALID"
+                    checkpoint(output, journal)
+                    raise RuntimeError("official fresh reset pose outside frozen tolerance")
+                if journal["reset_reference"] is None:
+                    journal["reset_reference"] = probe["reference"]
+                    checkpoint(output, journal)
                 time.sleep(1)
                 command = [sys.executable, str(args.root / "scripts/p8_03_trial.py"),
                            "--root", str(args.root), "--stage", args.stage,
@@ -217,6 +266,7 @@ def run(args) -> dict:
                            "--microduck-rl", str(args.microduck_rl),
                            "--source-head", args.reviewed_head,
                            "--policy-readback", str(folder / "policy-readback.json"),
+                           "--pose-reset", str(folder / "pose-reset.json"),
                            "--armed-marker", str(folder / "armed.json"),
                            "--progress", str(folder / "progress.jsonl"),
                            "--events", str(folder / "events.jsonl"),

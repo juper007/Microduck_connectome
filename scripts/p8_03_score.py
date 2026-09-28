@@ -66,6 +66,14 @@ def planned(master: dict, stage: str) -> list[dict]:
     return rows
 
 
+def velocity_out_of_bounds(value: object) -> bool:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return True
+    if any(type(v) not in (int, float) or not math.isfinite(v) for v in value):
+        return True
+    return (abs(value[0]) > .08 or value[1] != 0 or abs(value[2]) > .5)
+
+
 def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
               scored_window_ms: int = 1000) -> dict:
     """Classify from raw events only; a summary cannot turn a fault into a TN."""
@@ -79,6 +87,12 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
         return {"trial_id": trial_id, "seed": seed, "false_neural_stop": False,
                 "clean_true_negative": False, "safety_limit_violations": None,
                 "failure_causes": causes}
+    before_health = [r for r in rows if r.get("kind") == "robotd_health_before"
+                     and type(r.get("timestamp_ns")) is int and r["timestamp_ns"] < start]
+    after_health = [r for r in rows if r.get("kind") == "robotd_health_after"]
+    if (len(before_health) != 1 or before_health[0].get("healthy") is not True
+            or len(after_health) != 1 or after_health[0].get("healthy") is not True):
+        causes.append("robotd_health")
     window = [r for r in rows if type(r.get("timestamp_ns")) is int
               and start <= r["timestamp_ns"] <= end and r.get("kind") != "cleanup"]
     visual = [r for r in window if r.get("kind") == "visual_frame"]
@@ -86,6 +100,20 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
     publish = [r for r in window if r.get("kind") == "control_publish"]
     motion = [r for r in window if r.get("kind") == "motion_refresh"]
     state = [r for r in window if r.get("kind") == "robot_state"]
+    resets = [r for r in rows if r.get("kind") == "pose_reset"
+              and type(r.get("timestamp_ns")) is int and r["timestamp_ns"] < start]
+    if len(resets) != 1 or resets[0].get("result") != "PASS":
+        causes.append("pose_reset_unverified")
+    else:
+        try:
+            reset = resets[0]
+            if any((abs((reset["pose"][key] - reset["reference"][key] + math.pi)
+                         % (2 * math.pi) - math.pi) if key == "heading_rad" else
+                    abs(reset["pose"][key] - reset["reference"][key])) > limit
+                   for key, limit in reset["tolerance"].items()):
+                causes.append("pose_reset_tolerance")
+        except (KeyError, TypeError):
+            causes.append("pose_reset_lineage")
     finish = [r for r in rows if r.get("kind") == "window_complete"]
     if len(finish) != 1 or finish[0].get("timestamp_ns", 0) < end:
         causes.append("incomplete_window")
@@ -94,6 +122,7 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
     if len(neural) < 50 or any(r.get("runtime_healthy") is not True for r in neural):
         causes.append("neural_missing_or_unhealthy")
     if any(type(r.get("source_age_ms")) not in (int, float)
+           or not math.isfinite(r["source_age_ms"])
            or r["source_age_ms"] > 100 or r["source_age_ms"] < 0
            for r in neural):
         causes.append("stale_neural_visual_input")
@@ -103,7 +132,33 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
     if len(neural) > 1 and max((b["timestamp_ns"] - a["timestamp_ns"]) / 1e6
                                 for a, b in zip(neural, neural[1:])) > 40:
         causes.append("neural_gap")
-    if any(r.get("positive_ack") is not True for r in motion):
+    valid_publish = (len(publish) >= 40 and all(
+        type(r.get("sequence")) is int
+        and type(r.get("call_ns")) is int
+        and type(r.get("ack_ns")) is int
+        and r["ack_ns"] == r["timestamp_ns"]
+        and r["ack_ns"] >= r["call_ns"]
+        and isinstance(r.get("intent"), dict)
+        and r["intent"].get("stop") == r.get("stop")
+        for r in publish))
+    if not valid_publish:
+        causes.append("control_publish_missing_or_invalid")
+    if valid_publish and len(publish) > 1 and (any(b["sequence"] <= a["sequence"]
+                                 for a, b in zip(publish, publish[1:]))
+                             or max((b["timestamp_ns"] - a["timestamp_ns"]) / 1e6
+                                    for a, b in zip(publish, publish[1:])) > 40):
+        causes.append("control_publish_sequence_or_gap")
+    if any(r.get("transport") not in ("robot.stop",
+                                        "suppressed_neutral_for_stop_causality_fixture")
+           or (r.get("stop") and r.get("transport") != "robot.stop")
+           or (not r.get("stop") and r.get("transport") !=
+               "suppressed_neutral_for_stop_causality_fixture") for r in publish):
+        causes.append("control_transport")
+    if any(r.get("positive_ack") is not True or r.get("robot_move_result") is None
+           or type(r.get("call_ns")) is not int
+           or type(r.get("write_ns")) is not int
+           or not r["call_ns"] <= r["write_ns"] <= r["timestamp_ns"]
+           for r in motion):
         causes.append("motion_refresh_invalid")
     if len(motion) > 1 and max((b["timestamp_ns"] - a["timestamp_ns"]) / 1e6
                                 for a, b in zip(motion, motion[1:])) > 100:
@@ -139,7 +194,9 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
                                 for r in visual):
             causes.append("receding_trajectory")
         if any(type(r.get("image_area")) not in (int, float)
+               or not math.isfinite(r["image_area"])
                or type(r.get("bearing_rad")) not in (int, float)
+               or not math.isfinite(r["bearing_rad"])
                or type(r.get("pose")) is not dict for r in visual):
             causes.append("visual_geometry_lineage")
         for r in visual:
@@ -149,7 +206,9 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
                 dy = r["virtual_center_y_m"] - pose["y_m"]
                 bearing = (math.atan2(dy, dx) - pose["heading_rad"] + math.pi) % (
                     2 * math.pi) - math.pi
-                if (abs(math.hypot(dx, dy) - r["distance_m"]) > 1e-6
+                if (not all(math.isfinite(v) for v in
+                            (dx, dy, pose["heading_rad"], r["bearing_rad"]))
+                        or abs(math.hypot(dx, dy) - r["distance_m"]) > 1e-6
                         or abs(bearing - r["bearing_rad"]) > 1e-6):
                     causes.append("evaluator_geometry_mismatch")
                     break
@@ -162,6 +221,32 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
         for r in publish)
     if not false_neural_stop and len(motion) < 40:
         causes.append("motion_refresh_missing")
+    if not false_neural_stop:
+        if (len(state) < 40 or any(type(r.get("applied_velocity")) not in (list, tuple)
+                                  or len(r["applied_velocity"]) != 3
+                                  or type(r["applied_velocity"][0]) not in (int, float)
+                                  or not math.isfinite(r["applied_velocity"][0])
+                                  or r["applied_velocity"][0] < .04 for r in state)):
+            causes.append("applied_motion_missing")
+        if len(visual) >= 2:
+            first_pose, last_pose = visual[0].get("pose", {}), visual[-1].get("pose", {})
+            if (math.hypot(last_pose.get("x_m", 0) - first_pose.get("x_m", 0),
+                           last_pose.get("y_m", 0) - first_pose.get("y_m", 0)) < .01):
+                causes.append("body_not_moving")
+            try:
+                speeds = [math.hypot(b["pose"]["x_m"] - a["pose"]["x_m"],
+                                     b["pose"]["y_m"] - a["pose"]["y_m"]) /
+                          ((b["timestamp_ns"] - a["timestamp_ns"]) / 1e9)
+                          for a, b in zip(visual, visual[2:])]
+                if (not speeds or sum(speed >= .015 for speed in speeds) <
+                        math.ceil(.8 * len(speeds)) or
+                        any(speed < .015 for speed in speeds[-2:])):
+                    causes.append("pose_speed_not_sustained")
+            except (KeyError, ZeroDivisionError, TypeError):
+                causes.append("pose_speed_missing")
+        if len(state) > 1 and max((b["timestamp_ns"] - a["timestamp_ns"]) / 1e6
+                                  for a, b in zip(state, state[1:])) > 100:
+            causes.append("robot_state_gap")
     if false_neural_stop:
         causes.append("false_neural_stop")
     safety = [r for r in rows if r.get("kind") == "safety_snapshot"]
@@ -173,6 +258,12 @@ def score_raw(rows: list[dict], *, trial_id: str, seed: int, stage: str,
         causes.append("safety_count_missing")
     elif violations:
         causes.append("safety_limit_violation")
+    if (any(velocity_out_of_bounds(r.get("applied_velocity")) or
+            velocity_out_of_bounds(r.get("requested_velocity")) for r in state)
+            or any(velocity_out_of_bounds([
+                r.get("intent", {}).get("vx"), r.get("intent", {}).get("vy"),
+                r.get("intent", {}).get("vyaw")]) for r in publish)):
+        causes.append("raw_safety_limit_violation")
     return {"trial_id": trial_id, "seed": seed, "false_neural_stop": false_neural_stop,
             "clean_true_negative": not causes, "safety_limit_violations": violations,
             "failure_causes": sorted(set(causes)), "visual_frames": len(visual),
@@ -204,6 +295,17 @@ def score_batch(root: Path, master: dict, stage: str) -> dict:
             continue
         raw = root / row["trial_id"] / attempts[-1]["name"] / "events.jsonl"
         result = score_raw(read_jsonl(raw), trial_id=row["trial_id"], seed=row["seed"], stage=stage)
+        reset_path = root / row["trial_id"] / attempts[-1]["name"] / "pose-reset.json"
+        try:
+            reset = json.loads(reset_path.read_text(encoding="utf-8"))
+            reset_agrees = (reset == attempts[-1].get("pose_reset")
+                            and reset.get("result") == "PASS"
+                            and reset.get("reference") == journal.get("reset_reference"))
+        except (OSError, ValueError):
+            reset_agrees = False
+        if not reset_agrees:
+            result["failure_causes"].append("pose_reset_journal_mismatch")
+            result["clean_true_negative"] = False
         summary = root / row["trial_id"] / attempts[-1]["name"] / "summary.json"
         if (not summary.is_file() or hashlib.sha256(summary.read_bytes()).hexdigest()
                 != attempts[-1].get("summary_sha256")):

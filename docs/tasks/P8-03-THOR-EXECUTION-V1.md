@@ -73,6 +73,12 @@ Before S00, obtain an independent implementation review PASS of `P8_HEAD` and
 retain the review URL/verdict. The batch's preflight checks clean reviewed
 HEAD, committed bytes, frozen path and hash identities, available isolated
 port/state, and unused output root. The S batch must PASS before R starts.
+After each down/up and policy readback, the batch records two official MuJoCo
+trunk poses before motion. S00's first fresh reset fixes the run's pose
+reference before neural arm; both S and R compare every subsequent reset to
+that reference using the scenario's frozen x/y/heading/z tolerances. A failed
+reset tolerance aborts before arm and blocks the batch. The reference and each
+`pose-reset.json` are retained in the journal and raw manifest.
 
 ## Official S then R execution
 
