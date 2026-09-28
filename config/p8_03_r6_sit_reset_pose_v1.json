@@ -1,0 +1,43 @@
+{
+  "schema_version": "p8-03-r6-sit-reset-pose-v1",
+  "task_id": "P8-03-R6-SIT-RESET-POSE-DIAGNOSTIC",
+  "base_commit": "57161251c63be912a002d236d18e7c13cd48b1cc",
+  "development_only": true,
+  "development_reset_id_first": 888300,
+  "development_reset_id_last": 888347,
+  "reset_count": 48,
+  "block_count": 6,
+  "resets_per_block": 8,
+  "reset_id_semantics": "unique_label_only",
+  "simulator_rng_seeded": false,
+  "reset_method": "independent official SIT duck-sim down/up for every ID; no retry or replacement",
+  "no_robot_move": true,
+  "no_correction_command": true,
+  "checkpoint_labels": ["A_UP_COMPLETE", "B_BODY_REACHABLE", "C_ROBOTD_REACHABLE", "D_POLICY_LOADED", "E_STOP_ACK", "F_SHORT_SETTLE", "G_FINAL_PLATEAU"],
+  "chronological_capture_plan": ["B_BODY_REACHABLE", "C_ROBOTD_REACHABLE", "A_UP_COMPLETE", "D_POLICY_LOADED", "E_STOP_ACK", "F_SHORT_SETTLE", "G_FINAL_PLATEAU"],
+  "short_settle_s": 0.25,
+  "plateau_samples": 21,
+  "plateau_sample_s": 0.05,
+  "max_pose_response_age_s": 0.10,
+  "max_state_age_s": 0.10,
+  "final_reference": {
+    "x_m": 0.03457887954384973,
+    "y_m": 0.0010909211238251523,
+    "trunk_z_m": 0.11587609862790209,
+    "heading_rad": 0.11693358424258107
+  },
+  "unchanged_final_envelope": {
+    "x_m": 0.03,
+    "y_m": 0.03,
+    "trunk_z_m": 0.025,
+    "heading_rad": 0.08
+  },
+  "genuine_safety": {
+    "max_abs_roll_pitch_rad": 0.5,
+    "max_abs_vx_mps": 0.08,
+    "max_abs_vy_mps": 0.0,
+    "max_abs_vyaw_radps": 0.5
+  },
+  "matrix_stop_rule": "stop after first genuine safety, data integrity, infrastructure, ACK, or cleanup failure; out-of-envelope observations never stop or replace a reset",
+  "evidence_release_tag": "p8-03-r6-sit-reset-pose-evidence-v1"
+}
