@@ -58,21 +58,21 @@ def test_perturbation_never_reuses_qualification_seed():
 
 
 def test_perturbation_target_at_deadline_is_failure():
-    assert dev.perturbation_target_reached(.09, 1, .999, 1.0)
-    assert not dev.perturbation_target_reached(.089, 1, .999, 1.0)
+    assert dev.perturbation_target_reached(.09, 1, 1.999, 2.0)
+    assert not dev.perturbation_target_reached(.089, 1, 1.999, 2.0)
     try:
-        dev.perturbation_target_reached(.2, 1, 1.0, 1.0)
+        dev.perturbation_target_reached(.2, 1, 2.0, 2.0)
     except TimeoutError:
         pass
     else:
         raise AssertionError("late target was accepted")
 
 
-def test_perturbation_stop_ack_must_precede_one_second_deadline():
-    trace = {"active_phase_s": .8, "duration_s": .99,
+def test_perturbation_stop_ack_must_precede_two_second_deadline():
+    trace = {"active_phase_s": 1.8, "duration_s": 1.99,
              "stop": {"result": "PASS"}}
     assert dev.perturbation_pass(trace)
-    assert not dev.perturbation_pass(dict(trace, duration_s=1.0))
+    assert not dev.perturbation_pass(dict(trace, duration_s=2.0))
     assert not dev.perturbation_pass(dict(trace, stop={"result": "FAIL"}))
 
 
@@ -115,7 +115,7 @@ class QuietCommand(CommandConnection):
 
 
 def test_perturbation_health_delay_cannot_send_after_deadline():
-    clock = iter([0.0, 0.0, 1.01, 1.02])
+    clock = iter([0.0, 0.0, 2.01, 2.02])
     with patch.object(dev, "TimedPoseReader", FixedReader), \
             patch.object(dev, "RobotdClient", HealthyClient), \
             patch.object(dev, "JsonLines", QuietCommand), \

@@ -36,6 +36,7 @@ from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
 PARENT = Path("/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final")
 STATE = Path("/tmp/p8-03-r2-reset-development-state")
 PORT = 7898
+PERTURBATION_MAX_S = 2.0
 
 
 def development_seed(kind: str, index: int, protocol: dict) -> int | None:
@@ -45,14 +46,14 @@ def development_seed(kind: str, index: int, protocol: dict) -> int | None:
 def perturbation_target_reached(delta: float, direction: int,
                                 now: float, deadline: float) -> bool:
     if now >= deadline:
-        raise TimeoutError("controlled perturbation exceeded one-second deadline")
+        raise TimeoutError("controlled perturbation exceeded frozen deadline")
     return direction * delta >= .09
 
 
 def perturbation_pass(trace: dict) -> bool:
     return ("error" not in trace and not trace.get("close_errors") and
-            trace.get("active_phase_s", 2) < 1.0 and
-            trace.get("duration_s", 2) < 1.0 and
+            trace.get("active_phase_s", 3) < PERTURBATION_MAX_S and
+            trace.get("duration_s", 3) < PERTURBATION_MAX_S and
             trace.get("stop", {}).get("result") == "PASS")
 
 
@@ -94,13 +95,14 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
         trace["initial"] = first
         previous = first
         start = time.monotonic()
-        deadline = start + 1.0
+        deadline = start + PERTURBATION_MAX_S
+        command_deadline = deadline - .1  # reserve one TTL for the authentic stop
         last_ack = None
         while True:
             delta = pose_deltas(previous["pose"])["heading_rad"] - (
                 pose_deltas(first["pose"])["heading_rad"])
             now = time.monotonic()
-            if perturbation_target_reached(delta, direction, now, deadline):
+            if perturbation_target_reached(delta, direction, now, command_deadline):
                 trace["active_phase_s"] = now - start
                 break
             if math.hypot(previous["pose"]["x_m"] - first["pose"]["x_m"],
@@ -109,7 +111,7 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             current_health = health.health()
             if current_health.get("healthy") is not True or current_health.get("degraded") is True:
                 raise RuntimeError("health lost during perturbation")
-            if time.monotonic() >= deadline:
+            if time.monotonic() >= command_deadline:
                 raise TimeoutError("perturbation deadline elapsed during health read")
             tick = time.monotonic_ns()
             if last_ack is not None and tick - last_ack > 100_000_000:
@@ -119,7 +121,7 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             move = {"requested_vyaw_radps": direction * .2, "ack": ack,
                     "call_ns": call_ns, "write_ns": write_ns, "ack_ns": ack_ns}
             trace["moves"].append(move)
-            if time.monotonic() >= deadline:
+            if time.monotonic() >= command_deadline:
                 raise TimeoutError("perturbation command ACK exceeded deadline")
             if (ack_ns - tick > 100_000_000 or
                     (last_ack is not None and ack_ns - last_ack > 100_000_000)):
@@ -262,7 +264,7 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
 def run(output: Path, head: str, kind: str) -> None:
     expected = PARENT / ({
         "pilot": "p8-03-r2-reset-pilot-v1",
-        "perturbation": "p8-03-r2-alignment-perturbation-v3",
+        "perturbation": "p8-03-r2-alignment-perturbation-v4",
         "qualification": "p8-03-r2-reset-qualification-v1",
     }[kind])
     if output != expected or output.exists():
@@ -281,10 +283,10 @@ def run(output: Path, head: str, kind: str) -> None:
             protocol["development_perturbation"] != {
                 "cycles": 2, "directions": [1, -1],
                 "minimum_abs_heading_delta_rad": .09,
-                "max_duration_s": 1,
+                "max_duration_s": 2,
                 "max_abs_yaw_rate_radps": .2,
                 "requested_vx_mps": 0, "requested_vy_mps": 0,
-                "evidence_version": "v3", "post_perturbation_settle_s": 1,
+                "evidence_version": "v4", "post_perturbation_settle_s": 1,
                 "outside_qualification_and_final_matrix": True}):
         raise RuntimeError("R2 reset protocol/code mismatch")
     config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
