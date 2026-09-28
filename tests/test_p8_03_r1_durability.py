@@ -15,10 +15,24 @@ from scripts.p8_03_r1_durability import (checkpoint, classify_attempt,
                                          reconcile, run_child, stop_orphan_children)
 from scripts.p8_03_score import manifest_check, planned
 from scripts.p8_03_r1_remote import guarded_exec, start, status
+from scripts.p8_03_r1_dev_gate import ssh_session_observation
 from scripts.p8_03_batch import recover_only
 
 
 class DurabilityTests(unittest.TestCase):
+    def test_reconnect_evidence_requires_ssh_connection(self):
+        with patch.dict(os.environ, {"SSH_CONNECTION": "192.0.2.1 51000 192.0.2.2 22"}):
+            first = ssh_session_observation()
+        with patch.dict(os.environ, {"SSH_CONNECTION": "192.0.2.1 51001 192.0.2.2 22"}):
+            second = ssh_session_observation()
+        self.assertNotEqual(first["ssh_connection_sha256"],
+                            second["ssh_connection_sha256"])
+        self.assertIn("session_id", first)
+        self.assertIn("parent_pid", first)
+        with patch.dict(os.environ, {"SSH_CONNECTION": ""}):
+            with self.assertRaisesRegex(RuntimeError, "requires SSH_CONNECTION"):
+                ssh_session_observation()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

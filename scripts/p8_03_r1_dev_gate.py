@@ -76,6 +76,15 @@ def save_case(path: Path, letter: str, seed: int, passed: bool, details: dict) -
                                        "details": details})
 
 
+def ssh_session_observation() -> dict:
+    connection = os.environ.get("SSH_CONNECTION")
+    if not connection:
+        raise RuntimeError("development reconnect case requires SSH_CONNECTION")
+    session_id = os.getsid(0) if hasattr(os, "getsid") else None
+    return {"ssh_connection_sha256": hashlib.sha256(connection.encode()).hexdigest(),
+            "session_id": session_id, "parent_pid": os.getppid()}
+
+
 def prepare(output: Path, head: str) -> None:
     source = check_source(head)
     if output.exists():
@@ -249,17 +258,22 @@ def prepare(output: Path, head: str) -> None:
 
 def d_start(output: Path, head: str) -> None:
     check_source(head)
+    session = ssh_session_observation()
     d = case_root(output, "D")
     command = [sys.executable, "-B", "-c", "import time; time.sleep(60)",
                "--r1", "--output", str(d / "synthetic-output"),
                "--reviewed-head", head]
     launch = start(d / "launch", command)
-    atomic_json(d / "start-observation.json", launch)
+    atomic_json(d / "start-observation.json", {"launch": launch, **session})
 
 
 def d_finish(output: Path, head: str) -> None:
     check_source(head)
+    second = ssh_session_observation()
     d = output / "D"
+    first = json.loads((d / "start-observation.json").read_text())
+    distinct_connection = (first["ssh_connection_sha256"] !=
+                           second["ssh_connection_sha256"])
     launch_root = d / "launch"
     before = status(launch_root)
     duplicate_refused = False
@@ -272,10 +286,12 @@ def d_finish(output: Path, head: str) -> None:
         os.kill(before["pid"], signal.SIGKILL)
     time.sleep(.5)
     after = status(launch_root)
-    passed = (before["state"] == "RUNNING" and duplicate_refused and
+    passed = (distinct_connection and before["state"] == "RUNNING" and duplicate_refused and
               after["state"] == "LOST_REQUIRES_RECOVERY")
     save_case(d, "D", 887103, passed,
-              {"reconnected_before": before, "duplicate_refused": duplicate_refused,
+              {"start_session": first, "finish_session": second,
+               "distinct_ssh_connection": distinct_connection,
+               "reconnected_before": before, "duplicate_refused": duplicate_refused,
                "after_forced_termination": after})
 
 

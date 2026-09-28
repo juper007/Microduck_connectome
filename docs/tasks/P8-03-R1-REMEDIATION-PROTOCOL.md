@@ -169,7 +169,8 @@ and `HEAD=$(git rev-parse HEAD)`, then run:
 ```bash
 PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py prepare --output "$OUT" --reviewed-head "$HEAD"
 PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py d-start --output "$OUT" --reviewed-head "$HEAD"
-# End this SSH command/session. Reconnect in a new SSH invocation.
+# End this SSH command/session. Reconnect in a new SSH invocation;
+# D records a SHA-256 of SSH_CONNECTION on both sides and requires them to differ.
 PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py d-finish --output "$OUT" --reviewed-head "$HEAD"
 PYTHONPATH=. python3.12 -B scripts/p8_03_r1_dev_gate.py finalize --output "$OUT" --reviewed-head "$HEAD"
 ```
