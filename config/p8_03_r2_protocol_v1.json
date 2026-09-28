@@ -1,0 +1,348 @@
+{
+  "schema_version": "p8-03-r2-protocol-v1",
+  "task_id": "P8-03-R2",
+  "master_protocol": "config/p8_v2_final_protocol_v1.json",
+  "r1_terminal_fail_release": "p8-03-r1-evidence-v1",
+  "r1_terminal_fail_pr": 80,
+  "r1_reference_source": "P8-03-R1 RS00 first official post-up pose in immutable R1 batch-journal.json",
+  "reset_reference": {
+    "x_m": 0.03457887954384973,
+    "y_m": 0.0010909211238251523,
+    "heading_rad": 0.11693358424258107,
+    "trunk_z_m": 0.11587609862790209
+  },
+  "initial_pose_tolerance": {
+    "x_m": 0.03,
+    "y_m": 0.03,
+    "heading_rad": 0.08,
+    "trunk_z_m": 0.025
+  },
+  "heading_qualification_guard_rad": 0.06,
+  "development_reset_seeds": [
+    887400,
+    887401,
+    887402,
+    887403,
+    887404,
+    887405,
+    887406,
+    887407,
+    887408,
+    887409,
+    887410,
+    887411,
+    887412,
+    887413,
+    887414,
+    887415,
+    887416,
+    887417,
+    887418,
+    887419,
+    887420,
+    887421,
+    887422,
+    887423,
+    887424,
+    887425,
+    887426,
+    887427,
+    887428,
+    887429,
+    887430,
+    887431,
+    887432,
+    887433,
+    887434,
+    887435,
+    887436,
+    887437,
+    887438,
+    887439,
+    887440,
+    887441,
+    887442,
+    887443,
+    887444,
+    887445,
+    887446,
+    887447,
+    887448,
+    887449,
+    887450,
+    887451,
+    887452,
+    887453,
+    887454,
+    887455,
+    887456,
+    887457,
+    887458,
+    887459
+  ],
+  "development_groups": [
+    [
+      887400,
+      887401,
+      887402,
+      887403,
+      887404,
+      887405,
+      887406,
+      887407,
+      887408,
+      887409,
+      887410,
+      887411,
+      887412,
+      887413,
+      887414,
+      887415,
+      887416,
+      887417,
+      887418,
+      887419
+    ],
+    [
+      887420,
+      887421,
+      887422,
+      887423,
+      887424,
+      887425,
+      887426,
+      887427,
+      887428,
+      887429,
+      887430,
+      887431,
+      887432,
+      887433,
+      887434,
+      887435,
+      887436,
+      887437,
+      887438,
+      887439
+    ],
+    [
+      887440,
+      887441,
+      887442,
+      887443,
+      887444,
+      887445,
+      887446,
+      887447,
+      887448,
+      887449,
+      887450,
+      887451,
+      887452,
+      887453,
+      887454,
+      887455,
+      887456,
+      887457,
+      887458,
+      887459
+    ]
+  ],
+  "final_matrix": {
+    "S": [
+      {
+        "trial_id": "R2S00",
+        "seed": 887500
+      },
+      {
+        "trial_id": "R2S01",
+        "seed": 887501
+      },
+      {
+        "trial_id": "R2S02",
+        "seed": 887502
+      },
+      {
+        "trial_id": "R2S03",
+        "seed": 887503
+      },
+      {
+        "trial_id": "R2S04",
+        "seed": 887504
+      },
+      {
+        "trial_id": "R2S05",
+        "seed": 887505
+      },
+      {
+        "trial_id": "R2S06",
+        "seed": 887506
+      },
+      {
+        "trial_id": "R2S07",
+        "seed": 887507
+      },
+      {
+        "trial_id": "R2S08",
+        "seed": 887508
+      },
+      {
+        "trial_id": "R2S09",
+        "seed": 887509
+      },
+      {
+        "trial_id": "R2S10",
+        "seed": 887510
+      },
+      {
+        "trial_id": "R2S11",
+        "seed": 887511
+      },
+      {
+        "trial_id": "R2S12",
+        "seed": 887512
+      },
+      {
+        "trial_id": "R2S13",
+        "seed": 887513
+      },
+      {
+        "trial_id": "R2S14",
+        "seed": 887514
+      },
+      {
+        "trial_id": "R2S15",
+        "seed": 887515
+      },
+      {
+        "trial_id": "R2S16",
+        "seed": 887516
+      },
+      {
+        "trial_id": "R2S17",
+        "seed": 887517
+      },
+      {
+        "trial_id": "R2S18",
+        "seed": 887518
+      },
+      {
+        "trial_id": "R2S19",
+        "seed": 887519
+      }
+    ],
+    "R": [
+      {
+        "trial_id": "R2R00",
+        "seed": 887600
+      },
+      {
+        "trial_id": "R2R01",
+        "seed": 887601
+      },
+      {
+        "trial_id": "R2R02",
+        "seed": 887602
+      },
+      {
+        "trial_id": "R2R03",
+        "seed": 887603
+      },
+      {
+        "trial_id": "R2R04",
+        "seed": 887604
+      },
+      {
+        "trial_id": "R2R05",
+        "seed": 887605
+      },
+      {
+        "trial_id": "R2R06",
+        "seed": 887606
+      },
+      {
+        "trial_id": "R2R07",
+        "seed": 887607
+      },
+      {
+        "trial_id": "R2R08",
+        "seed": 887608
+      },
+      {
+        "trial_id": "R2R09",
+        "seed": 887609
+      },
+      {
+        "trial_id": "R2R10",
+        "seed": 887610
+      },
+      {
+        "trial_id": "R2R11",
+        "seed": 887611
+      },
+      {
+        "trial_id": "R2R12",
+        "seed": 887612
+      },
+      {
+        "trial_id": "R2R13",
+        "seed": 887613
+      },
+      {
+        "trial_id": "R2R14",
+        "seed": 887614
+      },
+      {
+        "trial_id": "R2R15",
+        "seed": 887615
+      },
+      {
+        "trial_id": "R2R16",
+        "seed": 887616
+      },
+      {
+        "trial_id": "R2R17",
+        "seed": 887617
+      },
+      {
+        "trial_id": "R2R18",
+        "seed": 887618
+      },
+      {
+        "trial_id": "R2R19",
+        "seed": 887619
+      }
+    ]
+  },
+  "max_prearm_attempts": 1,
+  "development_gate": {
+    "consecutive_fresh_resets": 60,
+    "all_must_pass": true,
+    "counts_every_reset": true,
+    "no_retries": true
+  },
+  "preparation": {
+    "keyframe": "SIT",
+    "post_stop_settle_s": 1,
+    "sample_period_s": 0.05,
+    "sample_count": 21,
+    "max_sample_age_s": 0.1,
+    "max_heading_drift_rad": 0.005,
+    "alignment_threshold_rad": 0.06,
+    "alignment_target_rad": 0.11693358424258107,
+    "max_abs_yaw_rate_radps": 0.2,
+    "max_alignment_s": 3,
+    "max_alignment_yaw_error_rad": 0.35,
+    "requested_vx_mps": 0,
+    "requested_vy_mps": 0,
+    "ttl_ms": 100
+  },
+  "trial_order": [
+    "S",
+    "R"
+  ],
+  "scored_window_ms": 1000,
+  "max_false_stops_per_set": 1,
+  "max_false_stops_pooled": 2,
+  "max_safety_limit_violations": 0
+}

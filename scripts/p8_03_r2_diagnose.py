@@ -57,8 +57,12 @@ class TimedPoseReader:
         pose = validate_pose({"x_m": trunk[0], "y_m": trunk[1],
                               "heading_rad": quaternion_yaw(quat),
                               "trunk_z_m": trunk[2]})
+        w, x, y, z = quat
+        roll = math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
+        pitch = math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x))))
         return {"request_ns": before, "response_ns": after,
-                "sim_time_s": float(sim_time), "pose": pose}
+                "sim_time_s": float(sim_time), "pose": pose,
+                "imu_quat_wxyz": quat, "roll_rad": roll, "pitch_rad": pitch}
 
     def close(self) -> None:
         self.stream.close()
