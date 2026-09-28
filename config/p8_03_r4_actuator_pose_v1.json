@@ -1,0 +1,53 @@
+{
+  "schema_version": "p8-03-r4-actuator-pose-v1",
+  "task_id": "P8-03-R4-ACTUATOR-POSE-DIAGNOSTIC",
+  "base_commit": "57161251c63be912a002d236d18e7c13cd48b1cc",
+  "historical_fail_prs": [80, 81, 82],
+  "historical_fail_releases": ["p8-03-r1-evidence-v1", "p8-03-r3-yaw-diagnostic-evidence-v1"],
+  "development_only": true,
+  "seed_first": 888100,
+  "seed_last": 888129,
+  "blocks": 6,
+  "even_block": ["sham", "positive_low", "negative_low", "positive_high", "negative_high"],
+  "odd_block": ["sham", "negative_low", "positive_low", "negative_high", "positive_high"],
+  "sham_ticks_by_block": [5, 8, 5, 8, 5, 8],
+  "dose": {
+    "low_ticks": 5,
+    "high_ticks": 8,
+    "tick_s": 0.02,
+    "abs_vyaw_radps": 0.2,
+    "vx_mps": 0.0,
+    "vy_mps": 0.0,
+    "max_through_stop_s": 0.30,
+    "max_command_integral_rad": 0.08,
+    "ttl_s": 0.10
+  },
+  "pose": {
+    "sample_s": 0.05,
+    "plateau_count": 21,
+    "settle_s": 1.0,
+    "max_age_s": 0.10,
+    "max_heading_drift_rad": 0.005,
+    "max_stopped_applied_velocity": 0.005,
+    "max_initial_reference_heading_error_rad": 0.35,
+    "max_initial_xy_error_m": 0.03,
+    "max_initial_z_error_m": 0.025,
+    "max_motion_xy_from_initial_m": 0.01,
+    "max_abs_roll_pitch_rad": 0.5
+  },
+  "measurement": {
+    "minimum_abs_delta_rad": 0.005,
+    "sham_margin_rad": 0.002,
+    "floor": "max(0.005, max_abs_sham_settled_delta + 0.002)",
+    "primary": "wrapped(post-stop plateau median - initial plateau median)",
+    "secondary": ["during_pulse_heading_delta", "first_100ms_post_stop_delta", "post_stop_extrema", "signed_applied_yaw_integral", "max_planar_displacement", "signed_lateral_displacement", "policy_transition", "limited_by"],
+    "required_valid_per_active_cell": 6,
+    "required_valid_sham": 6,
+    "all_active_above_signed_floor": true,
+    "no_result_driven_retry_or_tuning": true
+  },
+  "matrix_stop_rule": "stop entire matrix immediately on any safety, timing, storage, stale-state, ACK, cleanup, or raw-integrity abort; retain triggering sample and mark remaining IDs pending; continue on valid weak or wrong-sign responses",
+  "unchanged_final_reset_heading_tolerance_rad": 0.08,
+  "unchanged_r2_qualification_guard_rad": 0.06,
+  "evidence_release_tag": "p8-03-r4-actuator-pose-evidence-v1"
+}
