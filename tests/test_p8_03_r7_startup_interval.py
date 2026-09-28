@@ -200,6 +200,11 @@ def test_startup_unready_is_narrow_and_one_way():
     assert timeline["STARTUP_UNREADY"]["status"] == "OBSERVED"
     assert timeline["FIRST_HEALTHY_CYCLE"]["status"] == "OBSERVED"
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
+    capture_end = next(r for r in rows if r["kind"] == "capture_end")
+    assert score.healthy_before_capture_end(rows, capture_end)
+    early_end = {**capture_end,
+                 "host_monotonic_ns": health_rows[1]["received_ns"]-1}
+    assert not score.healthy_before_capture_end(rows, early_end)
     valid = health_rows[0]["health"]
     assert score.health_phase(valid) == "STARTUP_UNREADY"
     assert runner.health_transition(valid, BASE, BASE+1_000_000_000,

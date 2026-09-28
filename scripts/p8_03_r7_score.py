@@ -41,6 +41,14 @@ def health_phase(health: dict) -> str:
     return "UNHEALTHY"
 
 
+def healthy_before_capture_end(rows: list[dict], capture_end: dict) -> bool:
+    return any(r["kind"] == "robotd_health" and
+               health_phase(r["health"]) == "HEALTHY_CYCLE" and
+               r["sample_index"] < capture_end["sample_index"] and
+               source_ns(r) <= capture_end["host_monotonic_ns"]
+               for r in rows)
+
+
 def wrap(delta: float) -> float:
     return math.atan2(math.sin(delta), math.cos(delta))
 
@@ -479,6 +487,8 @@ def verify_trial(record: dict, expected: dict, rows: list[dict],
                 source_ns(rows[loc["up_exit"][0]]))):
         return False, "robotd state stream gap/clock failure"
     reached_ns = source_ns(rows[loc["robotd_reachable"][0]])
+    if not healthy_before_capture_end(rows, rows[loc["capture_end"][0]]):
+        return False, "first healthy cycle after capture ended"
     health_rows = [r for r in rows if r["kind"] == "robotd_health"]
     had_healthy_cycle = False
     for health_row in health_rows:
