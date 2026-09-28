@@ -3,9 +3,10 @@ import copy
 import json
 import math
 from pathlib import Path
+import time
 from unittest import mock
 
-from scripts.p8_03_r3_yaw_diagnostic import matrix, score, trace_integrity
+from scripts.p8_03_r3_yaw_diagnostic import matrix, sampled, score, trace_integrity
 
 PROTOCOL = json.loads((Path(__file__).parents[1] /
                        "config/p8_03_r3_yaw_diagnostic_v1.json").read_text())
@@ -63,3 +64,32 @@ def test_missing_or_unverified_raw_cannot_pass():
     assert score(PROTOCOL, rows[:-1])["result"] == "FAIL"
     assert score(PROTOCOL, rows)["result"] == "FAIL"
     assert trace_integrity(rows[0], matrix(PROTOCOL)[0]) is False
+
+
+def test_pose_wait_accepts_next_sim_tick_and_rejects_wrong_policy():
+    now = time.monotonic_ns()
+    previous = {"request_ns": now - 20_000_000,
+                "response_ns": now - 20_000_000, "sim_time_s": 1.0,
+                "x_m": .03457887954384973, "y_m": .0010909211238251523,
+                "trunk_z_m": .11587609862790209, "heading_rad": .11693358424258107,
+                "roll_rad": 0., "pitch_rad": 0.}
+    stale = dict(previous, request_ns=now, response_ns=now)
+    fresh = dict(previous, request_ns=now + 1_000_000,
+                 response_ns=now + 2_000_000, sim_time_s=1.02)
+    reader = mock.Mock()
+    reader.read.side_effect = [stale, fresh]
+    stream = mock.Mock()
+    stream.state.return_value = {
+        "safety": {"fallen": False, "limp": False}, "policy": "stand",
+        "t_ns": 100, "move": {"requested": [0, 0, 0],
+                              "applied": [0, 0, 0], "limited_by": []}}
+    assert sampled(reader, stream, previous, previous, moving=False)["pose"] == fresh
+    assert reader.read.call_count == 2
+    reader.read.side_effect = [fresh]
+    stream.state.return_value["policy"] = "sit"
+    try:
+        sampled(reader, stream, previous, previous, moving=False)
+    except RuntimeError as error:
+        assert "policy" in str(error)
+    else:
+        raise AssertionError("wrong policy state accepted")

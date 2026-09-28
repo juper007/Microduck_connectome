@@ -56,7 +56,10 @@ Use only official high-level `robot.move` and `robot.stop`. Zero x/y command;
 100-ms motion TTL; 50-Hz refresh; bounded 0.2-rad/s yaw and 0.2-s pulses.
 Pre-command simulator and robotd clocks must advance, body-response age must
 be at most 100 ms, health must be nondegraded, and pinned walk policy must be
-loaded. Initial x/y/z must be inside the unchanged R2 reference envelope;
+loaded. The robotd lifecycle field may be `stand` while stopped and `walk`
+while moving; any other lifecycle state aborts. A body read may wait at most
+50 ms for a newer simulator clock tick. Initial x/y/z must be inside the
+unchanged R2 reference envelope;
 initial heading may be up to 0.35 rad from that reference for diagnostic
 inclusion, without qualifying it for P8. Roll and pitch stay within ±0.5 rad,
 and command-induced planar translation within 0.01 m of each reset's start.

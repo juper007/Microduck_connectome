@@ -157,11 +157,22 @@ def validate_pose(row: dict, previous: dict | None, first: dict | None, *, movin
 
 def sampled(reader: TimedPoseReader, stream: StateStream, previous: dict | None,
             first: dict | None, *, moving: bool) -> dict:
-    pose = reader.read()
+    deadline = time.monotonic() + .05
+    while True:
+        pose = reader.read()
+        if (previous is None or
+                (pose["sim_time_s"] > previous["sim_time_s"] and
+                 pose["response_ns"] - previous["response_ns"] >= 10_000_000)):
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError("bounded fresh-pose wait expired")
+        time.sleep(.002)
     validate_pose(pose, previous, first, moving=moving)
     state = stream.state()
     if state["safety"]["fallen"] or state["safety"]["limp"]:
         raise RuntimeError("robotd safety fault")
+    if state["policy"] not in ("stand", "walk"):
+        raise RuntimeError("unexpected robotd policy state")
     return {"pose": pose, "robot_t_ns": state["t_ns"],
             "requested": state["move"]["requested"],
             "applied": state["move"]["applied"],
@@ -339,8 +350,7 @@ def trace_integrity(row: dict, expected: dict) -> bool:
                         pose["response_ns"] < pose["request_ns"] or
                         not all(math.isfinite(v) for v in
                                 sample["requested"] + sample["applied"]) or
-                        not isinstance(sample["policy"], str) or
-                        not sample["policy"] or
+                        sample["policy"] not in ("stand", "walk") or
                         sample["safety"]["fallen"] or sample["safety"]["limp"] or
                         abs(pose["roll_rad"]) > .5 or
                         abs(pose["pitch_rad"]) > .5 or
@@ -445,12 +455,15 @@ def run(output: Path, reviewed_head: str) -> None:
                                     text=True).strip()):
         raise RuntimeError("clean reviewed Thor Python 3.12 source required")
     verify_material()
-    if probe_final_sim_state(STATE, PORT, phase="r3_preflight")["result"] != "PASS":
+    preprobe = probe_final_sim_state(STATE, PORT, phase="r3_preflight")
+    if preprobe["result"] != "PASS":
         raise RuntimeError("dedicated simulator state is occupied")
     output.mkdir(parents=True, exist_ok=False)
     start_ticks = process_start_ticks()
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, interrupted)
     atomic_json(output / "run.json", {
         "status": "RUNNING", "source_head": reviewed_head,
         "pid": os.getpid(), "process_start_ticks": start_ticks,
@@ -458,7 +471,7 @@ def run(output: Path, reviewed_head: str) -> None:
         "single_use_no_retry": True})
     atomic_json(output / "preflight.json", {"source_head": reviewed_head,
         "protocol_sha256": sha(protocol_path), "pinned": R1_CONFIG,
-        "sim_probe": probe_final_sim_state(STATE, PORT, phase="r3_preflight")})
+        "sim_probe": preprobe})
     sim = str(Path(R1_CONFIG["microduck_path"]) / "scripts/duck-sim")
     env = dict(os.environ, DUCK_SIM_VIEWER="0", DUCK_SIM_STATE=str(STATE),
                DUCK_SIM_KEYFRAME="SIT", DUCK_SIM_RL=R1_CONFIG["microduck_rl_path"],
