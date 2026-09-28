@@ -90,7 +90,8 @@ def captured(command: list[str], env: dict, path: Path, timeout: int = 120) -> i
     return result.returncode
 
 
-def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
+def run(output: Path, head: str, cycles: int, preload_s: float,
+        keyframe: str) -> None:
     actual = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
                                      text=True).strip()
     dirty = subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"],
@@ -98,9 +99,12 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
     if (actual != head or dirty or not socket.gethostname().startswith("jetsonthor")
             or platform.python_version_tuple()[:2] != ("3", "12")):
         raise RuntimeError("clean exact-head Thor Python 3.12 source required")
-    if cycles < 1 or cycles > 20 or preload_s not in (0.0, 1.0):
+    if cycles < 1 or cycles > 20 or preload_s not in (0.0, 1.0) or keyframe not in ("SIT", "HOME"):
         raise ValueError("exploratory count or pre-load interval outside frozen choices")
-    expected_name = ("p8-03-r2-diagnosis-r1cadence-v1" if preload_s == 0.0 else
+    if keyframe == "HOME" and preload_s != 0.0:
+        raise ValueError("HOME diagnosis uses R1 policy cadence")
+    expected_name = ("p8-03-r2-diagnosis-home-v1" if keyframe == "HOME" else
+                     "p8-03-r2-diagnosis-r1cadence-v1" if preload_s == 0.0 else
                      "p8-03-r2-diagnosis-deferred-policy-v1")
     expected_parent = Path("/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final")
     if output != expected_parent / expected_name:
@@ -123,6 +127,7 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
     durable_directory(output)
     atomic_json(output / "preflight.json", preprobe)
     env = dict(os.environ, DUCK_SIM_VIEWER="0", DUCK_SIM_STATE=str(state),
+               DUCK_SIM_KEYFRAME=keyframe,
                DUCK_SIM_RL=config["microduck_rl_path"], DUCK_SIM_PORT=str(port),
                PYTHONPATH=str(ROOT))
     env["PATH"] = (str(Path(config["microduck_path"]).parent /
@@ -134,6 +139,7 @@ def run(output: Path, head: str, cycles: int, preload_s: float) -> None:
         folder = output / f"D{index:02d}"
         durable_directory(folder)
         record = {"index": index, "source_head": head, "preload_s": preload_s,
+                  "keyframe": keyframe,
                   "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
         try:
             record["down_before_exit"] = captured([sim, "down"], env,
@@ -224,8 +230,9 @@ def main() -> None:
     parser.add_argument("--reviewed-head", required=True)
     parser.add_argument("--cycles", type=int, required=True)
     parser.add_argument("--preload-s", type=float, choices=(0.0, 1.0), required=True)
+    parser.add_argument("--keyframe", choices=("SIT", "HOME"), default="SIT")
     args = parser.parse_args()
-    run(args.output, args.reviewed_head, args.cycles, args.preload_s)
+    run(args.output, args.reviewed_head, args.cycles, args.preload_s, args.keyframe)
 
 
 if __name__ == "__main__":
