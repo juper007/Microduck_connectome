@@ -21,7 +21,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from microduck_connectome.p8_03_r2_reset import (
-    REFERENCE, alignment_eligible, pose_deltas, qualification,
+    REFERENCE, TOLERANCE, HEADING_GUARD_RAD,
+    alignment_eligible, pose_deltas, qualification,
 )
 from microduck_connectome.robotd_client import RobotdClient
 from scripts.p6_motion_fixture import JsonLines
@@ -58,7 +59,8 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
     health = RobotdClient(str(sock), timeout_s=2)
     health.connect()
     try:
-        if health.health().get("healthy") is not True:
+        initial_health = health.health()
+        if initial_health.get("healthy") is not True or initial_health.get("degraded") is True:
             raise RuntimeError("unhealthy before perturbation")
         first = pose_row(reader, None)
         trace["initial"] = first
@@ -75,7 +77,8 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
             if math.hypot(previous["pose"]["x_m"] - first["pose"]["x_m"],
                           previous["pose"]["y_m"] - first["pose"]["y_m"]) > .03:
                 raise RuntimeError("perturbation translation bound exceeded")
-            if health.health().get("healthy") is not True:
+            current_health = health.health()
+            if current_health.get("healthy") is not True or current_health.get("degraded") is True:
                 raise RuntimeError("health lost during perturbation")
             tick = time.monotonic_ns()
             if last_ack is not None and tick - last_ack > 100_000_000:
@@ -186,13 +189,16 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
         raise PreparationFailure(trace, "connection close failed")
     # Fixed post-stop settling is separate from the subsequent qualification dwell.
     stop_ns = time.monotonic_ns()
+    trace["final_stop_completed_ns"] = stop_ns
     time.sleep(1.0)
+    trace["settle_completed_ns"] = time.monotonic_ns()
     rows = []
     client = RobotdClient(str(sock), timeout_s=2)
     try:
         client.connect()
         states = []
         dwell_start = time.monotonic()
+        trace["dwell_started_ns"] = time.monotonic_ns()
         for i in range(21):
             time.sleep(max(0, dwell_start + i * .05 - time.monotonic()))
             rows.append(reader.read())
@@ -235,6 +241,17 @@ def run(output: Path, head: str, kind: str) -> None:
                                     text=True).strip()):
         raise RuntimeError("clean exact-head Thor Python 3.12 required")
     protocol = json.loads((ROOT / "config/p8_03_r2_protocol_v1.json").read_text())
+    if (protocol["reset_reference"] != REFERENCE or
+            protocol["initial_pose_tolerance"] != TOLERANCE or
+            protocol["heading_qualification_guard_rad"] != HEADING_GUARD_RAD or
+            protocol["development_perturbation"] != {
+                "cycles": 2, "directions": [1, -1],
+                "minimum_abs_heading_delta_rad": .09,
+                "max_duration_s": 1,
+                "max_abs_yaw_rate_radps": .2,
+                "requested_vx_mps": 0, "requested_vy_mps": 0,
+                "outside_qualification_and_final_matrix": True}):
+        raise RuntimeError("R2 reset protocol/code mismatch")
     config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
     for path_key, commit_key in (("microduck_path", "microduck_commit"),
                                  ("microduck_rl_path", "microduck_rl_commit")):

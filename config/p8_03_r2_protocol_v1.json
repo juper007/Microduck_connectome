@@ -321,6 +321,16 @@
     "counts_every_reset": true,
     "no_retries": true
   },
+  "development_perturbation": {
+    "cycles": 2,
+    "directions": [1, -1],
+    "minimum_abs_heading_delta_rad": 0.09,
+    "max_duration_s": 1,
+    "max_abs_yaw_rate_radps": 0.2,
+    "requested_vx_mps": 0,
+    "requested_vy_mps": 0,
+    "outside_qualification_and_final_matrix": true
+  },
   "preparation": {
     "keyframe": "SIT",
     "post_stop_settle_s": 1,
