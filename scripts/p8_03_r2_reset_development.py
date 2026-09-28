@@ -65,7 +65,9 @@ class PreparationFailure(RuntimeError):
 def pose_row(reader: TimedPoseReader, previous: dict | None) -> dict:
     row = reader.read()
     if not alignment_eligible(row, previous):
-        raise RuntimeError("pre-command pose freshness/bounds failure")
+        raise RuntimeError(
+            "pre-command pose freshness/bounds failure: "
+            f"current={row!r}; previous={previous!r}")
     return row
 
 
@@ -117,9 +119,9 @@ def perturb_heading(port: int, sock: Path, direction: int) -> dict:
                     (last_ack is not None and ack_ns - last_ack > 100_000_000)):
                 raise RuntimeError("perturbation ACK exceeded TTL")
             last_ack = ack_ns
+            time.sleep(max(0, .05 - (time.monotonic_ns() - tick) / 1e9))
             previous = pose_row(reader, previous)
             move["pose"] = previous
-            time.sleep(max(0, .05 - (time.monotonic_ns() - tick) / 1e9))
         trace["final"] = previous
     except BaseException as error:
         trace["error"] = f"{type(error).__name__}: {error}"
@@ -186,6 +188,7 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
             if last_ack is not None and ack_ns - last_ack > 100_000_000:
                 raise RuntimeError("100 ms command TTL refresh exceeded")
             last_ack = ack_ns
+            time.sleep(max(0, .05 - (time.monotonic_ns() - tick) / 1e9))
             current = pose_row(reader, previous)
             move["pose"] = current
             current_error = abs(pose_deltas(current["pose"])["heading_rad"])
@@ -194,8 +197,6 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
             if time.monotonic() - start > .35 and current_error > initial_error - .005:
                 raise RuntimeError("alignment response stuck or wrong sign")
             previous = current
-            if time.monotonic_ns() - tick < 50_000_000:
-                time.sleep((50_000_000 - (time.monotonic_ns() - tick)) / 1e9)
         trace["alignment_duration_s"] = time.monotonic() - start
         trace["aligned_pose"] = previous
     except BaseException as error:
@@ -255,7 +256,7 @@ def prepare(reader: TimedPoseReader, sock: Path) -> dict:
 def run(output: Path, head: str, kind: str) -> None:
     expected = PARENT / ({
         "pilot": "p8-03-r2-reset-pilot-v1",
-        "perturbation": "p8-03-r2-alignment-perturbation-v1",
+        "perturbation": "p8-03-r2-alignment-perturbation-v2",
         "qualification": "p8-03-r2-reset-qualification-v1",
     }[kind])
     if output != expected or output.exists():
@@ -277,6 +278,7 @@ def run(output: Path, head: str, kind: str) -> None:
                 "max_duration_s": 1,
                 "max_abs_yaw_rate_radps": .2,
                 "requested_vx_mps": 0, "requested_vy_mps": 0,
+                "evidence_version": "v2",
                 "outside_qualification_and_final_matrix": True}):
         raise RuntimeError("R2 reset protocol/code mismatch")
     config = json.loads((ROOT / "config/p8_03_r1_execution_v1.json").read_text())
@@ -358,6 +360,7 @@ def run(output: Path, head: str, kind: str) -> None:
         except BaseException as error:
             if isinstance(error, PreparationFailure):
                 row["preparation"] = error.trace
+            row["result"] = "FAIL"
             row["error"] = f"{type(error).__name__}: {error}"
         finally:
             row["cleanup_stop"] = emergency_stop(STATE / "duck-a.sock")
