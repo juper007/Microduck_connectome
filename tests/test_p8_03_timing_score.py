@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
+from microduck_connectome.control_contracts import make_behavior_intent
 from microduck_connectome.looming_scenario import load_config, pixels_sha256
 from microduck_connectome.p8_03_geometry import relative_trial
 from scripts.p8_03_timing_score import score_batch
@@ -148,12 +149,18 @@ def fixture(root):
             row = {"frame_id": slot + 1, "timestamp_ns": ts,
                    "perception_valid": True, "perception_target_area": area,
                    "pixels_sha256": pixels_sha256(pixels),
+                   "tof_source": "frozen_synthetic_fixture",
+                   "tof_left_mm": SCENARIO["tof_mm"],
+                   "tof_center_mm": SCENARIO["tof_mm"],
+                   "tof_right_mm": SCENARIO["tof_mm"],
+                   "tof_timestamp_ns": ts, "tof_frame_id": slot + 1,
                    "processing_started_ns": ts + 1_000,
                    "processing_finished_ns": ts + 100_000}
             visual.append(row)
             events.append({"kind": "visual_frame", "timestamp_ns": ts,
                            "source_valid": True, "source_frame_id": slot + 1,
                            "pixels_sha256": row["pixels_sha256"], "image_area": area,
+                           "tof_timestamp_ns": ts, "tof_frame_id": slot + 1,
                            "distance_m": distance, "target_distance_m": distance,
                            "bearing_rad": 0, "pose": pose,
                            "pose_request_ns": ts + 1_000,
@@ -193,12 +200,16 @@ def fixture(root):
                            "neural_call_returned_ns": returned,
                            "runtime_step": slot + 1, "input_none": False,
                            "result_none": False, "male_cns_healthy": True,
-                           "dn_runtime_healthy": True, "perception_valid": True,
+                           "dn_runtime_healthy": True, "dn_escape": 0.0,
+                           "raw_decoder_stop": False, "perception_valid": True,
                            "perception_frame_id": frame_id,
                            "perception_timestamp_ns": source_ns,
                            "perception_age_ms": (started - source_ns) / 1e6})
             events.append({"kind": "neural_step", "timestamp_ns": wake,
-                           "runtime_healthy": True, "source_frame_id": frame_id})
+                           "runtime_healthy": True, "dn_escape": 0.0,
+                           "decoder_stop": False,
+                           "source_age_ms": (started - source_ns) / 1e6,
+                           "source_frame_id": frame_id})
             spans = {key: {"start_ns": started, "end_ns": started + 100_000}
                      for key in ("graph_runtime", "sensory_channels", "sensory_external",
                                  "readout", "decoder_safety_latch", "arbiter_lock_wait",
@@ -212,6 +223,9 @@ def fixture(root):
                        "call_ns": deadline + 6_000_000,
                        "ack_ns": deadline + 7_000_000, "sequence": slot + 1,
                        "watchdog_state": "healthy", "stop": False,
+                       "intent": make_behavior_intent(
+                           timestamp_ns=deadline + 5_000_000,
+                           sequence=slot + 1),
                        "transport": "suppressed_neutral_for_stop_causality_fixture"}
             events.append(control)
             ack = deadline + 2_000_000
@@ -397,6 +411,47 @@ class TimingScoreTests(unittest.TestCase):
         score = score_batch(self.root, self.config)
         self.assertIn("arm_body_motion_not_confirmed",
                       score["trials"][0]["failure_causes"])
+
+    def test_missing_tof_source_cannot_pass(self):
+        folder = self.root / "TPR2-001" / "attempt-01"
+        path = folder / "visual-frames.jsonl"
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        rows[0].pop("tof_source")
+        write_jsonl(path, rows)
+        summary_path = folder / "summary.json"
+        summary = json.loads(summary_path.read_text())
+        summary["visual_sha256"] = digest(path)
+        summary_path.write_text(json.dumps(summary), encoding="utf-8")
+        score = score_batch(self.root, self.config)
+        self.assertIn("visual_slot_0_invalid", score["trials"][0]["failure_causes"])
+
+    def test_missing_control_intent_cannot_pass(self):
+        folder = self.root / "TPR2-001" / "attempt-01"
+        path = folder / "events.jsonl"
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        next(row for row in rows if row.get("kind") == "control_publish").pop("intent")
+        write_jsonl(path, rows)
+        summary_path = folder / "summary.json"
+        summary = json.loads(summary_path.read_text())
+        summary["event_sha256"] = digest(path)
+        summary_path.write_text(json.dumps(summary), encoding="utf-8")
+        score = score_batch(self.root, self.config)
+        self.assertIn("control_slot_0_intent_invalid",
+                      score["trials"][0]["failure_causes"])
+
+    def test_neural_event_disagreement_cannot_pass(self):
+        folder = self.root / "TPR2-001" / "attempt-01"
+        path = folder / "events.jsonl"
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        next(row for row in rows if row.get("kind") == "neural_step")[
+            "source_age_ms"] = 99
+        write_jsonl(path, rows)
+        summary_path = folder / "summary.json"
+        summary = json.loads(summary_path.read_text())
+        summary["event_sha256"] = digest(path)
+        summary_path.write_text(json.dumps(summary), encoding="utf-8")
+        score = score_batch(self.root, self.config)
+        self.assertIn("neural_slot_0_invalid", score["trials"][0]["failure_causes"])
 
 
 if __name__ == "__main__":

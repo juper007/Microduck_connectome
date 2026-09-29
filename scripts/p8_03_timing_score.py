@@ -8,6 +8,8 @@ import math
 from pathlib import Path
 
 from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
+from microduck_connectome.control_contracts import (ControlContractError,
+                                                    validate_behavior_intent)
 from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
 from microduck_connectome.looming_scenario import load_config, pixels_sha256
 from microduck_connectome.p8_03_geometry import relative_trial
@@ -316,9 +318,15 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                 original.get("input_none") is not False or original.get("result_none") is not False or
                 original.get("male_cns_healthy") is not True or
                 original.get("dn_runtime_healthy") is not True or
+                not _number(original.get("dn_escape")) or
+                type(original.get("raw_decoder_stop")) is not bool or
                 original.get("perception_valid") is not True or
                 event.get("runtime_healthy") is not True or
+                event.get("dn_escape") != original.get("dn_escape") or
+                event.get("decoder_stop") != original.get("raw_decoder_stop") or
+                event.get("source_age_ms") != original.get("perception_age_ms") or
                 event.get("source_frame_id") != original.get("perception_frame_id") or
+                not _number(event.get("source_age_ms")) or
                 not _number(original.get("perception_age_ms")) or
                 not 0 <= original["perception_age_ms"] <= config["freshness_ttl_ms"]):
             errors.append(f"neural_slot_{slot}_invalid")
@@ -340,9 +348,19 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                 scheduled.get("tick_complete_ns", -1) < deadline + PERIOD_NS or
                 event.get("watchdog_state") != "healthy" or
                 event.get("stop") is not False or
+                type(event.get("intent")) is not dict or
+                event["intent"].get("sequence") != event.get("sequence") or
+                event["intent"].get("stop") is not False or
                 event.get("transport") !=
                 "suppressed_neutral_for_stop_causality_fixture"):
             errors.append(f"control_slot_{slot}_invalid")
+        try:
+            intent = validate_behavior_intent(event["intent"])
+            if (not deadline <= intent["timestamp_ns"] <= event["call_ns"] or
+                    any(intent[key] != 0 for key in ("vx", "vy", "vyaw"))):
+                errors.append(f"control_slot_{slot}_intent_invalid")
+        except (KeyError, ControlContractError, TypeError):
+            errors.append(f"control_slot_{slot}_intent_invalid")
         if slot < len(neural_slots) and scheduled.get("step_start_ns", -1) < neural_slots[
                 slot].get("tick_complete_ns", 1 << 64):
             errors.append(f"control_slot_{slot}_preceded_neural")
@@ -382,6 +400,13 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                 event.get("timestamp_ns") != original.get("timestamp_ns") or
                 event.get("source_frame_id") != original.get("frame_id") or
                 event.get("pixels_sha256") != original.get("pixels_sha256") or
+                original.get("tof_source") != "frozen_synthetic_fixture" or
+                any(original.get(key) != scenario["tof_mm"] for key in
+                    ("tof_left_mm", "tof_center_mm", "tof_right_mm")) or
+                original.get("tof_timestamp_ns") != original.get("timestamp_ns") or
+                original.get("tof_frame_id") != original.get("frame_id") or
+                event.get("tof_timestamp_ns") != original.get("tof_timestamp_ns") or
+                event.get("tof_frame_id") != original.get("tof_frame_id") or
                 not _number(event.get("image_area")) or
                 not math.isclose(event["image_area"], original.get("perception_target_area", -1),
                                  rel_tol=0, abs_tol=1e-12)):
