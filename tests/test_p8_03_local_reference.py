@@ -7,10 +7,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from scripts.p8_03_local_reference import (create_durable_arm_marker,
                                             settled_reference, verify_local_reference)
 from scripts.p8_03_score import planned, score_batch
+from scripts.p8_03_batch import main as batch_main
 
 
 CONFIG = json.loads((Path(__file__).parents[1] /
@@ -115,6 +117,25 @@ class CompletenessTests(unittest.TestCase):
             self.assertEqual(result["result"], "FAIL")
             self.assertFalse(result["final_down_valid"])
             self.assertEqual(result["planned"], 20)
+
+    def test_preflight_only_never_starts_or_creates_attempts(self):
+        with tempfile.TemporaryDirectory() as dirname:
+            output = Path(dirname) / "development"
+            argv = ["p8_03_batch", "--stage", "D", "--root", dirname,
+                    "--reviewed-head", "a" * 40, "--microduck", dirname,
+                    "--microduck-rl", dirname, "--graph", dirname,
+                    "--policy", dirname, "--sim-executable", dirname,
+                    "--output", str(output), "--audit", str(Path(dirname) / "audit"),
+                    "--sim-state", dirname, "--body-port", "7894",
+                    "--preflight-only"]
+            with patch("sys.argv", argv), patch(
+                    "scripts.p8_03_batch.preflight",
+                    return_value=(None, None, None, {"result": "PASS"})) as preflight, patch(
+                    "scripts.p8_03_batch.run") as run:
+                batch_main()
+            preflight.assert_called_once()
+            run.assert_not_called()
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":
