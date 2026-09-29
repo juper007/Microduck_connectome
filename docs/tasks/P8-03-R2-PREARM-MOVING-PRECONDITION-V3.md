@@ -55,10 +55,15 @@ a journal or turns a failed trial into PASS. The primary fixture error must
 remain in the durable summary and the official down/state probe remains
 required by the batch scorer.
 
-Prospective diagnostic lineage work records full state notifications, source
-and receive timestamps, observation order, command request and ACK spans, and
-the qualification decision for every acquisition observation. It does not
-reinterpret `TPR2A-001` or change the active moving-body acceptance gate.
+Prospective diagnostic lineage work records every parsed state notification,
+source and receive timestamps, observation order, command request and ACK
+spans, and a conservative `TRANSIENT` classification until command causality
+can be established. A selected post-ACK readback also gets a linked diagnostic
+decision. Every notification received during acquisition is checked for
+deadman, fault, or safety contamination, including notifications superseded by
+a later clean readback. This closes a state-selection gap while leaving the
+moving-body thresholds and no-deadman rule unchanged. It does not reinterpret
+`TPR2A-001`.
 
 After exact-head review, this task stops at the unresolved causal checkpoint.
 A separate architecture decision must establish a defensible causal state

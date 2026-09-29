@@ -41,7 +41,9 @@ from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move
 from scripts.p8_03_local_reference import (PoseWithLineage, create_durable_arm_marker,
                                             verify_local_reference, wrap)
 from scripts.p8_03_timing_motion import DurableMotionJournal, MotionTimingCoordinator
-from scripts.p8_03_precondition_lineage import DurableStateLineage, classify_observation
+from scripts.p8_03_precondition_lineage import (
+    DurableStateLineage, acquisition_contaminated, classify_observation,
+    observation_journal_row)
 
 
 def sha(path: Path) -> str:
@@ -239,6 +241,8 @@ def run(args) -> int:
     sampler = None
     pose_reader = None
     state_lineage = None
+    acquisition_active = [False]
+    acquisition_observations: list[dict] = []
     try:
         robot = RobotdClient(args.socket, timeout_s=2.0)
         robot.connect()
@@ -253,8 +257,13 @@ def run(args) -> int:
         if getattr(args, "timing_probe", False):
             state_lineage = DurableStateLineage(
                 args.timing_ledger.with_name("moving-acquisition-journal.jsonl"))
+        def record_state(observation: dict) -> None:
+            state_lineage.append(observation_journal_row(observation))
+            if acquisition_active[0]:
+                acquisition_observations.append(observation)
+
         sampler = RobotStateSampler(
-            args.socket, on_state=state_lineage.append if state_lineage else None)
+            args.socket, on_state=record_state if state_lineage else None)
         pose_reader = PoseWithLineage(args.body_port)
         pose_lock = threading.Lock()
         arbiter = NeuralStopMotionArbiter()
@@ -447,10 +456,12 @@ def run(args) -> int:
             raise RuntimeError("reference transition telemetry incomplete")
         poses = []
         if state_lineage is not None:
-            state_lineage.append({"kind": "moving_acquisition_start",
-                                  "timestamp_ns": time.monotonic_ns(),
-                                  "planned_motion_count": round(pre["duration_s"] * 1000 /
-                                                                pre["command_period_ms"])})
+            with sampler.condition:
+                state_lineage.append({"kind": "moving_acquisition_start",
+                                      "timestamp_ns": time.monotonic_ns(),
+                                      "planned_motion_count": round(pre["duration_s"] * 1000 /
+                                                                    pre["command_period_ms"])})
+                acquisition_active[0] = True
         for i in range(round(pre["duration_s"] * 1000 / pre["command_period_ms"])):
             tick = time.monotonic_ns()
             pre_move_state = sampler.snapshot() if state_lineage is not None else None
@@ -517,6 +528,12 @@ def run(args) -> int:
                                       "pose_request_ns": pose_source["request_ns"],
                                       "raw_body_packet": pose_source["raw_packet"]})
             time.sleep(max(0, .020 - (time.monotonic_ns() - tick) / 1e9))
+        if state_lineage is not None:
+            with sampler.condition:
+                acquisition_active[0] = False
+                observed_acquisition = list(acquisition_observations)
+        else:
+            observed_acquisition = []
         speeds = pose_speeds(poses, window_ms=100, max_window_ms=140)
         confirmed = first_sustained(speeds, threshold_mps=.015,
                                     duration_ms=200, at_or_above=True)
@@ -526,6 +543,7 @@ def run(args) -> int:
         if (confirmed is None or confirmed <= reset["capture_ns"]
                 or displacement < move_gate["minimum_trunk_displacement_m"]
                 or last_applied < move_gate["minimum_fresh_applied_vx_mps"]
+                or acquisition_contaminated(observed_acquisition)
                 or any(r["state_ns"] < r["timestamp_ns"] or
                        r["state_ns"] - r["timestamp_ns"] >
                        move_gate["maximum_state_age_ms"] * 1e6 or

@@ -42,6 +42,37 @@ class DurableStateLineage:
         self.close()
 
 
+def observation_journal_row(observation: dict) -> dict:
+    """Retain an unproven state as transient with its safety fields visible."""
+    state = observation["state"]
+    move = state["move"]
+    limited_by = list(move.get("limited_by", []))
+    return {**copy.deepcopy(observation),
+            "kind": "state_observation",
+            "command_request_id": None,
+            "requested_velocity": list(move["requested"]),
+            "applied_velocity": list(move["applied"]),
+            "limited_by": limited_by,
+            "policy": state.get("policy"),
+            "deadman": "deadman" in limited_by,
+            "freshness": None,
+            "causal_post_command": False,
+            "qualification_state": "TRANSIENT",
+            "reason": "command_causality_not_yet_proven"}
+
+
+def acquisition_contaminated(observations: list[dict]) -> bool:
+    """A skipped notification must not be erased by a later clean readback."""
+    for observation in observations:
+        state = observation["state"]
+        limited_by = state["move"].get("limited_by", [])
+        if (any(reason in ("deadman", "fault", "safety") for reason in limited_by)
+                or state.get("safety", {}).get("fallen") is True
+                or state.get("safety", {}).get("limp") is True):
+            return True
+    return False
+
+
 def classify_observation(
     observation: dict,
     *,

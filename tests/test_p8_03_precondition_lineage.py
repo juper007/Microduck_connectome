@@ -9,7 +9,9 @@ import unittest
 from unittest.mock import patch
 
 from scripts.p8_03_precondition_lineage import (DurableStateLineage,
-                                                 classify_observation)
+                                                 acquisition_contaminated,
+                                                 classify_observation,
+                                                 observation_journal_row)
 from scripts.p6_telemetry_runtime_fixture import RobotStateSampler
 
 
@@ -67,6 +69,45 @@ class StateLineageTests(unittest.TestCase):
         clean = observation(12, 1_023_000_000, 1_025_000_000)
         self.assertEqual(classify_observation(clean, **self.options)[
             "qualification_state"], "QUALIFYING")
+
+    def test_skipped_deadman_notification_cannot_be_erased_by_latest_clean(self):
+        class FakeClient:
+            def __init__(self, *_args, **_kwargs):
+                self.items = queue.Queue()
+
+            def connect(self):
+                pass
+
+            def state(self, *, hz):
+                return self.items.get(timeout=1)
+
+            def close(self):
+                self.items.put(observation(0, 0, 0)["state"])
+
+        seen = []
+        with patch("scripts.p6_telemetry_runtime_fixture.RobotdClient", FakeClient):
+            sampler = RobotStateSampler("unused", on_state=seen.append)
+            try:
+                sampler.client.items.put(observation(
+                    0, 1_003_000_000, 0, applied=0,
+                    limited=("deadman",))["state"])
+                sampler.client.items.put(observation(
+                    1, 1_023_000_000, 0)["state"])
+                deadline = time.monotonic() + 1
+                while len(seen) < 2 and time.monotonic() < deadline:
+                    time.sleep(.001)
+                self.assertEqual(len(seen), 2)
+                self.assertEqual(sampler.after_snapshot(0)["state_index"], 1)
+                self.assertEqual(sampler.after_snapshot(0)["state"]["move"][
+                    "limited_by"], [])
+                self.assertTrue(acquisition_contaminated(seen))
+                rows = [observation_journal_row(item) for item in seen]
+                self.assertEqual([row["state_index"] for row in rows], [0, 1])
+                self.assertTrue(rows[0]["deadman"])
+                self.assertEqual(rows[0]["qualification_state"], "TRANSIENT")
+                self.assertFalse(rows[0]["causal_post_command"])
+            finally:
+                sampler.close()
 
     def test_source_nonadvance_and_index_regression(self):
         repeated = observation(11, 1_000_000_000, 1_005_000_000)
