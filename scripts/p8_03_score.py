@@ -586,8 +586,11 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
                       "false_neural_stop": False, "clean_true_negative": False,
                       "failure_causes": ["incomplete_raw"],
                       "safety_limit_violations": None}
-        result["false_neural_stop"] = result["false_neural_stop"] or observed_stop
-        if observed_stop and "false_neural_stop" not in result["failure_causes"]:
+        # A completed, accounted trial uses only score_raw's frozen 1,000 ms
+        # window. Abnormal/unknown attempts remain conservative and terminal.
+        if not attempt_valid:
+            result["false_neural_stop"] = result["false_neural_stop"] or observed_stop
+        if result["false_neural_stop"] and "false_neural_stop" not in result["failure_causes"]:
             result["failure_causes"].append("false_neural_stop")
         if not attempt_valid:
             result["failure_causes"].append("attempt_accounting")

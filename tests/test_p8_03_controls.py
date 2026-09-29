@@ -145,6 +145,41 @@ class RawScorerTests(unittest.TestCase):
             late = score_batch(root, LOCAL_CONFIG, "S")
             self.assertIn("arm_marker_invalid", late["trials"][0]["failure_causes"])
 
+    def test_completed_trial_ignores_post_window_neural_stop(self):
+        full_rows = clean_raw()
+        full_rows.append({"kind": "neural_step", "timestamp_ns": 2_100_000_000,
+                          "runtime_healthy": True, "dn_escape": .7,
+                          "decoder_stop": True})
+        full_result = score_raw(full_rows, trial_id="S889200", ordinal=0, stage="S")
+        self.assertTrue(full_result["clean_true_negative"])
+        self.assertFalse(full_result["false_neural_stop"])
+        with tempfile.TemporaryDirectory() as dirname:
+            root = Path(dirname)
+            folder = root / "S889200" / "attempt-01"
+            folder.mkdir(parents=True)
+            events = [{"kind": "arm", "timestamp_ns": 1_000_000_000,
+                       "reset_id": "S889200", "ordinal": 0},
+                      {"kind": "neural_step", "timestamp_ns": 2_100_000_000,
+                       "runtime_healthy": True, "dn_escape": .7,
+                       "decoder_stop": True}]
+            (folder / "events.jsonl").write_text("".join(json.dumps(r) + "\n"
+                                                       for r in events))
+            (root / "batch-journal.json").write_text(json.dumps({
+                "source_path": str(Path(__file__).parents[1]),
+                "schema_version": "p8-03-local-batch-journal-v1", "stage": "S",
+                "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+                "simulator_rng_seeded": False, "source_head": "a" * 40,
+                "config_sha256": "b" * 64,
+                "ids": [{"reset_id": "S889200", "ordinal": 0,
+                         "status": "ARMED_COMPLETE",
+                         "attempts": [{"name": "attempt-01", "armed": True,
+                                       "status": "TRIAL_EXITED", "trial_exit": 0}]}],
+                "final_sim_down": None}))
+            result = score_batch(root, LOCAL_CONFIG, "S")
+            self.assertEqual(result["false_neural_stops"], 0)
+            self.assertFalse(result["trials"][0]["false_neural_stop"])
+            self.assertEqual(result["result"], "FAIL")  # incomplete raw remains terminal
+
     def test_raw_movement_tampering_contaminates(self):
         rows = clean_raw()
         for event in rows:
