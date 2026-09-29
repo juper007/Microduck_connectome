@@ -1,8 +1,10 @@
 # P8-03 precondition causal-state decision
 
-Task: `P8-03-R2-PRECONDITION-CAUSAL-STATE-ARCHITECTURE`  
-Decision: **B — existing API insufficient; add diagnostic generation metadata before another probe.**  
-Base: fetched `origin/main` `57161251c63be912a002d236d18e7c13cd48b1cc`.  
+Task: `P8-03-R2-PRECONDITION-CAUSAL-STATE-ARCHITECTURE`
+
+Decision: **B — existing API insufficient; add diagnostic generation metadata before another probe.**
+
+Base: fetched `origin/main` `57161251c63be912a002d236d18e7c13cd48b1cc`.
 Pinned MicroDuck: `344925c9f8fa031f85428a305b1e8ec2eaae29c1` from `config/versions.json`.
 
 ## Required verdicts
