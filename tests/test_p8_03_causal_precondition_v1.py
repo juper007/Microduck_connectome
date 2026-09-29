@@ -153,6 +153,15 @@ def test_late_delivery_of_pre_stop_deadman_fails(tmp_path):
         score(tmp_path, rows, poses)
 
 
+def test_unknown_writer_before_barrier_cannot_close_window(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[-2]["state"]["consumed_move_generation"] = 82
+    states[-1]["state"]["consumed_move_generation"] = 83
+    with pytest.raises(CausalPreconditionError, match="unattributed generation"):
+        score(tmp_path, rows, poses)
+
+
 def test_historical_lineage_remains_separate():
     from scripts.p8_03_precondition_lineage import acquisition_contaminated
     assert acquisition_contaminated([{"state": {"move": {"limited_by": ["deadman"]},

@@ -93,8 +93,14 @@ def run(args):
     if subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"],
                                text=True).strip() != "344925c9f8fa031f85428a305b1e8ec2eaae29c1":
         raise RuntimeError("upstream base mismatch")
+    candidate_tree = subprocess.check_output(
+        ["git", "-C", str(upstream), "rev-parse",
+         "c47085a57770c52ed4cd00d5960b17598df2d7af^{tree}"],
+        text=True).strip()
+    if candidate_tree != "8118cb336af98fb0947f3de592843dc8b5434096":
+        raise RuntimeError("original candidate commit tree mismatch")
     if subprocess.check_output(["git", "-C", str(upstream), "write-tree"],
-                               text=True).strip() != "8118cb336af98fb0947f3de592843dc8b5434096":
+                               text=True).strip() != candidate_tree:
         raise RuntimeError("reviewed candidate tree mismatch")
     if subprocess.run(["git", "-C", str(upstream), "diff", "--quiet"],
                       check=False).returncode != 0:
@@ -209,18 +215,28 @@ def run(args):
         # Eligibility is assessed only after the entire causal window. No ARM follows.
         _, stop_sent_ns, _ = command.call("robot.stop", {})
         summary["stop_sent_ns"] = stop_sent_ns
-        last_move_generation = result["accepted_move_generation"]
+        final_move_generation = result["accepted_move_generation"]
         stop_deadline = time.monotonic() + 2
+        barrier_seen = False
+        stop_state = None
         while time.monotonic() < stop_deadline:
             recorder.assert_healthy()
             rows = [json.loads(line) for line in (out / "diagnostic.jsonl").read_text().splitlines()]
-            if any(r["kind"] == "robot.state" and
-                   r["state"]["consumed_move_generation"] > last_move_generation
-                   for r in rows):
+            states = [r["state"] for r in rows if r["kind"] == "robot.state"]
+            barrier_seen = any(s["t_ns"] > stop_sent_ns for s in states)
+            higher = [s for s in states if s["consumed_move_generation"] > final_move_generation]
+            if higher:
+                stop_state = higher[0]
+            if barrier_seen and stop_state is not None:
                 break
             time.sleep(.005)
         else:
-            raise RuntimeError("stop generation was not consumed")
+            raise RuntimeError("post-stop barrier or generation advance missing")
+        if (stop_state["consumed_move_generation"] != final_move_generation + 1 or
+                stop_state["move"]["requested"] != [0.0, 0.0, 0.0]):
+            raise RuntimeError("stop generation advance has unexpected intent")
+        summary["stop_observed_generation"] = stop_state["consumed_move_generation"]
+        summary["stop_observed_tick"] = stop_state["control_tick_sequence"]
         pose_stop.set()
         pose_thread.join(timeout=2)
         body.close()

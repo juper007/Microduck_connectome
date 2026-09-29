@@ -29,9 +29,10 @@ def evaluate_causal_precondition(
 ) -> dict:
     """Require exact generation lineage and frozen physical gate before eligibility.
 
-    The first observed stop generation closes the stream. Every preceding
-    positive-generation state is checked, including frames delivered after
-    stop was requested. A terminal diagnostic failure rejects the acquisition.
+    The first tick whose source sensor read follows the stop request is a
+    delivery barrier, not an attribution of the stop generation. Every earlier
+    tick is checked, including frames delivered after the stop request. A
+    terminal diagnostic failure rejects the acquisition.
     """
     _uint(pre_move_tick, "pre_move_tick")
     _uint(stop_sent_ns, "stop_sent_ns")
@@ -98,11 +99,11 @@ def evaluate_causal_precondition(
         raise CausalPreconditionError("no causal consumed positive move")
     first_ns = first["received_at_ns"]
     first_index = states.index(first)
-    stop_index = next((i for i in range(first_index + 1, len(states)) if
-                       states[i]["state"]["consumed_move_generation"] > max(positive)), None)
-    if stop_index is None or states[stop_index]["received_at_ns"] < stop_sent_ns:
-        raise CausalPreconditionError("consumed stop generation not observed")
-    window = states[first_index:stop_index]
+    barrier_index = next((i for i in range(first_index + 1, len(states)) if
+                          states[i]["state"]["t_ns"] > stop_sent_ns), None)
+    if barrier_index is None:
+        raise CausalPreconditionError("post-stop source-time delivery barrier missing")
+    window = states[first_index:barrier_index]
     if not window or window[0] is not first:
         raise CausalPreconditionError("causal window incomplete")
     deadman_count = fault_count = 0
