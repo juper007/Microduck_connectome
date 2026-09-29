@@ -28,7 +28,7 @@
   "settled_gate": {
     "official_up_exit_required": 0,
     "post_up_min_capture_s": 1.0,
-    "post_up_max_capture_s": 3.0,
+    "post_up_max_capture_s": 8.0,
     "settle_window_s": 0.5,
     "minimum_distinct_pose_samples": 6,
     "max_pose_gap_ms": 100,
@@ -56,7 +56,8 @@
     "evidence_note": "R7 v3 diagnostic bounds; must be validated after explicit walk policy readback in development before final execution",
     "max_health_poll_gap_ms": 300,
     "require_continuous_healthy_health_samples": true,
-    "max_prearm_health_age_ms": 300
+    "max_prearm_health_age_ms": 300,
+    "capture_deadline_note": "8 s allows explicit walk-policy load/readback after up; all 0.5 s settled health/pose gates remain mandatory; development must validate this prospective engineering choice"
   },
   "moving_gate": {
     "after_local_reference": true,
