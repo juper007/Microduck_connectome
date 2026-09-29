@@ -5,6 +5,7 @@ import time
 import unittest
 
 from scripts.p8_03_timing_motion import MotionTimingCoordinator
+from scripts.p8_03_trial import recent_moving_pose
 
 
 class ManualClock:
@@ -262,6 +263,20 @@ class MotionTimingTests(unittest.TestCase):
             self.assertTrue(faults[0].startswith("arm_prepare_failed"))
         finally:
             coordinator.stop()
+
+
+class PrearmBodyMotionTests(unittest.TestCase):
+    def test_recent_sustained_pose_required_at_arm(self):
+        now_ns = 1_000_000_000
+        rows = [{"kind": "pose_observation",
+                 "source_timestamp_ns": now_ns - 343_000_000 + i * 20_000_000,
+                 "value": {"pose": {"x_m": .07 * i * .02, "y_m": 0}}}
+                for i in range(18)]
+        self.assertIsNotNone(recent_moving_pose(rows, now_ns))
+        stopped = [dict(row) for row in rows]
+        stopped[-7:] = [{**row, "value": {"pose": {"x_m": stopped[-8]["value"]["pose"]["x_m"],
+                                               "y_m": 0}}} for row in stopped[-7:]]
+        self.assertIsNone(recent_moving_pose(stopped, now_ns))
 
 
 if __name__ == "__main__":

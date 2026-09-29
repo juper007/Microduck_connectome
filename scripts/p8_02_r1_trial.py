@@ -417,6 +417,12 @@ class VisualCadence:
             self.next_ns += self.period_ns
         return True
 
+    def rephase_at_arm(self, arm_ns: int) -> None:
+        """Retain the pre-arm frame but begin a new full scored visual second."""
+        if type(arm_ns) is not int or arm_ns < 0 or self.next_ns is None:
+            raise ValueError("visual rephase requires a prior real pre-arm frame")
+        self.next_ns = arm_ns
+
 
 def _timed_neural_span(spans, name, operation):
     if spans is None:

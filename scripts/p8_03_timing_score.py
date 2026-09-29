@@ -7,6 +7,10 @@ import json
 import math
 from pathlib import Path
 
+from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
+from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
+from microduck_connectome.looming_scenario import load_config, pixels_sha256
+from microduck_connectome.p8_03_geometry import relative_trial
 from scripts.p8_03_local_reference import body_pose
 
 
@@ -14,6 +18,7 @@ PERIOD_NS = 20_000_000
 VISUAL_PERIOD_NS = 50_000_000
 WINDOW_NS = 1_000_000_000
 IDS = ("TPR2-001", "TPR2-002", "TPR2-003")
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _read_jsonl(path: Path) -> list[dict]:
@@ -133,6 +138,46 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                     row.get("value", {}).get("pose") == anchors[0].get("pose")
                     for row in rows["timing"])):
         errors.append("arm_geometry_anchor_invalid")
+    prearm_pose = [row for row in rows["timing"]
+                   if row.get("kind") == "pose_observation" and
+                   type(row.get("source_timestamp_ns")) is int and
+                   start - 400_000_000 <= row["source_timestamp_ns"] < start]
+    try:
+        for row in prearm_pose:
+            value = row["value"]
+            pose = value["pose"]
+            raw_pose = body_pose(json.loads(value["raw_body_packet"]))
+            if (any(abs(raw_pose[key] - pose[key]) > 1e-10
+                    for key in ("x_m", "y_m", "trunk_z_m", "heading_rad")) or
+                    type(value["request_ns"]) is not int or
+                    not 0 <= row["source_timestamp_ns"] - value["request_ns"] <=
+                    config["moving_gate"]["maximum_pose_age_ms"] * 1e6 or
+                    type(row.get("move_ack_ns")) is not int or
+                    row["move_ack_ns"] > row["source_timestamp_ns"]):
+                raise ValueError("prearm raw pose lineage invalid")
+        samples = [{"timestamp_ns": row["source_timestamp_ns"],
+                    "x_m": row["value"]["pose"]["x_m"],
+                    "y_m": row["value"]["pose"]["y_m"]}
+                   for row in prearm_pose]
+        speeds_before_arm = pose_speeds(samples, window_ms=100, max_window_ms=140)
+        confirmed_before_arm = first_sustained(
+            speeds_before_arm,
+            threshold_mps=config["moving_gate"]["minimum_pose_speed_mps"],
+            duration_ms=200, at_or_above=True)
+        if (len(samples) < 12 or confirmed_before_arm is None or
+                start - confirmed_before_arm > 100_000_000 or
+                start - samples[-1]["timestamp_ns"] > 100_000_000 or
+                len(anchors) != 1 or
+                anchors[0].get("pose_source_ns") != samples[-1]["timestamp_ns"] or
+                type(anchors[0].get("moving_confirmed_ns")) is not int or
+                abs(anchors[0]["moving_confirmed_ns"] - confirmed_before_arm) >
+                40_000_000 or
+                any(row["pose_speed_mps"] is None or
+                    row["pose_speed_mps"] < config["moving_gate"]["minimum_pose_speed_mps"]
+                    for row in speeds_before_arm[-2:])):
+            errors.append("arm_body_motion_not_confirmed")
+    except (KeyError, TypeError, ValueError, IndexError):
+        errors.append("arm_body_motion_not_confirmed")
     if (marker.get("state") != "ARMED" or marker.get("reset_id") != ident or
             type(marker.get("armed_at_monotonic_ns")) is not int or
             marker["armed_at_monotonic_ns"] > start or
@@ -310,6 +355,26 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     if (visual and (visual[0]["timestamp_ns"] - start > VISUAL_PERIOD_NS or
                     end - visual[-1]["timestamp_ns"] > 100_000_000)):
         errors.append("visual_boundary_gap")
+    scenario = load_config(ROOT / "config/looming_scenario_v1.json")
+    baseline = [row for row in rows["events"] if row.get("kind") == "prearm_visual_anchor"
+                and type(row.get("timestamp_ns")) is int and row["timestamp_ns"] < start]
+    if len(baseline) != 1:
+        errors.append("prearm_visual_baseline_missing")
+    else:
+        try:
+            base_pose = baseline[0]["pose"]
+            base_trial, base_distance = relative_trial(
+                pose=base_pose, trial_id=ident, ordinal=spec["ordinal"],
+                mode=spec["mode"], elapsed_after_arm_s=0.0)
+            base_pixels = render_fractional_pixels(scenario, base_trial,
+                                                   pose=base_pose, elapsed_s=0)
+            base_area = sum(pixel[0] for line in base_pixels for pixel in line) / (
+                255 * scenario["image_width_px"] * scenario["image_height_px"])
+            if (abs(baseline[0]["distance_m"] - base_distance) > 1e-10 or
+                    abs(baseline[0]["image_area"] - base_area) > 1e-12):
+                errors.append("prearm_visual_baseline_invalid")
+        except (KeyError, TypeError, ValueError, IndexError):
+            errors.append("prearm_visual_baseline_invalid")
     frame_by_id = {row.get("frame_id"): row for row in rows["visual"]}
     for slot, (original, event) in enumerate(zip(visual, visual_events)):
         if (original.get("perception_valid") is not True or
@@ -321,6 +386,35 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                 not math.isclose(event["image_area"], original.get("perception_target_area", -1),
                                  rel_tol=0, abs_tol=1e-12)):
             errors.append(f"visual_slot_{slot}_invalid")
+        try:
+            pose = event["pose"]
+            raw_pose = body_pose(json.loads(event["raw_body_packet"]))
+            if (any(abs(raw_pose[key] - pose[key]) > 1e-10 for key in pose) or
+                    type(event["pose_request_ns"]) is not int or
+                    type(event["pose_response_ns"]) is not int or
+                    not event["timestamp_ns"] <= event["pose_request_ns"] <=
+                    event["pose_response_ns"] <=
+                    event["timestamp_ns"] + config["freshness_ttl_ms"] * 1e6):
+                raise ValueError("visual pose source invalid")
+            virtual, distance = relative_trial(
+                pose=pose, trial_id=ident, ordinal=spec["ordinal"],
+                mode=spec["mode"],
+                elapsed_after_arm_s=(event["timestamp_ns"] - start) / 1e9)
+            pixels = render_fractional_pixels(scenario, virtual, pose=pose, elapsed_s=0)
+            area = sum(pixel[0] for line in pixels for pixel in line) / (
+                255 * scenario["image_width_px"] * scenario["image_height_px"])
+            if (abs(event["distance_m"] - distance) >
+                    config["static_tolerance_m"] or
+                    abs(event["target_distance_m"] - distance) >
+                    config["static_tolerance_m"] or
+                    abs(event["virtual_center_x_m"] - virtual.anchor_x_m) > 1e-10 or
+                    abs(event["virtual_center_y_m"] - virtual.anchor_y_m) > 1e-10 or
+                    abs(event["bearing_rad"]) > 1e-10 or
+                    abs(event["image_area"] - area) > 1e-12 or
+                    event["pixels_sha256"] != pixels_sha256(pixels)):
+                raise ValueError("visual geometry or pixels invalid")
+        except (KeyError, TypeError, ValueError, IndexError):
+            errors.append(f"visual_slot_{slot}_geometry_invalid")
     for original in neural:
         source = frame_by_id.get(original.get("perception_frame_id"))
         if (source is None or source.get("timestamp_ns") != original.get("perception_timestamp_ns") or
@@ -349,6 +443,20 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
             type(ready[0].get("timestamp_ns")) is not int or
             not 0 <= start - ready[0]["timestamp_ns"] <=
             config["moving_gate"]["maximum_state_age_ms"] * 1e6 or
+            type(ready[0].get("state_source_ns")) is not int or
+            not 0 <= ready[0]["timestamp_ns"] - ready[0]["state_source_ns"] <=
+            config["moving_gate"]["maximum_state_age_ms"] * 1e6 or
+            type(ready[0].get("applied_velocity")) is not list or
+            len(ready[0]["applied_velocity"]) != 3 or
+            ready[0]["applied_velocity"][0] <
+            config["moving_gate"]["minimum_fresh_applied_vx_mps"] or
+            any(any(word in str(reason).lower() for word in
+                    ("deadman", "fault", "safety", "stale", "ttl"))
+                for reason in ready[0].get("limited_by", [])) or
+            ready[0].get("policy") not in
+            config["settled_gate"]["allowed_observed_policy_states"] or
+            ready[0].get("safety", {}).get("fallen") or
+            ready[0].get("safety", {}).get("limp") or
             not prearm_motion or ready[0].get("last_move_ack_ns") not in
             {row["move_ack_ns"] for row in prearm_motion} or
             ready[0]["last_move_ack_ns"] > ready[0]["timestamp_ns"] or
@@ -541,7 +649,8 @@ def score_batch(output: Path, config: dict) -> dict:
     except (OSError, ValueError, TypeError):
         return {"result": "FAIL", "error": "batch_journal_unreadable"}
     final = journal.get("final_sim_down") or {}
-    final_ok = final.get("exit") == 0 and final.get("state_probe_result") == "PASS"
+    final_ok = (final.get("exit") == 0 and final.get("interrupted") is False and
+                final.get("state_probe_result") == "PASS")
     try:
         raw_final = json.loads((output / "final-state-probe.json").read_text(encoding="utf-8"))
         final_ok = (final_ok and raw_final.get("result") == "PASS" and

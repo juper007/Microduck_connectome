@@ -69,6 +69,26 @@ def checked_reference(path: Path, gate: dict, reset_id: str,
     return record, hashlib.sha256(raw).hexdigest()
 
 
+def recent_moving_pose(rows: list[dict], now_ns: int, *, minimum_speed_mps: float = .015):
+    """Confirm a current 200 ms moving interval from independent raw pose reads."""
+    points = [{"timestamp_ns": row["source_timestamp_ns"],
+               "x_m": row["value"]["pose"]["x_m"],
+               "y_m": row["value"]["pose"]["y_m"]}
+              for row in rows if row.get("kind") == "pose_observation"
+              and 0 <= now_ns - row["source_timestamp_ns"] <= 400_000_000]
+    if len(points) < 12 or now_ns - points[-1]["timestamp_ns"] > 100_000_000:
+        return None
+    speeds = pose_speeds(points, window_ms=100, max_window_ms=140)
+    confirmed = first_sustained(speeds, threshold_mps=minimum_speed_mps,
+                                duration_ms=200, at_or_above=True)
+    if (confirmed is None or now_ns - confirmed > 100_000_000 or
+            any(row["pose_speed_mps"] is None or
+                row["pose_speed_mps"] < minimum_speed_mps for row in speeds[-2:])):
+        return None
+    return {"confirmed_ns": confirmed, "latest_pose_ns": points[-1]["timestamp_ns"],
+            "latest_speed_mps": speeds[-1]["pose_speed_mps"]}
+
+
 def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     root = args.root.resolve(strict=True)
     execution_rel = ("config/p8_03_timing_probe_v1.json" if
@@ -491,6 +511,18 @@ def run(args) -> int:
                     first_continuation_ack - precondition_rows[-1]["timestamp_ns"] >
                     move_gate["maximum_state_age_ms"] * 1e6):
                 raise RuntimeError("prearm move handoff exceeded continuity bound")
+            moving_wait_end = time.monotonic() + .8
+            while True:
+                moving_snapshot = timing_motion.snapshot()
+                if moving_snapshot["fault_reason"] is not None:
+                    raise RuntimeError("prearm motion fault during pose confirmation")
+                recent_motion = recent_moving_pose(moving_snapshot["rows"],
+                                                   time.monotonic_ns())
+                if recent_motion is not None:
+                    break
+                if time.monotonic() >= moving_wait_end:
+                    raise RuntimeError("fresh sustained body movement not confirmed")
+                time.sleep(.01)
             prime_ns = time.monotonic_ns()
             frame = chain.perception(prime_ns)
             update = chain.neural(frame, prime_ns)
@@ -519,21 +551,34 @@ def run(args) -> int:
                                  if r["kind"] == "pose_observation"]
             state_observations = [r for r in fresh_pose["rows"]
                                   if r["kind"] == "state_observation"]
+            ready_motion = recent_moving_pose(fresh_pose["rows"], time.monotonic_ns())
             latest_pose_ns = (pose_observations[-1]["source_timestamp_ns"]
                               if pose_observations else None)
             if (fresh_state["move"]["applied"][0] <
                     move_gate["minimum_fresh_applied_vx_mps"] or
-                    any(reason in ("deadman", "fault", "safety") for reason in
-                        fresh_state["move"].get("limited_by", [])) or
+                    any(any(word in str(reason).lower() for word in
+                            ("deadman", "fault", "safety", "stale", "ttl"))
+                        for reason in fresh_state["move"].get("limited_by", [])) or
+                    fresh_state.get("policy") not in
+                    execution["settled_gate"]["allowed_observed_policy_states"] or
+                    fresh_state.get("safety", {}).get("fallen") or
+                    fresh_state.get("safety", {}).get("limp") or
                     not pose_observations or not state_observations or
                     latest_pose_ns is None or
                     time.monotonic_ns() - latest_pose_ns > 100_000_000 or
+                    ready_motion is None or
                     fresh_pose["fault_reason"] is not None):
                 raise RuntimeError("moving-body state failed prearm revalidation")
-            events.append({"kind": "timing_prearm_ready", "timestamp_ns": fresh_state_ns,
+            ready_capture_ns = time.monotonic_ns()
+            events.append({"kind": "timing_prearm_ready", "timestamp_ns": ready_capture_ns,
+                           "state_source_ns": fresh_state_ns,
                            "applied_velocity": fresh_state["move"]["applied"],
+                           "limited_by": fresh_state["move"].get("limited_by", []),
+                           "policy": fresh_state.get("policy"),
+                           "safety": fresh_state.get("safety"),
                            "last_move_ack_ns": fresh_pose["last_move_ack_ns"],
                            "last_pose_source_ns": latest_pose_ns,
+                           "latest_pose_speed_mps": ready_motion["latest_speed_mps"],
                            "worker_count": 6})
             health_prearm = robot.health()
             health_prearm_ns = time.monotonic_ns()
@@ -557,14 +602,23 @@ def run(args) -> int:
                   "armed_at_monotonic_ns": candidate_arm_ns, "state": "ARMED"}
         create_durable_arm_marker(args.armed_marker, marker)
         if timing_motion is not None:
+            arm_pose_anchor = None
+            arm_motion_confirmation = None
             def final_arm_check():
+                nonlocal arm_pose_anchor, arm_motion_confirmation
                 now_ns = time.monotonic_ns()
                 snap = timing_motion.snapshot()
+                arm_motion_confirmation = recent_moving_pose(snap["rows"], now_ns)
+                poses_at_arm = [row for row in snap["rows"]
+                                if row["kind"] == "pose_observation"]
+                arm_pose_anchor = poses_at_arm[-1] if poses_at_arm else None
                 if (snap["fault_reason"] is not None or
                         snap["last_move_ack_ns"] is None or
                         now_ns - snap["last_move_ack_ns"] > 40_000_000 or
                         now_ns - fresh_state_ns > 100_000_000 or
-                        now_ns - latest_pose_ns > 100_000_000 or
+                        arm_motion_confirmation is None or
+                        arm_pose_anchor is None or
+                        now_ns - arm_pose_anchor["source_timestamp_ns"] > 100_000_000 or
                         now_ns - health_prearm_ns >
                         execution["settled_gate"]["max_prearm_health_age_ms"] * 1e6):
                     raise RuntimeError("prearm movement or health stale at release")
@@ -572,14 +626,18 @@ def run(args) -> int:
                 # Pre-arm priming must not advance the receding geometry clock.
                 # The latest independently observed moving pose is the arm
                 # anchor; the scorer keeps its source timestamp and raw packet.
-                anchor = pose_observations[-1]
+                anchor = arm_pose_anchor
                 chain.trial, _ = relative_trial(
                     pose=anchor["value"]["pose"], trial_id=planned["reset_id"],
                     ordinal=planned["ordinal"], mode=mode, elapsed_after_arm_s=0.0)
                 chain.started_ns = actual_arm_ns
+                chain.visual_cadence.rephase_at_arm(actual_arm_ns)
                 events.append({"kind": "timing_arm_anchor", "timestamp_ns": actual_arm_ns,
                                "pose_source_ns": anchor["source_timestamp_ns"],
-                               "pose": anchor["value"]["pose"]})
+                               "pose": anchor["value"]["pose"],
+                               "moving_confirmed_ns": arm_motion_confirmation["confirmed_ns"],
+                               "latest_pose_speed_mps": arm_motion_confirmation[
+                                   "latest_speed_mps"]})
             arm_ns = timing_motion.release_arm(final_arm_check, align_fixture_to_arm)
         else:
             arm_ns = time.monotonic_ns()

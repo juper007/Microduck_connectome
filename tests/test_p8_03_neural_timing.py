@@ -9,7 +9,7 @@ from microduck_connectome.neural_stop_arbiter import NeuralStopMotionArbiter
 from microduck_connectome.neural_stop_latch import NeuralStopIntentLatch
 from microduck_connectome.control_contracts import make_behavior_intent
 from microduck_connectome.safety_clamp import SafetyClamp
-from scripts.p8_02_r1_trial import LoomingChain
+from scripts.p8_02_r1_trial import LoomingChain, VisualCadence
 
 
 def make_chain(timing_enabled):
@@ -88,6 +88,19 @@ class NeuralTimingTests(unittest.TestCase):
         spans = chain.timing_ledger[0]["spans"]
         self.assertEqual(set(spans), {"neural_call", "arbiter_lock_wait", "ledger_append"})
         self.assertTrue(chain.timing_ledger[0]["result_none"])
+
+
+class VisualArmPhaseTests(unittest.TestCase):
+    def test_prearm_prime_does_not_consume_scored_visual_frame(self):
+        cadence = VisualCadence(20)
+        arm_ns = 1_000_000_000
+        self.assertTrue(cadence.due(arm_ns - 10_000_000))
+        cadence.rephase_at_arm(arm_ns)
+        scored = [arm_ns + k * 20_000_000 for k in range(50)
+                  if cadence.due(arm_ns + k * 20_000_000)]
+        self.assertEqual(len(scored), 20)
+        self.assertEqual(scored[0], arm_ns)
+        self.assertLess(scored[-1], arm_ns + 1_000_000_000)
 
 
 if __name__ == "__main__":
