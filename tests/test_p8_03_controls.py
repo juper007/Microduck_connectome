@@ -180,6 +180,36 @@ class RawScorerTests(unittest.TestCase):
             self.assertFalse(result["trials"][0]["false_neural_stop"])
             self.assertEqual(result["result"], "FAIL")  # incomplete raw remains terminal
 
+    def test_abnormal_exit_keeps_late_cleanup_stop_out_of_numerator(self):
+        with tempfile.TemporaryDirectory() as dirname:
+            root = Path(dirname)
+            folder = root / "S889200" / "attempt-01"
+            folder.mkdir(parents=True)
+            events = clean_raw()
+            events.extend((
+                {"kind": "fixture_error", "timestamp_ns": 2_050_000_000,
+                 "error": "cleanup transport failure"},
+                {"kind": "neural_step", "timestamp_ns": 2_100_000_000,
+                 "runtime_healthy": True, "dn_escape": .7,
+                 "decoder_stop": True}))
+            (folder / "events.jsonl").write_text("".join(json.dumps(r) + "\n"
+                                                       for r in events))
+            (root / "batch-journal.json").write_text(json.dumps({
+                "source_path": str(Path(__file__).parents[1]),
+                "schema_version": "p8-03-local-batch-journal-v1", "stage": "S",
+                "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+                "simulator_rng_seeded": False, "source_head": "a" * 40,
+                "config_sha256": "b" * 64,
+                "ids": [{"reset_id": "S889200", "ordinal": 0,
+                         "status": "PREARM_UNCLASSIFIED",
+                         "attempts": [{"name": "attempt-01", "armed": True,
+                                       "status": "TRIAL_EXITED", "trial_exit": 1}]}],
+                "final_sim_down": None}))
+            result = score_batch(root, LOCAL_CONFIG, "S")
+            self.assertEqual(result["false_neural_stops"], 0)
+            self.assertIn("attempt_accounting", result["trials"][0]["failure_causes"])
+            self.assertEqual(result["result"], "FAIL")
+
     def test_raw_movement_tampering_contaminates(self):
         rows = clean_raw()
         for event in rows:
