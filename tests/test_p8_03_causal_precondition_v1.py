@@ -41,17 +41,19 @@ def fixture():
         sent = START - 1_000_000 if i == 0 else START + i * 20_000_000 - 1_000_000
         move(i + 1, i + 1, sent)
         state(i + 2, i + 1, START + i * 20_000_000)
+    state(83, 82, START + 1_620_000_000)
     poses = [{"timestamp_ns": START + i * 20_000_000,
+              "request_ns": START + i * 20_000_000 - 1_000_000,
               "x_m": i * .0006, "y_m": 0., "raw_body_packet": "{}"}
              for i in range(81)]
     return rows, poses
 
 
-def score(tmp_path, rows, poses, *, end=START + 1_600_000_000):
+def score(tmp_path, rows, poses, *, end=START + 1_610_000_000):
     path = tmp_path / "diagnostic.jsonl"
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))
     return evaluate_causal_precondition(path, poses, pre_move_tick=1,
-                                        eligibility_ns=end, gate=GATE)
+                                        stop_sent_ns=end, gate=GATE)
 
 
 def test_old_generation_deadman_retained_outside_window(tmp_path):
@@ -119,14 +121,36 @@ def test_physical_movement_required(tmp_path):
 
 def test_duration_starts_at_causal_state(tmp_path):
     rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    for row in states[75:-1]:
+        rows.remove(row)
+    states[-1]["state"]["control_tick_sequence"] = 76
     with pytest.raises(CausalPreconditionError, match="causal duration"):
-        score(tmp_path, rows, poses, end=START + 1_499_999_999)
+        score(tmp_path, rows, poses)
 
 
 def test_no_eligibility_before_complete_gate(tmp_path):
     rows, poses = fixture()
     with pytest.raises(CausalPreconditionError):
         score(tmp_path, rows, poses, end=START + 1_000_000_000)
+
+
+def test_initial_cadence_gap_fails(tmp_path):
+    rows, poses = fixture()
+    for row in rows:
+        if row["kind"] == "robot.move.request" and START <= row["sent_at_ns"] < START + 100_000_000:
+            row["sent_at_ns"] += 100_000_000
+    with pytest.raises(CausalPreconditionError, match="cadence"):
+        score(tmp_path, rows, poses)
+
+
+def test_late_delivery_of_pre_stop_deadman_fails(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[-2]["received_at_ns"] = START + 1_615_000_000
+    states[-2]["state"]["move"]["limited_by"] = ["deadman"]
+    with pytest.raises(CausalPreconditionError, match="deadman"):
+        score(tmp_path, rows, poses)
 
 
 def test_historical_lineage_remains_separate():

@@ -87,12 +87,32 @@ def run(args):
     if (platform.python_version_tuple()[:2] != ("3", "12") or
             not socket.gethostname().startswith("jetsonthor")):
         raise RuntimeError("Thor Python 3.12 required")
+    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"],
+                               text=True).strip():
+        raise RuntimeError("connectome source is not clean")
     if subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"],
                                text=True).strip() != "344925c9f8fa031f85428a305b1e8ec2eaae29c1":
         raise RuntimeError("upstream base mismatch")
     if subprocess.check_output(["git", "-C", str(upstream), "write-tree"],
                                text=True).strip() != "8118cb336af98fb0947f3de592843dc8b5434096":
         raise RuntimeError("reviewed candidate tree mismatch")
+    if subprocess.run(["git", "-C", str(upstream), "diff", "--quiet"],
+                      check=False).returncode != 0:
+        raise RuntimeError("upstream working tree differs from reviewed candidate index")
+    expected_files = {
+        "duck-ipc-proto/src/lib.rs": "da02f4734cdb3d69962ebc7c17995d98c42276024424e14b3d40314df85d39ee",
+        "robotd/src/intents.rs": "1e02a13b2fda02e0cecf615091b91960862c598d651ab24ed55785d90b222c8f",
+        "robotd/src/main.rs": "57a9d8ac0a24b150f695a8784e20866ba950006cf2e7fbfe53e2cb551f4171d7",
+        "robotctl/src/monitor.rs": "87877ef9fde9c9252ca0fe9fd2d1f9c9e967d21ab852dcf1e9a6450cc9e8bc73",
+    }
+    changed = subprocess.check_output(["git", "-C", str(upstream), "diff", "--cached",
+                                       "--name-only"], text=True).splitlines()
+    untracked = subprocess.check_output(["git", "-C", str(upstream), "ls-files",
+                                         "--others", "--exclude-standard"], text=True).splitlines()
+    if (set(changed) != set(expected_files) or
+            any(sha(upstream / name) != digest for name, digest in expected_files.items()) or
+            untracked != ["diagnostic.patch"]):
+        raise RuntimeError("reviewed candidate changed-file identity mismatch")
     patch = upstream / "diagnostic.patch"
     if sha(patch) != "828ff2619ee378d4fe49fe358944dcc9b5aa9b6583e7aef1afe43a353411655a":
         raise RuntimeError("reviewed patch mismatch")
@@ -155,6 +175,7 @@ def run(args):
                     tick = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
                     raw = body.read()
                     poses.append({"timestamp_ns": raw["response_ns"],
+                                  "request_ns": raw["request_ns"],
                                   "x_m": raw["x_m"], "y_m": raw["y_m"],
                                   "raw_body_packet": raw["raw_packet"]})
                     pose_stop.wait(max(0, .02 -
@@ -176,18 +197,30 @@ def run(args):
                 "vyaw": pre["vyaw_radps"]}, recorder)
             if result.get("accepted") is not True or ack >= deadline + (i + 1) * period:
                 raise RuntimeError("command ACK or cadence failed")
-        eligibility_ns = deadline + count * period
-        remaining = (eligibility_ns - time.clock_gettime_ns(time.CLOCK_MONOTONIC)) / 1e9
+        planned_end_ns = deadline + count * period
+        remaining = (planned_end_ns - time.clock_gettime_ns(time.CLOCK_MONOTONIC)) / 1e9
         if remaining > 0:
             time.sleep(remaining)
         recorder.assert_healthy()
         summary["pre_move_tick"] = pre_move_tick
-        summary["eligibility_ns"] = eligibility_ns
         summary["pose_samples"] = len(poses)
         if pose_error:
             raise RuntimeError(f"official pose stream failed: {pose_error}")
         # Eligibility is assessed only after the entire causal window. No ARM follows.
-        command.call("robot.stop", {})
+        _, stop_sent_ns, _ = command.call("robot.stop", {})
+        summary["stop_sent_ns"] = stop_sent_ns
+        last_move_generation = result["accepted_move_generation"]
+        stop_deadline = time.monotonic() + 2
+        while time.monotonic() < stop_deadline:
+            recorder.assert_healthy()
+            rows = [json.loads(line) for line in (out / "diagnostic.jsonl").read_text().splitlines()]
+            if any(r["kind"] == "robot.state" and
+                   r["state"]["consumed_move_generation"] > last_move_generation
+                   for r in rows):
+                break
+            time.sleep(.005)
+        else:
+            raise RuntimeError("stop generation was not consumed")
         pose_stop.set()
         pose_thread.join(timeout=2)
         body.close()
@@ -196,7 +229,7 @@ def run(args):
         atomic_json(out / "poses.json", poses)
         summary.update(evaluate_causal_precondition(
             out / "diagnostic.jsonl", poses, pre_move_tick=pre_move_tick,
-            eligibility_ns=eligibility_ns, gate=gate))
+            stop_sent_ns=stop_sent_ns, gate=gate))
     except BaseException as error:
         summary["error"] = f"{type(error).__name__}: {error}"
         if command is not None:

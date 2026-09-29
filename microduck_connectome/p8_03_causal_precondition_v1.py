@@ -25,16 +25,16 @@ def _uint(value, name):
 
 def evaluate_causal_precondition(
     diagnostic_path: Path, poses: list[dict], *, pre_move_tick: int,
-    eligibility_ns: int, gate: dict, allowed_policies=frozenset({"walk"}),
+    stop_sent_ns: int, gate: dict, allowed_policies=frozenset({"walk"}),
 ) -> dict:
     """Require exact generation lineage and frozen physical gate before eligibility.
 
-    All raw states through ``eligibility_ns`` are evaluated, including states
-    that the normal sampler would skip. A terminal diagnostic failure rejects
-    the whole acquisition even if a preceding window looked clean.
+    The first observed stop generation closes the stream. Every preceding
+    positive-generation state is checked, including frames delivered after
+    stop was requested. A terminal diagnostic failure rejects the acquisition.
     """
     _uint(pre_move_tick, "pre_move_tick")
-    _uint(eligibility_ns, "eligibility_ns")
+    _uint(stop_sent_ns, "stop_sent_ns")
     rows = [json.loads(line) for line in Path(diagnostic_path).read_text().splitlines()]
     if any(row.get("kind") == "diagnostic.failure" for row in rows):
         raise CausalPreconditionError("diagnostic stream failed")
@@ -97,7 +97,12 @@ def evaluate_causal_precondition(
     if first is None:
         raise CausalPreconditionError("no causal consumed positive move")
     first_ns = first["received_at_ns"]
-    window = [r for r in states if first_ns <= r["received_at_ns"] <= eligibility_ns]
+    first_index = states.index(first)
+    stop_index = next((i for i in range(first_index + 1, len(states)) if
+                       states[i]["state"]["consumed_move_generation"] > max(positive)), None)
+    if stop_index is None or states[stop_index]["received_at_ns"] < stop_sent_ns:
+        raise CausalPreconditionError("consumed stop generation not observed")
+    window = states[first_index:stop_index]
     if not window or window[0] is not first:
         raise CausalPreconditionError("causal window incomplete")
     deadman_count = fault_count = 0
@@ -124,25 +129,34 @@ def evaluate_causal_precondition(
                 type(applied[0]) not in (int, float) or
                 applied[0] < gate["minimum_fresh_applied_vx_mps"]):
             raise CausalPreconditionError("invalid causal moving state")
-    duration_ns = eligibility_ns - first_ns
+    pre_stop_window = [r for r in window if r["received_at_ns"] <= stop_sent_ns]
+    if not pre_stop_window:
+        raise CausalPreconditionError("no observed causal state before stop")
+    last_state_ns = pre_stop_window[-1]["received_at_ns"]
+    duration_ns = last_state_ns - first_ns
     if duration_ns < gate["duration_s"] * 1e9:
         raise CausalPreconditionError("causal duration below frozen minimum")
-    if eligibility_ns - window[-1]["received_at_ns"] > gate["maximum_state_age_ms"] * 1e6:
+    if stop_sent_ns - last_state_ns > gate["maximum_state_age_ms"] * 1e6:
         raise CausalPreconditionError("final causal state stale")
-    if window[-1]["state"]["move"]["applied"][0] < gate["minimum_fresh_applied_vx_mps"]:
+    if pre_stop_window[-1]["state"]["move"]["applied"][0] < gate["minimum_fresh_applied_vx_mps"]:
         raise CausalPreconditionError("fresh applied vx below frozen minimum")
     request_times = [_uint(r.get("sent_at_ns"), "move sent time") for r in rows
                      if r.get("kind") == "robot.move.request" and
-                     first_ns <= r.get("sent_at_ns", -1) <= eligibility_ns]
+                     first_ns <= r.get("sent_at_ns", -1) <= stop_sent_ns]
     if len(request_times) < math.ceil(gate["duration_s"] * 1000 / gate["command_period_ms"]):
         raise CausalPreconditionError("too few moving commands in causal window")
     if any(b <= a or b - a > gate["command_period_ms"] * 1e6 * 1.5
            for a, b in zip(request_times, request_times[1:])):
         raise CausalPreconditionError("command cadence gap")
-    points = [p for p in poses if first_ns <= p["timestamp_ns"] <= eligibility_ns]
-    if len(points) < 3 or eligibility_ns - points[-1]["timestamp_ns"] > gate["maximum_pose_age_ms"] * 1e6:
+    if (request_times[0] - first_ns > gate["command_period_ms"] * 1e6 * 1.5 or
+            stop_sent_ns - request_times[-1] > gate["command_period_ms"] * 1e6 * 1.5):
+        raise CausalPreconditionError("command cadence edge gap")
+    points = [p for p in poses if first_ns <= p["timestamp_ns"] <= stop_sent_ns]
+    if len(points) < 3 or stop_sent_ns - points[-1]["timestamp_ns"] > gate["maximum_pose_age_ms"] * 1e6:
         raise CausalPreconditionError("fresh official pose missing")
-    if any(p.get("raw_body_packet") is None for p in points):
+    if any(p.get("raw_body_packet") is None or
+           p["timestamp_ns"] - _uint(p.get("request_ns"), "pose request") >
+           gate["maximum_pose_age_ms"] * 1e6 for p in points):
         raise CausalPreconditionError("official raw pose missing")
     displacement = math.hypot(points[-1]["x_m"] - points[0]["x_m"],
                               points[-1]["y_m"] - points[0]["y_m"])
