@@ -183,6 +183,20 @@ def test_first_post_stop_source_tick_still_consuming_move_is_checked(tmp_path):
         score(tmp_path, rows, poses)
 
 
+def test_pre_stop_zero_state_delivered_late_cannot_close_window(tmp_path):
+    rows, poses = fixture()
+    stop = next(r for r in rows if r["kind"] == "robot.state" and
+                r["state"]["control_tick_sequence"] == 83)
+    stop["state"]["t_ns"] = START + 1_609_000_000
+    later = json.loads(json.dumps(stop))
+    later["received_at_ns"] += 20_000_000
+    later["state"]["control_tick_sequence"] = 84
+    later["state"]["t_ns"] = START + 1_639_000_000
+    rows.append(later)
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses)
+
+
 def test_historical_lineage_remains_separate():
     from scripts.p8_03_precondition_lineage import acquisition_contaminated
     assert acquisition_contaminated([{"state": {"move": {"limited_by": ["deadman"]},

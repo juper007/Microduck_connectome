@@ -111,6 +111,7 @@ def evaluate_causal_precondition(
         raise CausalPreconditionError("zero-intent generation transition missing")
     stop_state = states[stop_index]["state"]
     if (states[stop_index]["received_at_ns"] < stop_sent_ns or
+            stop_state["t_ns"] <= stop_sent_ns or
             stop_state["consumed_move_generation"] != final_move_generation + 1 or
             stop_state.get("move", {}).get("requested") != [0.0, 0.0, 0.0]):
         raise CausalPreconditionError("unexpected generation at zero-intent transition")

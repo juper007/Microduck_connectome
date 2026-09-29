@@ -232,7 +232,8 @@ def run(args):
             time.sleep(.005)
         else:
             raise RuntimeError("post-stop barrier or generation advance missing")
-        if (stop_state["consumed_move_generation"] != final_move_generation + 1 or
+        if (stop_state["t_ns"] <= stop_sent_ns or
+                stop_state["consumed_move_generation"] != final_move_generation + 1 or
                 stop_state["move"]["requested"] != [0.0, 0.0, 0.0]):
             raise RuntimeError("stop generation advance has unexpected intent")
         summary["stop_observed_generation"] = stop_state["consumed_move_generation"]
