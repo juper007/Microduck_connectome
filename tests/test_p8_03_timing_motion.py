@@ -1,10 +1,16 @@
 """Deterministic development-only motion timing tests."""
 
+import json
+import socket
+import tempfile
+from pathlib import Path
 import threading
 import time
 import unittest
 
-from scripts.p8_03_timing_motion import MotionTimingCoordinator
+from scripts.p8_02_r1_trial import acknowledged_precondition_move
+from scripts.p8_03_timing_motion import (DurableMotionJournal, MotionTimingCoordinator,
+                                         classify_ack_miss)
 from scripts.p8_03_trial import recent_moving_pose
 
 
@@ -263,6 +269,141 @@ class MotionTimingTests(unittest.TestCase):
             self.assertTrue(faults[0].startswith("arm_prepare_failed"))
         finally:
             coordinator.stop()
+
+    def test_late_ack_has_durable_start_end_and_failed_attempt_row(self):
+        clock = ManualClock()
+        gate = Gate()
+        faults = []
+        sent = []
+        def send():
+            now = clock.now()
+            sent.append(now)
+            if len(sent) == 2:
+                clock.advance(21_000_000)
+            return {"accepted": True}, now, now, clock.now()
+        def observe(_ack):
+            return {"timestamp_ns": clock.now()}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "motion-request-journal.jsonl"
+            coordinator = MotionTimingCoordinator(
+                send_move=send, observe_state=observe, observe_pose=observe,
+                fault=faults.append, clock_ns=clock.now, wait_until=clock.wait_until,
+                gate=gate, journal=DurableMotionJournal(path),
+                request_id_hint=lambda: len(sent) + 1)
+            coordinator.start()
+            self.assertTrue(coordinator.wait_ready(.5))
+            clock.advance(20_000_000)
+            self.assertTrue(eventually(lambda: bool(faults)))
+            snapshot = coordinator.stop()
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            self.assertEqual([r["kind"] for r in rows],
+                             ["motion_request_start", "motion_request_end"] * 2)
+            self.assertEqual(rows[-1]["status"], "late_ack")
+            self.assertEqual(rows[-1]["failure_reason"],
+                             "motion_slot_missed:ACK_after_next_deadline")
+            attempts = [r for r in snapshot["rows"] if r["kind"] == "motion_attempt"]
+            self.assertEqual(len(attempts), 2)
+            self.assertEqual(attempts[-1]["status"], "late_ack")
+            self.assertEqual(snapshot["missed_periods"], 1)
+            self.assertIsNone(gate.arm_ns)
+
+    def test_missing_ack_exception_retains_terminal_row_and_no_arm(self):
+        clock = ManualClock()
+        gate = Gate()
+        faults = []
+        def send():
+            trace = coordinator.current_request_trace()
+            trace.update(request_id=3, pre_send_ns=clock.now(),
+                         socket_write_start_ns=clock.now(),
+                         socket_write_end_ns=clock.now(), flush_end_ns=clock.now(),
+                         response_wait_start_ns=clock.now())
+            raise TimeoutError("no response")
+        def observe(_ack):
+            return {"timestamp_ns": clock.now()}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "motion-request-journal.jsonl"
+            coordinator = MotionTimingCoordinator(
+                send_move=send, observe_state=observe, observe_pose=observe,
+                fault=faults.append, clock_ns=clock.now, wait_until=clock.wait_until,
+                gate=gate, journal=DurableMotionJournal(path))
+            coordinator.start()
+            self.assertTrue(eventually(lambda: bool(faults)))
+            snapshot = coordinator.stop()
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            self.assertEqual([r["kind"] for r in rows],
+                             ["motion_request_start", "motion_request_end"])
+            self.assertEqual(rows[-1]["status"], "exception")
+            self.assertEqual(rows[-1]["request_id"], 3)
+            self.assertEqual(rows[-1]["ack_miss_class"], "L_unresolved")
+            self.assertEqual(len([r for r in snapshot["rows"]
+                                  if r["kind"] == "motion_attempt"]), 1)
+            self.assertIsNone(gate.arm_ns)
+
+    def test_lock_contention_is_classified_only_when_timestamp_crosses_deadline(self):
+        row = {"next_deadline_ns": 120, "worker_wake_ns": 100,
+               "lock_wait_start_ns": 101, "command_lock_acquired_ns": 121,
+               "pre_send_ns": 122}
+        self.assertEqual(classify_ack_miss(row), "H_lock_contention")
+        row["command_lock_acquired_ns"] = 102
+        row["pre_send_ns"] = 110
+        row["first_response_byte_ns"] = 125
+        self.assertEqual(classify_ack_miss(row), "L_unresolved")
+
+    def test_prearm_prime_waits_for_new_ack_without_changing_period(self):
+        coordinator, clock, gate, calls, faults = self.make_coordinator()
+        try:
+            coordinator.start()
+            self.assertTrue(coordinator.wait_ready(.5))
+            prior = calls[-1]
+            observed = []
+            waiter = threading.Thread(target=lambda: observed.append(
+                coordinator.wait_for_ack_after(prior, .5)))
+            waiter.start()
+            self.assertFalse(eventually(lambda: bool(observed), timeout=.02))
+            clock.advance(20_000_000)
+            self.assertTrue(eventually(lambda: bool(observed)))
+            waiter.join(.5)
+            self.assertEqual(observed[0] - prior, 20_000_000)
+            self.assertEqual(faults, [])
+            self.assertIsNone(gate.arm_ns)
+        finally:
+            coordinator.stop()
+
+    def test_instrumented_socket_records_write_flush_read_and_parse(self):
+        class File:
+            def __init__(self):
+                self.bytes = bytearray()
+                self.reply = b'{"jsonrpc":"2.0","id":1,"result":{"accepted":true}}\n'
+            def write(self, data):
+                self.bytes.extend(data)
+            def flush(self):
+                pass
+            def read(self, count):
+                return self.reply[:count]
+            def readline(self):
+                return self.reply[1:]
+        class Client:
+            next_id = 1
+            file = File()
+            socket = socket.socket()
+        client = Client()
+        try:
+            trace = {}
+            result, call, write, ack = acknowledged_precondition_move(
+                client, vx=.07, vy=0, vyaw=0, trace=trace)
+            self.assertTrue(result["accepted"])
+            self.assertEqual(trace["request_id"], 1)
+            self.assertLessEqual(call, trace["socket_write_start_ns"])
+            self.assertLessEqual(trace["socket_write_start_ns"],
+                                 trace["socket_write_end_ns"])
+            self.assertLessEqual(trace["socket_write_end_ns"], trace["flush_end_ns"])
+            self.assertLessEqual(trace["response_wait_start_ns"],
+                                 trace["first_response_byte_ns"])
+            self.assertLessEqual(trace["first_response_byte_ns"],
+                                 trace["parse_complete_ns"])
+            self.assertEqual((write, ack), (trace["flush_end_ns"], trace["ack_ns"]))
+        finally:
+            client.socket.close()
 
 
 class PrearmBodyMotionTests(unittest.TestCase):

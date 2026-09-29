@@ -372,27 +372,58 @@ def validate_frozen_output_dir(protocol: dict, output: Path) -> None:
         raise RuntimeError("official output must use the frozen raw directory")
 
 
-def acknowledged_precondition_move(client, *, vx, vy, vyaw):
+def acknowledged_precondition_move(client, *, vx, vy, vyaw, trace=None):
     """Use official request-form robot.move to obtain an actual robotd ACK."""
     request_id = client.next_id
     client.next_id += 1
     payload = {"jsonrpc": "2.0", "id": request_id, "method": "robot.move",
                "params": {"vx": vx, "vy": vy, "vyaw": vyaw}}
     call_ns = time.monotonic_ns()
-    client.file.write((json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode())
-    client.file.flush()
-    write_done_ns = time.monotonic_ns()
-    while True:
-        reply = json.loads(client.file.readline())
-        if reply.get("id") != request_id:
-            continue
-        ack_ns = time.monotonic_ns()
-        if "error" in reply:
-            raise RuntimeError(reply["error"])
-        result = reply["result"]
-        if not isinstance(result, dict) or result.get("accepted") is not True:
-            raise RuntimeError(f"robot.move was not accepted: {result!r}")
-        return result, call_ns, write_done_ns, ack_ns
+    if trace is not None:
+        trace.update(request_id=request_id, pre_send_ns=call_ns,
+                     timeout_s=client.socket.gettimeout(),
+                     first_response_byte_observable=True)
+    try:
+        encoded = (json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode()
+        if trace is not None:
+            trace["socket_write_start_ns"] = time.monotonic_ns()
+        client.file.write(encoded)
+        if trace is not None:
+            trace["socket_write_end_ns"] = time.monotonic_ns()
+        client.file.flush()
+        write_done_ns = time.monotonic_ns()
+        if trace is not None:
+            trace["flush_end_ns"] = write_done_ns
+        while True:
+            if trace is not None:
+                trace["response_wait_start_ns"] = time.monotonic_ns()
+                first_byte = client.file.read(1)
+                trace["first_response_byte_ns"] = time.monotonic_ns()
+                if not first_byte:
+                    raise EOFError("robot.move response stream closed")
+                raw = first_byte + client.file.readline()
+            else:
+                raw = client.file.readline()
+            reply = json.loads(raw)
+            if trace is not None:
+                trace["parse_complete_ns"] = time.monotonic_ns()
+            if reply.get("id") != request_id:
+                if trace is not None:
+                    raise RuntimeError("unexpected robot.move response id on dedicated socket")
+                continue
+            ack_ns = time.monotonic_ns()
+            if trace is not None:
+                trace["ack_ns"] = ack_ns
+            if "error" in reply:
+                raise RuntimeError(reply["error"])
+            result = reply["result"]
+            if not isinstance(result, dict) or result.get("accepted") is not True:
+                raise RuntimeError(f"robot.move was not accepted: {result!r}")
+            return result, call_ns, write_done_ns, ack_ns
+    except BaseException as error:
+        if trace is not None:
+            trace["exception"] = f"{type(error).__name__}: {error}"
+        raise
 
 
 class VisualCadence:

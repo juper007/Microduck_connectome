@@ -7,14 +7,68 @@ callbacks only read robotd state and body pose; they never issue commands.
 
 from __future__ import annotations
 
+import json
+import os
 import queue
 import threading
 import time
 from collections.abc import Callable, Mapping
+from pathlib import Path
 
 
 class MotionTimingError(RuntimeError):
     pass
+
+
+def classify_ack_miss(row: Mapping) -> str:
+    """Name only the phase that raw client timestamps prove crossed a slot.
+
+    A response wait cannot distinguish robotd processing from socket delivery,
+    so it remains unresolved without server-side timestamps.
+    """
+    boundary = row.get("next_deadline_ns")
+    if type(boundary) is not int:
+        return "L_unresolved"
+    checkpoints = (
+        ("worker_wake_ns", "A_scheduler_wake_late"),
+        ("lock_wait_start_ns", "B_pre_send_processing_overrun"),
+        ("command_lock_acquired_ns", "H_lock_contention"),
+        ("pre_send_ns", "H_lock_contention"),
+        ("socket_write_start_ns", "B_pre_send_processing_overrun"),
+        ("socket_write_end_ns", "C_socket_write_blocked"),
+        ("flush_end_ns", "D_flush_blocked"),
+        ("first_response_byte_ns", "L_unresolved"),
+        ("parse_complete_ns", "G_response_parse_delay"),
+    )
+    for name, label in checkpoints:
+        value = row.get(name)
+        if type(value) is int and value >= boundary:
+            return label
+    return "L_unresolved"
+
+
+class DurableMotionJournal:
+    """Persist each request start and outcome outside the end-of-trial ledger.
+
+    A start is synced before dispatch. Its matching result is synced before the
+    coordinator judges the ACK deadline, so even a late/rejected ACK remains.
+    """
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._file = path.open("xb", buffering=0)
+        self._lock = threading.Lock()
+
+    def append(self, row: Mapping) -> None:
+        data = (json.dumps(dict(row), sort_keys=True, separators=(",", ":"),
+                           allow_nan=False) + "\n").encode()
+        with self._lock:
+            self._file.write(data)
+            os.fsync(self._file.fileno())
+
+    def close(self) -> None:
+        with self._lock:
+            self._file.close()
 
 
 class MotionTimingCoordinator:
@@ -26,7 +80,9 @@ class MotionTimingCoordinator:
                  queue_capacity: int = 8,
                  clock_ns: Callable[[], int] = time.monotonic_ns,
                  wait_until: Callable[[int, threading.Event], None] | None = None,
-                 gate: object | None = None, scored_slots: int = 50):
+                 gate: object | None = None, scored_slots: int = 50,
+                 journal: DurableMotionJournal | None = None,
+                 request_id_hint: Callable[[], int] | None = None):
         if (period_ns <= 0 or max_observation_age_ns <= 0 or queue_capacity <= 0
                 or scored_slots <= 0):
             raise ValueError("timing and queue limits must be positive")
@@ -40,6 +96,8 @@ class MotionTimingCoordinator:
         self.wait_until = wait_until or self._wait_until
         self.gate = gate
         self.scored_slots = scored_slots
+        self.journal = journal
+        self.request_id_hint = request_id_hint
         self._state_queue: queue.Queue[int] = queue.Queue(maxsize=queue_capacity)
         self._pose_queue: queue.Queue[int] = queue.Queue(maxsize=queue_capacity)
         self._stop = threading.Event()
@@ -47,6 +105,7 @@ class MotionTimingCoordinator:
         self._command_lock = threading.Lock()
         self._workers_ready = {name: threading.Event() for name in ("motion", "state", "pose")}
         self._lock = threading.Lock()
+        self._ack_changed = threading.Condition(self._lock)
         self._threads: list[threading.Thread] = []
         self._rows: list[dict] = []
         self._arm_ns: int | None = None
@@ -58,6 +117,27 @@ class MotionTimingCoordinator:
         self._late_periods = 0
         self._queue_drops = 0
         self._fault_reason: str | None = None
+        self._active_trace: dict | None = None
+        self._inflight = False
+
+    def current_request_trace(self) -> dict:
+        """Return the live trace owned by the motion thread's one RPC."""
+        if self._active_trace is None or not self._inflight:
+            raise MotionTimingError("no active motion request trace")
+        return self._active_trace
+
+    def wait_for_ack_after(self, prior_ns: int, timeout_s: float) -> int:
+        """Phase-align prearm work to a newly acknowledged genuine move."""
+        until = time.monotonic() + timeout_s
+        with self._ack_changed:
+            while (self._last_ack_ns is None or self._last_ack_ns <= prior_ns):
+                if self._fault_reason is not None or self._stop.is_set():
+                    raise MotionTimingError(self._fault_reason or "motion stopped before ACK")
+                remaining = until - time.monotonic()
+                if remaining <= 0:
+                    raise MotionTimingError("timed out waiting for next motion ACK")
+                self._ack_changed.wait(remaining)
+            return self._last_ack_ns
 
     def _wait_until(self, deadline_ns: int, stop: threading.Event) -> None:
         stop.wait(max(0, (deadline_ns - self.clock_ns()) / 1e9))
@@ -73,6 +153,7 @@ class MotionTimingCoordinator:
             self._fault_reason = reason
             self._rows.append({"kind": "motion_fault", "timestamp_ns": self.clock_ns(),
                                "reason": reason, "thread_id": threading.get_ident()})
+            self._ack_changed.notify_all()
         self._stop.set()
         self.fault(reason)
 
@@ -149,10 +230,51 @@ class MotionTimingCoordinator:
             if wake_ns > deadline:
                 with self._lock:
                     self._late_periods += 1
+            phase = ("prearm" if scored_index is None else
+                     "scored" if scored_index < self.scored_slots else "postscore")
+            attempt = {"kind": "motion_attempt", "timestamp_ns": wake_ns,
+                       "period_index": period_index,
+                       "scored_slot": scored_index if phase == "scored" else None,
+                       "phase": phase, "scheduled_deadline_ns": deadline,
+                       "next_deadline_ns": deadline + self.period_ns,
+                       "worker_wake_ns": wake_ns, "thread_id": threading.get_ident(),
+                       "previous_slot_completion_ns": self._last_ack_ns,
+                       "state_queue_depth": self._state_queue.qsize(),
+                       "pose_queue_depth": self._pose_queue.qsize(),
+                       "request_id": self.request_id_hint() if self.request_id_hint else None,
+                       "outstanding_before": int(self._inflight)}
+            try:
+                if self.journal is not None:
+                    self.journal.append({**attempt, "kind": "motion_request_start"})
+            except BaseException as error:
+                self._fail(f"motion_journal_start_failed:{type(error).__name__}:{error}")
+                return
+            attempt["lock_wait_start_ns"] = self.clock_ns()
             self._command_lock.acquire()
+            attempt["command_lock_acquired_ns"] = self.clock_ns()
+            trace: dict = {}
+            finished = False
+            def finish(status: str, reason: str | None = None) -> None:
+                nonlocal finished
+                if finished:
+                    return
+                row = {**attempt, **trace, "kind": "motion_attempt",
+                       "timestamp_ns": self.clock_ns(), "status": status,
+                       "failure_reason": reason}
+                row["ack_miss_class"] = (classify_ack_miss(row) if
+                                         status in ("late_ack", "exception") else None)
+                self._record(row)
+                if self.journal is not None:
+                    self.journal.append({**row, "kind": "motion_request_end"})
+                finished = True
             try:
                 if scored_index is None and self.gate is not None and self.gate.arm_ns is not None:
+                    finish("cancelled_at_arm")
                     continue
+                if self._inflight:
+                    raise MotionTimingError("second outstanding motion request")
+                self._inflight = True
+                self._active_trace = trace
                 result, call_ns, write_ns, ack_ns = self.send_move()
                 if result is None or (isinstance(result, Mapping)
                                       and result.get("accepted") is False):
@@ -162,19 +284,21 @@ class MotionTimingCoordinator:
                     raise MotionTimingError("invalid move call/ACK timestamps")
                 if (scored_index is None and self.gate is not None
                         and self.gate.arm_ns is not None and ack_ns >= self.gate.arm_ns):
+                    finish("arm_race", "arm_race_prearm_ack_after_arm")
                     self._fail("arm_race_prearm_ack_after_arm")
                     return
                 if ack_ns >= deadline + self.period_ns:
+                    finish("late_ack", "motion_slot_missed:ACK_after_next_deadline")
                     with self._lock:
                         self._missed_periods += (ack_ns - deadline) // self.period_ns
                     self._fail("motion_slot_missed:ACK_after_next_deadline")
                     return
+                finish("acknowledged")
                 with self._lock:
                     if self._first_ack_ns is None:
                         self._first_ack_ns = ack_ns
                     self._last_ack_ns = ack_ns
-                    phase = ("prearm" if scored_index is None else
-                             "scored" if scored_index < self.scored_slots else "postscore")
+                    self._ack_changed.notify_all()
                     if phase == "scored":
                         self._scored_slots_sent += 1
                     self._rows.append({"kind": "motion_refresh", "timestamp_ns": ack_ns,
@@ -205,9 +329,17 @@ class MotionTimingCoordinator:
                         self._fail(f"{kind}_observation_timeout")
                         return
             except BaseException as error:
+                try:
+                    finish("exception", f"{type(error).__name__}:{error}")
+                except BaseException as journal_error:
+                    self._fail(f"motion_journal_end_failed:{type(journal_error).__name__}:"
+                               f"{journal_error}")
+                    return
                 self._fail(f"move_failed:{type(error).__name__}:{error}")
                 return
             finally:
+                self._active_trace = None
+                self._inflight = False
                 self._command_lock.release()
             period_index += 1
             if scored_index is not None:
@@ -272,10 +404,14 @@ class MotionTimingCoordinator:
 
     def stop(self, timeout_s: float = 2.0) -> dict:
         self._stop.set()
+        with self._ack_changed:
+            self._ack_changed.notify_all()
         for thread in self._threads:
             thread.join(timeout_s)
         if any(thread.is_alive() for thread in self._threads):
             self._fail("motion_worker_join_timeout")
+        elif self.journal is not None:
+            self.journal.close()
         return self.snapshot()
 
     def snapshot(self) -> dict:
