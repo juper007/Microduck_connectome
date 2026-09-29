@@ -390,7 +390,16 @@ def main() -> None:
     ap.add_argument("--sim-state", type=Path, required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--recover-only", action="store_true")
+    ap.add_argument("--preflight-only", action="store_true",
+                    help="audit frozen inputs and exit before assigning any reset ID")
     args = ap.parse_args()
+    if args.preflight_only:
+        if args.recover_only:
+            ap.error("preflight-only and recover-only are mutually exclusive")
+        _, _, _, record = preflight(args)
+        print(json.dumps({"result": record["result"], "stage": args.stage,
+                          "ids_assigned": 0}))
+        return
     result = run(args)
     print(json.dumps({"result": result["result"], "stage": args.stage}))
     if result["result"] not in ("PASS", "AUDIT_ONLY"):

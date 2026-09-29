@@ -342,14 +342,17 @@ def run(args) -> int:
             state, state_ns = sampler.after(ack)
             with pose_lock:
                 pose = pose_reader.read()
-            pose_ns = time.monotonic_ns()
+                pose_source = pose_reader.source(pose)
+            pose_ns = pose_source["response_ns"]
             poses.append({"timestamp_ns": pose_ns, "x_m": pose["x_m"],
                           "y_m": pose["y_m"]})
             precondition_rows.append({"kind": "precondition_motion", "timestamp_ns": ack,
                                       "robot_move_ack": result, "applied_velocity": state["move"]["applied"],
                                       "limited_by": state["move"].get("limited_by", []),
                                       "robot_t_ns": state.get("t_ns"), "state_ns": state_ns,
-                                      "pose": dict(pose), "pose_ns": pose_ns})
+                                      "pose": dict(pose), "pose_ns": pose_ns,
+                                      "pose_request_ns": pose_source["request_ns"],
+                                      "raw_body_packet": pose_source["raw_packet"]})
             time.sleep(max(0, .020 - (time.monotonic_ns() - tick) / 1e9))
         speeds = pose_speeds(poses, window_ms=100, max_window_ms=140)
         confirmed = first_sustained(speeds, threshold_mps=.015,
@@ -405,7 +408,7 @@ def run(args) -> int:
                   "armed_at_utc_ns": time.time_ns(),
                   "armed_at_monotonic_ns": candidate_arm_ns, "state": "ARMED"}
         create_durable_arm_marker(args.armed_marker, marker)
-        arm_ns = candidate_arm_ns
+        arm_ns = time.monotonic_ns()
         jsonl_write(args.progress, [{"state": "NEURAL_OBSERVATION_ARMED",
                                     "timestamp_ns": arm_ns}])
         events.append({"kind": "arm", "timestamp_ns": arm_ns,

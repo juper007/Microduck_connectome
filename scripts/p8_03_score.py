@@ -11,6 +11,7 @@ from pathlib import Path
 from scripts.p8_03_local_reference import body_pose, verify_local_reference
 from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
 from microduck_connectome.looming_scenario import VirtualTrial, load_config, pixels_sha256
+from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -96,7 +97,8 @@ def velocity_out_of_bounds(value: object) -> bool:
 
 def score_raw(rows: list[dict], *, trial_id: str, ordinal: int, stage: str,
               scored_window_ms: int = 1000, scenario: dict | None = None,
-              local_gate: dict | None = None) -> dict:
+              local_gate: dict | None = None,
+              moving_gate: dict | None = None) -> dict:
     """Classify from raw events only; a summary cannot turn a fault into a TN."""
     causes = []
     arm = [r for r in rows if r.get("kind") == "arm"]
@@ -241,6 +243,54 @@ def score_raw(rows: list[dict], *, trial_id: str, ordinal: int, stage: str,
     if len(resets) == 1 and arm[0].get("moving_confirmed_ns") is not None and (
             arm[0]["moving_confirmed_ns"] <= resets[0].get("capture_ns", 0)):
         causes.append("moving_before_local_reference")
+    if moving_gate is not None:
+        pre_rows = [r for r in rows if r.get("kind") == "precondition_motion"
+                    and type(r.get("timestamp_ns")) is int and r["timestamp_ns"] < start]
+        try:
+            required = round(moving_gate["duration_s"] * 1000 /
+                             moving_gate["command_period_ms"])
+            if len(pre_rows) != required:
+                raise ValueError("precondition count")
+            poses = [{"timestamp_ns": r["pose_ns"],
+                      "x_m": r["pose"]["x_m"], "y_m": r["pose"]["y_m"]}
+                     for r in pre_rows]
+            if any(r.get("robot_move_ack") is None or
+                   type(r.get("state_ns")) is not int or
+                   type(r.get("pose_ns")) is not int or
+                   type(r.get("pose_request_ns")) is not int or
+                   any(abs(body_pose(json.loads(r["raw_body_packet"]))[k] -
+                           r["pose"][k]) > 1e-10
+                       for k in ("x_m", "y_m", "trunk_z_m", "heading_rad")) or
+                   not 0 <= r["pose_ns"] - r["pose_request_ns"] <=
+                   moving_gate["maximum_pose_age_ms"] * 1e6 or
+                   not r["timestamp_ns"] <= r["state_ns"] <= r["pose_ns"] or
+                   r["state_ns"] - r["timestamp_ns"] >
+                   moving_gate["maximum_state_age_ms"] * 1e6 or
+                   r["pose_ns"] - r["state_ns"] >
+                   moving_gate["maximum_pose_age_ms"] * 1e6 or
+                   type(r.get("applied_velocity")) is not list or
+                   len(r["applied_velocity"]) != 3 or
+                   not all(type(v) in (int, float) and math.isfinite(v)
+                           for v in r["applied_velocity"]) or
+                   any(str(reason).lower() in ("deadman", "fault", "safety")
+                       for reason in r.get("limited_by", []))
+                   for r in pre_rows):
+                raise ValueError("precondition raw freshness or safety")
+            speeds = pose_speeds(poses, window_ms=100, max_window_ms=140)
+            confirmed = first_sustained(
+                speeds, threshold_mps=moving_gate["minimum_pose_speed_mps"],
+                duration_ms=moving_gate["minimum_speed_sustain_ms"], at_or_above=True)
+            displacement = math.hypot(poses[-1]["x_m"] - poses[0]["x_m"],
+                                      poses[-1]["y_m"] - poses[0]["y_m"])
+            applied_vx = pre_rows[-1]["applied_velocity"][0]
+            if (confirmed is None or confirmed != arm[0]["moving_confirmed_ns"] or
+                    abs(displacement - arm[0]["precondition_displacement_m"]) > 1e-10 or
+                    abs(applied_vx - arm[0]["precondition_applied_vx_mps"]) > 1e-10 or
+                    displacement < moving_gate["minimum_trunk_displacement_m"] or
+                    applied_vx < moving_gate["minimum_fresh_applied_vx_mps"]):
+                raise ValueError("precondition summary does not match raw")
+        except (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError):
+            causes.append("moving_precondition_raw_invalid")
     if any(r.get("kind") in ("fault", "scheduler_exception", "fixture_error")
            for r in rows if type(r.get("timestamp_ns")) is int
            and r["timestamp_ns"] >= start):
@@ -449,6 +499,17 @@ def audit_original_ledgers(folder: Path, events: list[dict], summary: dict,
     return errors
 
 
+def observed_healthy_stop(rows: list[dict]) -> bool:
+    """Conservatively count healthy neural stops even if arm/child exited abnormally."""
+    return any(r.get("kind") == "neural_step" and
+               r.get("runtime_healthy") is True and
+               (type(r.get("dn_escape")) in (int, float) and
+                r["dn_escape"] >= .5 or r.get("decoder_stop") is True)
+               for r in rows) or any(
+        r.get("kind") == "control_publish" and r.get("neural_origin") is True
+        and r.get("transport") == "robot.stop" for r in rows)
+
+
 def score_batch(root: Path, config: dict, stage: str) -> dict:
     expected = planned(config, stage)
     journal = json.loads((root / "batch-journal.json").read_text(encoding="utf-8"))
@@ -468,25 +529,31 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
     trials = []
     for row in expected:
         item = by_id.get(row["reset_id"])
-        if not item or item.get("ordinal") != row["ordinal"] or item.get("status") != "ARMED_COMPLETE":
+        attempts = item.get("attempts", []) if item else []
+        evidence_folders = {root / row["reset_id"] / a.get("name", "") for a in attempts}
+        evidence_folders.update((root / row["reset_id"]).glob("attempt-*"))
+        observed_stop = False
+        for evidence_folder in evidence_folders:
+            try:
+                observed_stop |= observed_healthy_stop(read_jsonl(
+                    evidence_folder / "events.jsonl"))
+            except (OSError, ValueError, json.JSONDecodeError):
+                pass
+        if not item or item.get("ordinal") != row["ordinal"] or not attempts:
             trials.append({"reset_id": row["reset_id"], "ordinal": row["ordinal"],
-                           "false_neural_stop": False, "clean_true_negative": False,
+                           "false_neural_stop": observed_stop, "clean_true_negative": False,
                            "failure_causes": ["missing_or_incomplete_id"],
                            "safety_limit_violations": None})
             continue
-        attempts = item.get("attempts", [])
-        if (not 1 <= len(attempts) <= 3 or attempts[-1].get("armed") is not True
-                or attempts[-1].get("status") != "TRIAL_EXITED"
-                or attempts[-1].get("trial_exit") != 0 or
-                any(a.get("status") != "PREARM_FAILED" or
-                    a.get("retry_cause_code") not in
-                    config["allowed_prearm_retry_cause_codes"] or a.get("armed") is True
-                    for a in attempts[:-1])):
-            trials.append({"reset_id": row["reset_id"], "ordinal": row["ordinal"],
-                           "false_neural_stop": False, "clean_true_negative": False,
-                           "failure_causes": ["attempt_accounting"],
-                           "safety_limit_violations": None})
-            continue
+        attempt_valid = (item.get("status") == "ARMED_COMPLETE" and
+                         1 <= len(attempts) <= 3 and
+                         attempts[-1].get("armed") is True and
+                         attempts[-1].get("status") == "TRIAL_EXITED" and
+                         attempts[-1].get("trial_exit") == 0 and
+                         all(a.get("status") == "PREARM_FAILED" and
+                             a.get("retry_cause_code") in
+                             config["allowed_prearm_retry_cause_codes"] and
+                             a.get("armed") is False for a in attempts[:-1]))
         folder = root / row["reset_id"] / attempts[-1]["name"]
         try:
             marker = json.loads((folder / "armed.json").read_text(encoding="utf-8"))
@@ -504,13 +571,30 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
         except (OSError, ValueError):
             marker_valid = False
         raw = folder / "events.jsonl"
-        events = read_jsonl(raw)
+        try:
+            events = read_jsonl(raw)
+        except (OSError, ValueError, json.JSONDecodeError):
+            events = []
         geometry_stage = "S" if row["motion"] == "static" else "R"
-        result = score_raw(events, trial_id=row["reset_id"], ordinal=row["ordinal"],
-                           stage=geometry_stage, scenario=scenario,
-                           local_gate=config["settled_gate"])
+        try:
+            result = score_raw(events, trial_id=row["reset_id"], ordinal=row["ordinal"],
+                               stage=geometry_stage, scenario=scenario,
+                               local_gate=config["settled_gate"],
+                               moving_gate=config["moving_gate"])
+        except (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError):
+            result = {"reset_id": row["reset_id"], "ordinal": row["ordinal"],
+                      "false_neural_stop": False, "clean_true_negative": False,
+                      "failure_causes": ["incomplete_raw"],
+                      "safety_limit_violations": None}
+        result["false_neural_stop"] = result["false_neural_stop"] or observed_stop
+        if observed_stop and "false_neural_stop" not in result["failure_causes"]:
+            result["failure_causes"].append("false_neural_stop")
+        if not attempt_valid:
+            result["failure_causes"].append("attempt_accounting")
+            result["clean_true_negative"] = False
         if not marker_valid or not any(r.get("kind") == "arm" and
-                r.get("timestamp_ns") == marker.get("armed_at_monotonic_ns")
+                type(r.get("timestamp_ns")) is int and
+                r["timestamp_ns"] >= marker.get("armed_at_monotonic_ns")
                 for r in events):
             result["failure_causes"].append("arm_marker_invalid")
             result["clean_true_negative"] = False

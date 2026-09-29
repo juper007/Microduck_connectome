@@ -14,6 +14,8 @@ from microduck_connectome.fractional_rgb_v21 import render_fractional_pixels
 from microduck_connectome.looming_scenario import load_config
 from microduck_connectome.p8_03_geometry import relative_trial
 from scripts.p8_03_score import audit_original_ledgers, manifest_check, score_raw, wilson_95
+from scripts.p8_03_score import score_batch
+from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
 from scripts.p8_03_batch import recover_only
 from scripts.p8_03_local_reference import settled_reference, verify_local_reference
 
@@ -101,6 +103,85 @@ class RawScorerTests(unittest.TestCase):
                            stage="S", local_gate=LOCAL_CONFIG["settled_gate"])
         self.assertIn("local_reference_transition_invalid", result["failure_causes"])
         self.assertIn("prearm_health_invalid", result["failure_causes"])
+
+    def test_nonzero_arm_prime_healthy_stop_is_counted(self):
+        with tempfile.TemporaryDirectory() as dirname:
+            root = Path(dirname)
+            folder = root / "S889200" / "attempt-01"
+            folder.mkdir(parents=True)
+            events = [{"kind": "arm", "timestamp_ns": 1_000_000_000,
+                       "reset_id": "S889200", "ordinal": 0},
+                      {"kind": "neural_step", "timestamp_ns": 1_000_000_001,
+                       "runtime_healthy": True, "dn_escape": .6,
+                       "decoder_stop": True}]
+            (folder / "events.jsonl").write_text("".join(json.dumps(r) + "\n"
+                                                       for r in events))
+            marker = {"schema_version": "p8-03-local-arm-v1",
+                      "task": "P8-03-LOCAL-REFERENCE-PROTOCOL-V1",
+                      "reset_id": "S889200", "ordinal": 0, "attempt": 1,
+                      "source_head": "a" * 40, "config_sha256": "b" * 64,
+                      "state": "ARMED", "armed_at_utc_ns": 1,
+                      "armed_at_monotonic_ns": 999_999_999}
+            (folder / "armed.json").write_text(json.dumps(marker))
+            (root / "batch-journal.json").write_text(json.dumps({
+                "source_path": str(Path(__file__).parents[1]),
+                "schema_version": "p8-03-local-batch-journal-v1", "stage": "S",
+                "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+                "simulator_rng_seeded": False, "source_head": "a" * 40,
+                "config_sha256": "b" * 64,
+                "ids": [{"reset_id": "S889200", "ordinal": 0,
+                         "status": "PREARM_UNCLASSIFIED",
+                         "attempts": [{"name": "attempt-01", "armed": True,
+                                       "status": "TRIAL_EXITED", "trial_exit": 1}]}],
+                "final_sim_down": None}))
+            result = score_batch(root, LOCAL_CONFIG, "S")
+            self.assertEqual(result["false_neural_stops"], 1)
+            self.assertTrue(result["trials"][0]["false_neural_stop"])
+            self.assertIn("attempt_accounting", result["trials"][0]["failure_causes"])
+            self.assertNotIn("arm_marker_invalid", result["trials"][0]["failure_causes"])
+            self.assertEqual(result["result"], "FAIL")
+            marker["armed_at_monotonic_ns"] = 1_000_000_001
+            (folder / "armed.json").write_text(json.dumps(marker))
+            late = score_batch(root, LOCAL_CONFIG, "S")
+            self.assertIn("arm_marker_invalid", late["trials"][0]["failure_causes"])
+
+    def test_raw_movement_tampering_contaminates(self):
+        rows = clean_raw()
+        for event in rows:
+            for key in ("timestamp_ns", "call_ns", "write_ns", "ack_ns"):
+                if type(event.get(key)) is int:
+                    event[key] += 2_000_000_000
+        arm = next(r for r in rows if r["kind"] == "arm")
+        local = next(r for r in rows if r["kind"] == "local_reference")
+        local["capture_ns"] = 1_000_000_000
+        pre = []
+        poses = []
+        for i in range(75):
+            t = 1_500_000_000 + i * 20_000_000
+            x = i * .0014
+            packet = {"trunk": [x, 0., .3], "imu": {"quat": [1., 0., 0., 0.]}}
+            pose_ns = t + 2_000_000
+            pre.append({"kind": "precondition_motion", "timestamp_ns": t,
+                        "robot_move_ack": {"ok": True}, "state_ns": t + 1_000_000,
+                        "pose_ns": pose_ns, "pose_request_ns": t + 1_500_000,
+                        "raw_body_packet": json.dumps(packet),
+                        "pose": {"x_m": x, "y_m": 0., "trunk_z_m": .3,
+                                 "heading_rad": 0.},
+                        "applied_velocity": [.07, 0., 0.], "limited_by": []})
+            poses.append({"timestamp_ns": pose_ns, "x_m": x, "y_m": 0.})
+        arm["moving_confirmed_ns"] = first_sustained(
+            pose_speeds(poses, window_ms=100, max_window_ms=140),
+            threshold_mps=.015, duration_ms=200, at_or_above=True)
+        arm["precondition_displacement_m"] = poses[-1]["x_m"] - poses[0]["x_m"]
+        arm["precondition_applied_vx_mps"] = .07
+        rows.extend(pre)
+        clean = score_raw(rows, trial_id="S889200", ordinal=0, stage="S",
+                          moving_gate=LOCAL_CONFIG["moving_gate"])
+        self.assertNotIn("moving_precondition_raw_invalid", clean["failure_causes"])
+        pre[20]["pose"]["x_m"] += .1
+        tampered = score_raw(rows, trial_id="S889200", ordinal=0, stage="S",
+                             moving_gate=LOCAL_CONFIG["moving_gate"])
+        self.assertIn("moving_precondition_raw_invalid", tampered["failure_causes"])
 
     def test_false_stop_even_if_cleanup_follows(self):
         rows = clean_raw()
