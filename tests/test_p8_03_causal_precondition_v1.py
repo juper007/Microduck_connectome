@@ -42,6 +42,8 @@ def fixture():
         move(i + 1, i + 1, sent)
         state(i + 2, i + 1, START + i * 20_000_000)
     state(83, 82, START + 1_620_000_000)
+    rows[-1]["state"]["move"]["requested"] = [0., 0., 0.]
+    rows[-1]["state"]["move"]["applied"] = [0., 0., 0.]
     poses = [{"timestamp_ns": START + i * 20_000_000,
               "request_ns": START + i * 20_000_000 - 1_000_000,
               "x_m": i * .0006, "y_m": 0., "raw_body_packet": "{}"}
@@ -158,7 +160,26 @@ def test_unknown_writer_before_barrier_cannot_close_window(tmp_path):
     states = [r for r in rows if r["kind"] == "robot.state"]
     states[-2]["state"]["consumed_move_generation"] = 82
     states[-1]["state"]["consumed_move_generation"] = 83
-    with pytest.raises(CausalPreconditionError, match="unattributed generation"):
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses)
+
+
+def test_first_post_stop_source_tick_still_consuming_move_is_checked(tmp_path):
+    rows, poses = fixture()
+    stop = next(r for r in rows if r["kind"] == "robot.state" and
+                r["state"]["control_tick_sequence"] == 83)
+    stop["state"]["control_tick_sequence"] = 84
+    stop["received_at_ns"] += 20_000_000
+    stop["state"]["t_ns"] += 20_000_000
+    rows.append({"kind": "robot.state", "received_at_ns": START + 1_620_000_000,
+                 "state": {"control_tick_sequence": 83,
+                           "consumed_move_generation": 81,
+                           "t_ns": START + 1_619_000_000, "policy": "walk",
+                           "move": {"requested": [.05, 0, 0], "applied": [.05, 0, 0],
+                                    "limited_by": ["deadman"]},
+                           "safety": {"fallen": False, "limp": False}}})
+    rows[-2], rows[-1] = rows[-1], rows[-2]
+    with pytest.raises(CausalPreconditionError, match="deadman"):
         score(tmp_path, rows, poses)
 
 

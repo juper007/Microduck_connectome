@@ -103,7 +103,22 @@ def evaluate_causal_precondition(
                           states[i]["state"]["t_ns"] > stop_sent_ns), None)
     if barrier_index is None:
         raise CausalPreconditionError("post-stop source-time delivery barrier missing")
-    window = states[first_index:barrier_index]
+    final_move_generation = max(positive)
+    stop_index = next((i for i in range(first_index + 1, len(states)) if
+                       states[i]["state"]["consumed_move_generation"] >
+                       final_move_generation), None)
+    if stop_index is None:
+        raise CausalPreconditionError("zero-intent generation transition missing")
+    stop_state = states[stop_index]["state"]
+    if (states[stop_index]["received_at_ns"] < stop_sent_ns or
+            stop_state["consumed_move_generation"] != final_move_generation + 1 or
+            stop_state.get("move", {}).get("requested") != [0.0, 0.0, 0.0]):
+        raise CausalPreconditionError("unexpected generation at zero-intent transition")
+    if any(r["state"]["consumed_move_generation"] != final_move_generation + 1 or
+           r["state"].get("move", {}).get("requested") != [0.0, 0.0, 0.0]
+           for r in states[stop_index:barrier_index + 1]):
+        raise CausalPreconditionError("generation changed before delivery barrier")
+    window = states[first_index:stop_index]
     if not window or window[0] is not first:
         raise CausalPreconditionError("causal window incomplete")
     deadman_count = fault_count = 0
