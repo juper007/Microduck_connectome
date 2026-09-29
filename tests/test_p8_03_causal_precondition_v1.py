@@ -51,11 +51,12 @@ def fixture():
     return rows, poses
 
 
-def score(tmp_path, rows, poses, *, end=START + 1_610_000_000):
+def score(tmp_path, rows, poses, *, end=START + 1_610_000_000,
+          ack=START + 1_611_000_000):
     path = tmp_path / "diagnostic.jsonl"
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))
     return evaluate_causal_precondition(path, poses, pre_move_tick=1,
-                                        stop_sent_ns=end, gate=GATE)
+                                        stop_sent_ns=end, stop_ack_ns=ack, gate=GATE)
 
 
 def test_old_generation_deadman_retained_outside_window(tmp_path):
@@ -195,6 +196,12 @@ def test_pre_stop_zero_state_delivered_late_cannot_close_window(tmp_path):
     rows.append(later)
     with pytest.raises(CausalPreconditionError, match="unexpected generation"):
         score(tmp_path, rows, poses)
+
+
+def test_zero_state_after_send_but_before_stop_ack_fails(tmp_path):
+    rows, poses = fixture()
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses, ack=START + 1_625_000_000)
 
 
 def test_historical_lineage_remains_separate():

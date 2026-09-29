@@ -213,8 +213,11 @@ def run(args):
         if pose_error:
             raise RuntimeError(f"official pose stream failed: {pose_error}")
         # Eligibility is assessed only after the entire causal window. No ARM follows.
-        _, stop_sent_ns, _ = command.call("robot.stop", {})
+        stop_result, stop_sent_ns, stop_ack_ns = command.call("robot.stop", {})
+        if stop_result.get("accepted") is not True:
+            raise RuntimeError("robot.stop not accepted")
         summary["stop_sent_ns"] = stop_sent_ns
+        summary["stop_ack_ns"] = stop_ack_ns
         final_move_generation = result["accepted_move_generation"]
         stop_deadline = time.monotonic() + 2
         barrier_seen = False
@@ -232,7 +235,7 @@ def run(args):
             time.sleep(.005)
         else:
             raise RuntimeError("post-stop barrier or generation advance missing")
-        if (stop_state["t_ns"] <= stop_sent_ns or
+        if (stop_state["t_ns"] <= stop_ack_ns or
                 stop_state["consumed_move_generation"] != final_move_generation + 1 or
                 stop_state["move"]["requested"] != [0.0, 0.0, 0.0]):
             raise RuntimeError("stop generation advance has unexpected intent")
@@ -246,7 +249,7 @@ def run(args):
         atomic_json(out / "poses.json", poses)
         summary.update(evaluate_causal_precondition(
             out / "diagnostic.jsonl", poses, pre_move_tick=pre_move_tick,
-            stop_sent_ns=stop_sent_ns, gate=gate))
+            stop_sent_ns=stop_sent_ns, stop_ack_ns=stop_ack_ns, gate=gate))
     except BaseException as error:
         summary["error"] = f"{type(error).__name__}: {error}"
         if command is not None:

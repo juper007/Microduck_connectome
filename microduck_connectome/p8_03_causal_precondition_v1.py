@@ -25,7 +25,8 @@ def _uint(value, name):
 
 def evaluate_causal_precondition(
     diagnostic_path: Path, poses: list[dict], *, pre_move_tick: int,
-    stop_sent_ns: int, gate: dict, allowed_policies=frozenset({"walk"}),
+    stop_sent_ns: int, stop_ack_ns: int, gate: dict,
+    allowed_policies=frozenset({"walk"}),
 ) -> dict:
     """Require exact generation lineage and frozen physical gate before eligibility.
 
@@ -36,6 +37,9 @@ def evaluate_causal_precondition(
     """
     _uint(pre_move_tick, "pre_move_tick")
     _uint(stop_sent_ns, "stop_sent_ns")
+    _uint(stop_ack_ns, "stop_ack_ns")
+    if stop_ack_ns < stop_sent_ns:
+        raise CausalPreconditionError("stop ACK precedes request")
     rows = [json.loads(line) for line in Path(diagnostic_path).read_text().splitlines()]
     if any(row.get("kind") == "diagnostic.failure" for row in rows):
         raise CausalPreconditionError("diagnostic stream failed")
@@ -111,7 +115,7 @@ def evaluate_causal_precondition(
         raise CausalPreconditionError("zero-intent generation transition missing")
     stop_state = states[stop_index]["state"]
     if (states[stop_index]["received_at_ns"] < stop_sent_ns or
-            stop_state["t_ns"] <= stop_sent_ns or
+            stop_state["t_ns"] <= stop_ack_ns or
             stop_state["consumed_move_generation"] != final_move_generation + 1 or
             stop_state.get("move", {}).get("requested") != [0.0, 0.0, 0.0]):
         raise CausalPreconditionError("unexpected generation at zero-intent transition")
