@@ -500,13 +500,21 @@ def audit_original_ledgers(folder: Path, events: list[dict], summary: dict,
 
 
 def observed_healthy_stop(rows: list[dict]) -> bool:
-    """Conservatively count healthy neural stops even if arm/child exited abnormally."""
-    return any(r.get("kind") == "neural_step" and
+    """Use the scored window when arm time is known, including abnormal exits."""
+    arms = [r.get("timestamp_ns") for r in rows if r.get("kind") == "arm"]
+    start = arms[0] if len(arms) == 1 and type(arms[0]) is int else None
+    def scored(row: dict) -> bool:
+        if start is None:  # UNKNOWN_ARM: retain uncertainty and fail closed.
+            return True
+        stamp = row.get("timestamp_ns")
+        return type(stamp) is int and start <= stamp <= start + 1_000_000_000
+    return any(scored(r) and r.get("kind") == "neural_step" and
                r.get("runtime_healthy") is True and
                (type(r.get("dn_escape")) in (int, float) and
                 r["dn_escape"] >= .5 or r.get("decoder_stop") is True)
                for r in rows) or any(
-        r.get("kind") == "control_publish" and r.get("neural_origin") is True
+        scored(r) and r.get("kind") == "control_publish" and
+        r.get("neural_origin") is True
         and r.get("transport") == "robot.stop" for r in rows)
 
 
