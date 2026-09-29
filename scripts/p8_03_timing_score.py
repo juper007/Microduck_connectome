@@ -191,8 +191,7 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     result = {"reset_id": ident, "result": "FAIL", "failure_causes": errors}
     names = {"events": "events.jsonl", "neural": "neural-ledger.jsonl",
               "visual": "visual-frames.jsonl", "timing": "timing-ledger.jsonl"}
-    if config.get("schema_version") == "p8-03-timing-probe-v2":
-        names["motion_request"] = "motion-request-journal.jsonl"
+    v2 = config.get("schema_version") == "p8-03-timing-probe-v2"
     try:
         rows = {name: _read_jsonl(folder / filename) for name, filename in names.items()}
         summary = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
@@ -200,14 +199,58 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
         errors.append(f"raw_unreadable:{type(error).__name__}")
         return result
-    if "motion_request" in rows:
-        errors.extend(_motion_request_accounting(rows["motion_request"], rows["timing"]))
+    result["primary_fixture_errors"] = summary.get("fixture_errors")
+    raw_fixture_errors = [row.get("error") for row in rows["events"]
+                          if row.get("kind") in ("fixture_error", "scheduler_exception")]
+    if summary.get("fixture_errors") != raw_fixture_errors:
+        errors.append("fixture_error_summary_mismatch")
+    if v2:
+        journal_path = folder / "motion-request-journal.jsonl"
+        lifecycle = summary.get("motion_journal")
+        coordinator_reached = summary.get("motion_coordinator_reached")
+        if journal_path.is_file():
+            result["motion_journal_lifecycle"] = "PRESENT"
+            if (type(lifecycle) is not dict or lifecycle.get("present") is not True or
+                    lifecycle.get("sha256") != _sha(journal_path) or
+                    lifecycle.get("lifecycle") != "PRESENT" or
+                    summary.get("motion_request_journal_sha256") != _sha(journal_path)):
+                errors.append("motion_journal_lifecycle_or_hash_invalid")
+            try:
+                rows["motion_request"] = _read_jsonl(journal_path)
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                errors.append("motion_request_journal_unreadable")
+            else:
+                errors.extend(_motion_request_accounting(rows["motion_request"], rows["timing"]))
+        else:
+            coordinator_rows = [row for row in rows["timing"] if row.get("kind") in
+                                ("motion_attempt", "motion_refresh", "state_observation",
+                                 "pose_observation", "motion_fault", "motion_arm")]
+            optional = (coordinator_reached is False and
+                        summary.get("armed") is False and
+                        type(lifecycle) is dict and lifecycle == {
+                            "present": False, "sha256": None,
+                            "reason": "not_created_before_precondition_failure",
+                            "lifecycle": "OPTIONAL_NOT_REACHED_ARTIFACT"} and
+                        summary.get("motion_request_journal_sha256") is None and
+                        not coordinator_rows and
+                        not any(row.get("kind") == "arm" for row in rows["events"]) and
+                        bool(raw_fixture_errors) and
+                        summary.get("fixture_errors") == raw_fixture_errors)
+            result["motion_journal_lifecycle"] = (
+                "OPTIONAL_NOT_REACHED_ARTIFACT" if optional else
+                "REQUIRED_BUT_MISSING_ARTIFACT")
+            if not optional:
+                errors.append("motion_request_journal_required_missing")
     for name, filename in names.items():
         key = {"events": "event_sha256", "neural": "neural_ledger_sha256",
                 "visual": "visual_sha256", "timing": "timing_ledger_sha256",
                 "motion_request": "motion_request_journal_sha256"}[name]
         if summary.get(key) != _sha(folder / filename):
             errors.append(f"{name}_summary_hash_mismatch")
+    if summary.get("armed") is False and not any(
+            row.get("kind") == "arm" for row in rows["events"]):
+        errors.append("prearm_not_armed")
+        return result
     try:
         marker = json.loads((folder / "armed.json").read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
