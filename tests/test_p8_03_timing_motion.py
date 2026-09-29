@@ -9,6 +9,7 @@ import time
 import unittest
 
 from scripts.p8_02_r1_trial import acknowledged_precondition_move
+from microduck_connectome.neural_stop_arbiter import MotionLatched, NeuralStopMotionArbiter
 from scripts.p8_03_timing_motion import (DurableMotionJournal, MotionTimingCoordinator,
                                          classify_ack_miss)
 from scripts.p8_03_trial import recent_moving_pose
@@ -368,6 +369,91 @@ class MotionTimingTests(unittest.TestCase):
             self.assertIsNone(gate.arm_ns)
         finally:
             coordinator.stop()
+
+    def test_blocked_ack_never_starts_a_second_outstanding_move(self):
+        clock = ManualClock()
+        entered = threading.Event()
+        release = threading.Event()
+        calls = []
+        faults = []
+        def send():
+            call = clock.now()
+            calls.append(call)
+            if len(calls) == 2:
+                entered.set()
+                self.assertTrue(release.wait(1))
+            return {"accepted": True}, call, call, clock.now()
+        def observe(_ack):
+            return {"timestamp_ns": clock.now()}
+        coordinator = MotionTimingCoordinator(
+            send_move=send, observe_state=observe, observe_pose=observe,
+            fault=faults.append, clock_ns=clock.now, wait_until=clock.wait_until,
+            gate=Gate())
+        try:
+            coordinator.start()
+            self.assertTrue(coordinator.wait_ready(.5))
+            clock.advance(20_000_000)
+            self.assertTrue(entered.wait(.5))
+            clock.advance(20_000_000)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual([r["outstanding_before"] for r in
+                              coordinator.snapshot()["rows"] if
+                              r["kind"] == "motion_attempt"], [0])
+            release.set()
+            self.assertTrue(eventually(lambda: bool(faults)))
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(coordinator.snapshot()["fault_reason"],
+                             "motion_slot_missed:ACK_after_next_deadline")
+        finally:
+            release.set()
+            coordinator.stop()
+
+    def test_safe_stop_waits_for_inflight_ack_and_terminates_refresh(self):
+        clock = ManualClock()
+        arbiter = NeuralStopMotionArbiter()
+        entered = threading.Event()
+        release = threading.Event()
+        calls = []
+        stop_acks = []
+        def send():
+            def rpc():
+                now = clock.now()
+                calls.append(now)
+                if len(calls) == 2:
+                    entered.set()
+                    self.assertTrue(release.wait(1))
+                return {"accepted": True}, now, now, clock.now()
+            return arbiter.move(rpc)
+        def observe(_ack):
+            return {"timestamp_ns": clock.now()}
+        coordinator = MotionTimingCoordinator(
+            send_move=send, observe_state=observe, observe_pose=observe,
+            fault=lambda reason: arbiter.latch("fault_" + reason),
+            clock_ns=clock.now, wait_until=clock.wait_until, gate=Gate())
+        try:
+            coordinator.start()
+            self.assertTrue(coordinator.wait_ready(.5))
+            clock.advance(20_000_000)
+            self.assertTrue(entered.wait(.5))
+            stopped = []
+            shutdown = threading.Thread(target=lambda: stopped.append(
+                coordinator.stop(timeout_s=.5)))
+            shutdown.start()
+            self.assertFalse(eventually(lambda: bool(stopped), timeout=.02))
+            release.set()
+            self.assertTrue(eventually(lambda: bool(stopped)))
+            shutdown.join(.5)
+            arbiter.latch("safe_abort")
+            stop_acks.append(clock.now())  # official stop would follow worker join
+            clock.advance(40_000_000)
+            self.assertEqual(len(calls), 2)
+            self.assertLessEqual(calls[-1], stop_acks[0])
+            with self.assertRaises(MotionLatched):
+                arbiter.move(lambda: ({"accepted": True}, 1, 1, 1))
+        finally:
+            release.set()
+            if not stopped:
+                coordinator.stop()
 
     def test_instrumented_socket_records_write_flush_read_and_parse(self):
         class File:
