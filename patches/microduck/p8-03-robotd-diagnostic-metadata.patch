@@ -1,5 +1,5 @@
 diff --git a/duck-ipc-proto/src/lib.rs b/duck-ipc-proto/src/lib.rs
-index d112f63..3c75f96 100644
+index d112f63..ea6f438 100644
 --- a/duck-ipc-proto/src/lib.rs
 +++ b/duck-ipc-proto/src/lib.rs
 @@ -357,7 +357,12 @@ pub const JSONRPC_VERSION: &str = "2.0";
@@ -64,7 +64,7 @@ index d112f63..3c75f96 100644
              t_ns: 0,
              imu: None,
              frames: None,
-@@ -5905,12 +5930,35 @@ mod tests {
+@@ -5905,12 +5930,36 @@ mod tests {
          assert!(line.contains(r#""method":"robot.state""#), "{line}");
          assert!(line.contains(r#""move":"#), "{line}");
          assert!(line.contains(r#""loop":"#), "{line}");
@@ -91,7 +91,8 @@ index d112f63..3c75f96 100644
 +        let encoded = serde_json::to_string(&MoveAccepted {
 +            accepted: true,
 +            accepted_move_generation: 42,
-+        }).unwrap();
++        })
++        .unwrap();
 +        let old: IntentResult = serde_json::from_str(&encoded).unwrap();
 +        assert!(old.accepted);
 +        assert_eq!(old.reason, None);
@@ -114,7 +115,7 @@ index 4de591a..0b20f26 100644
                  requested: [0.0; 3],
                  applied: [0.0; 3],
 diff --git a/robotd/src/intents.rs b/robotd/src/intents.rs
-index b3f515f..133bb12 100644
+index b3f515f..c2898d9 100644
 --- a/robotd/src/intents.rs
 +++ b/robotd/src/intents.rs
 @@ -47,6 +47,13 @@ struct Stamped<T> {
@@ -192,7 +193,7 @@ index b3f515f..133bb12 100644
              command: Command {
                  twist: twist.value,
                  head: head.value,
-@@ -592,6 +611,45 @@ impl Intents {
+@@ -592,6 +611,47 @@ impl Intents {
  mod tests {
      use super::*;
  
@@ -203,10 +204,12 @@ index b3f515f..133bb12 100644
 +        for writer in 0..8 {
 +            let intents = Arc::clone(&intents);
 +            writers.push(std::thread::spawn(move || {
-+                (0..100).map(|index| {
-+                    let value = (writer * 100 + index) as f64;
-+                    (intents.set_twist([value, 0.0, 0.0]), value)
-+                }).collect::<Vec<_>>()
++                (0..100)
++                    .map(|index| {
++                        let value = (writer * 100 + index) as f64;
++                        (intents.set_twist([value, 0.0, 0.0]), value)
++                    })
++                    .collect::<Vec<_>>()
 +            }));
 +        }
 +        let mut published = writers
@@ -239,7 +242,7 @@ index b3f515f..133bb12 100644
      /// from a live client and a `true` that went stale must not read the same: one cuts the
      /// ride, the other plays it out.
 diff --git a/robotd/src/main.rs b/robotd/src/main.rs
-index 80320e6..4f2418f 100644
+index 80320e6..f52e7c8 100644
 --- a/robotd/src/main.rs
 +++ b/robotd/src/main.rs
 @@ -1957,9 +1957,13 @@ async fn control_loop<T: RobotIo>(
@@ -265,12 +268,14 @@ index 80320e6..4f2418f 100644
                  movement: proto::MoveState {
                      requested: snapshot.command.twist,
                      applied: command.twist,
-@@ -4148,8 +4154,17 @@ fn dispatch(
+@@ -4148,10 +4154,17 @@ fn dispatch(
      call: &proto::Call,
  ) -> proto::Response {
      match call {
 -        proto::Call::RobotMove(_)
 -        | proto::Call::RobotHead(_)
+-        | proto::Call::RobotPose(_)
+-        | proto::Call::RobotMouth(_) => {
 +        proto::Call::RobotMove(p) => {
 +            let generation = intents.set_twist([p.vx, p.vy, p.vyaw]);
 +            proto::Response::ok(
@@ -281,11 +286,11 @@ index 80320e6..4f2418f 100644
 +                },
 +            )
 +        }
-+        proto::Call::RobotHead(_)
-         | proto::Call::RobotPose(_)
-         | proto::Call::RobotMouth(_) => {
++        proto::Call::RobotHead(_) | proto::Call::RobotPose(_) | proto::Call::RobotMouth(_) => {
              apply_intent(state, intents, call);
-@@ -5822,6 +5837,33 @@ mod tests {
+             proto::Response::ok(Some(id), &proto::IntentResult::accepted())
+         }
+@@ -5822,6 +5835,30 @@ mod tests {
          assert_eq!(snap.mouth, 0.5);
      }
  
@@ -300,18 +305,15 @@ index 80320e6..4f2418f 100644
 +            vy: 0.0,
 +            vyaw: 0.0,
 +        });
-+        let ack: proto::MoveAccepted = dispatch(&state, &intents, id(), &call)
-+            .result_as()
-+            .unwrap();
++        let ack: proto::MoveAccepted = dispatch(&state, &intents, id(), &call).result_as().unwrap();
 +        assert!(ack.accepted);
 +        assert_eq!(ack.accepted_move_generation, 1);
 +        // A frame assembled before the ACK can be delivered later; its snapshot
 +        // remains attributable to the old generation.
 +        assert_eq!(before.move_generation, 0);
 +        assert_eq!(intents.snapshot().move_generation, 1);
-+        let second: proto::MoveAccepted = dispatch(&state, &intents, id(), &call)
-+            .result_as()
-+            .unwrap();
++        let second: proto::MoveAccepted =
++            dispatch(&state, &intents, id(), &call).result_as().unwrap();
 +        assert_eq!(second.accepted_move_generation, 2);
 +        assert_eq!(intents.snapshot().command.twist, [0.1, 0.0, 0.0]);
 +    }
@@ -319,7 +321,7 @@ index 80320e6..4f2418f 100644
      /// `robot.shutdown` on a robot that cannot sit (no policy driving) cuts torque and
      /// powers off — the request must never be silently lost. The sit-first path needs a
      /// policy and therefore ONNX Runtime, so it is exercised on a board rather than here.
-@@ -6481,7 +6523,15 @@ mod tests {
+@@ -6481,7 +6518,15 @@ mod tests {
          let intents = Arc::new(Intents::new());
          intents.set_enabled(true);
          // Asked for, but never refreshed — so already past the deadman.
@@ -336,7 +338,7 @@ index 80320e6..4f2418f 100644
          tokio::time::sleep(Duration::from_millis(params.safety.deadman_ms + 20)).await;
  
          let loop_state = Arc::clone(&s);
-@@ -6500,9 +6550,6 @@ mod tests {
+@@ -6500,9 +6545,6 @@ mod tests {
              .expect("a frame within five seconds")
              .expect("the stream stayed open");
  
@@ -346,12 +348,15 @@ index 80320e6..4f2418f 100644
          assert_eq!(
              frame.movement.requested,
              [0.4, 0.0, 0.0],
-@@ -6518,7 +6565,35 @@ mod tests {
+@@ -6518,7 +6560,41 @@ mod tests {
              frame.movement.limited_by
          );
          assert_eq!(frame.policy, "held", "no policy was loaded");
 +        assert_eq!(frame.control_tick_sequence, 1);
-+        assert_eq!(frame.consumed_move_generation, first_ack.accepted_move_generation);
++        assert_eq!(
++            frame.consumed_move_generation,
++            first_ack.accepted_move_generation
++        );
          assert_eq!(frame.joints.len(), NUM_JOINTS);
 +
 +        // The first attributed tick is genuinely deadman-limited. A later clean
@@ -366,7 +371,10 @@ index 80320e6..4f2418f 100644
 +                if next.consumed_move_generation == second_ack.accepted_move_generation {
 +                    break next;
 +                }
-+                assert_eq!(next.consumed_move_generation, first_ack.accepted_move_generation);
++                assert_eq!(
++                    next.consumed_move_generation,
++                    first_ack.accepted_move_generation
++                );
 +            }
 +        })
 +        .await
