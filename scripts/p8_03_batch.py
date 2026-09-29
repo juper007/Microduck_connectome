@@ -23,21 +23,33 @@ from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_local_reference import acquire_local_reference
 
 
-PROBE_CONFIG = "config/p8_03_timing_probe_v1.json"
+PROBE_CONFIGS = {"v1": "config/p8_03_timing_probe_v1.json",
+                 "v2": "config/p8_03_timing_probe_v2.json"}
 R1_CONFIG = "config/p8_03_local_reference_v1_r1.json"
-PROBE_IDS = ("TPR2-001", "TPR2-002", "TPR2-003")
+PROBE_IDS = {"v1": ("TPR2-001", "TPR2-002", "TPR2-003"),
+             "v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003")}
+PROBE_TASKS = {"v1": "P8-03-R2-TIMING-ARCHITECTURE-AND-PROBE",
+               "v2": "P8-03-R2-PREARM-MOTION-ACK-REMEDIATION"}
+
+
+def probe_config(args) -> str:
+    return PROBE_CONFIGS[getattr(args, "timing_probe_version", "v1")]
 
 
 def probe_rows(config: dict) -> list[dict]:
     """Validate the independent development-only timing probe allocation."""
     rows = config.get("development_gate", {}).get("ids", [])
-    if (config.get("schema_version") != "p8-03-timing-probe-v1" or
-            config.get("task_id") != "P8-03-R2-TIMING-ARCHITECTURE-AND-PROBE" or
+    schema = config.get("schema_version")
+    version = (schema.removeprefix("p8-03-timing-probe-")
+               if isinstance(schema, str) else None)
+    ids = PROBE_IDS.get(version)
+    if (ids is None or config.get("schema_version") != f"p8-03-timing-probe-{version}" or
+            config.get("task_id") != PROBE_TASKS[version] or
             config.get("reset_id_semantics") != "UNIQUE_LABEL_ONLY" or
             config.get("simulator_rng_seeded") is not False or
-            len(rows) != len(PROBE_IDS) or
-            [r.get("reset_id") for r in rows] != list(PROBE_IDS) or
-            [r.get("ordinal") for r in rows] != list(range(len(PROBE_IDS))) or
+            len(rows) != len(ids) or
+            [r.get("reset_id") for r in rows] != list(ids) or
+            [r.get("ordinal") for r in rows] != list(range(len(ids))) or
             any(r.get("mode") not in ("static", "receding") or
                 r.get("arm_elapsed_s") not in (2.0, 2.6, 3.0) for r in rows)):
         raise ValueError("timing probe ID allocation mismatch")
@@ -51,7 +63,7 @@ def validate_probe_config(config: dict, baseline: dict) -> list[dict]:
     allowed = {"schema_version", "task_id", "status", "state_dir", "body_port",
                "preflight_audit", "development_output", "static_output",
                "receding_output", "package_output", "development_gate",
-               "release_tag"}
+               "release_tag", "parent_implementation_pr"}
     require(set(config) == set(baseline), "timing probe config field set changed")
     for key in set(config) - allowed:
         require(config[key] == baseline[key], f"frozen probe material changed: {key}")
@@ -164,7 +176,7 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
     timing_probe = getattr(args, "timing_probe", False)
     if timing_probe:
         require(args.stage == "D", "timing probe permits development stage D only")
-    config_rel = PROBE_CONFIG if timing_probe else R1_CONFIG
+    config_rel = probe_config(args) if timing_probe else R1_CONFIG
     config_path = root / config_rel
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     config = json.loads(config_path.read_text())
@@ -212,8 +224,10 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
         require(args.audit.resolve() == audit.resolve() and
                 args.sim_state.resolve() == Path(config["state_dir"]).resolve() and
                 args.body_port == config["body_port"], "audit/state/port mismatch")
-        require(config["schema_version"] == ("p8-03-timing-probe-v1" if timing_probe
-                                              else "p8-03-local-reference-v1") and
+        require(config["schema_version"] == ("p8-03-timing-probe-" +
+                                               getattr(args, "timing_probe_version", "v1")
+                                               if timing_probe
+                                               else "p8-03-local-reference-v1") and
                 master["schema_version"] == "p8-v2-final-protocol-v1",
                 "protocol schema mismatch")
         require(config["scored_window_ms"] == 1000 and config["visual_hz"] == 20 and
@@ -302,7 +316,7 @@ def run(args) -> dict:
     output.mkdir(parents=True, exist_ok=False)
     journal = {"schema_version": "p8-03-local-batch-journal-v1", "stage": args.stage,
                "source_head": args.reviewed_head, "source_path": str(args.root.resolve()),
-               "config_sha256": sha(args.root / (PROBE_CONFIG if timing_probe else R1_CONFIG)),
+               "config_sha256": sha(args.root / (probe_config(args) if timing_probe else R1_CONFIG)),
                "result": "RUNNING", "preflight": preflight_record,
                "ids": [{"reset_id": r["reset_id"], "ordinal": r["ordinal"],
                         "status": "PENDING", "attempts": []} for r in rows],
@@ -391,7 +405,9 @@ def run(args) -> dict:
                            "--summary", str(folder / "summary.json")]
                 if timing_probe:
                     command.extend(("--timing-probe", "--timing-ledger",
-                                    str(folder / "timing-ledger.jsonl")))
+                                     str(folder / "timing-ledger.jsonl")))
+                    command.extend(("--timing-probe-version",
+                                    getattr(args, "timing_probe_version", "v1")))
                 attempt["command"] = command
                 attempt["status"] = "TRIAL_CHILD_STARTED"
                 checkpoint(output, journal)
@@ -495,13 +511,17 @@ def main() -> None:
     ap.add_argument("--sim-state", type=Path, required=True)
     ap.add_argument("--body-port", type=int, required=True)
     ap.add_argument("--timing-probe", action="store_true",
-                    help="run only the preregistered three-ID timing feasibility probe")
+                     help="run only the preregistered three-ID timing feasibility probe")
+    ap.add_argument("--timing-probe-version", choices=tuple(PROBE_CONFIGS), default="v1",
+                    help="v1 replays historical R2; v2 uses fresh prearm ACK probe IDs")
     ap.add_argument("--recover-only", action="store_true")
     ap.add_argument("--preflight-only", action="store_true",
                     help="audit frozen inputs and exit before assigning any reset ID")
     args = ap.parse_args()
     if args.timing_probe and args.stage != "D":
         ap.error("--timing-probe requires --stage D")
+    if not args.timing_probe and args.timing_probe_version != "v1":
+        ap.error("--timing-probe-version v2 requires --timing-probe")
     if args.preflight_only:
         if args.recover_only:
             ap.error("preflight-only and recover-only are mutually exclusive")

@@ -1,0 +1,441 @@
+{
+  "schema_version": "p8-03-timing-probe-v2",
+  "task_id": "P8-03-R2-PREARM-MOTION-ACK-REMEDIATION",
+  "status": "PREREGISTERED_PREARM_ACK_TIMING_PROBE_ONLY",
+  "fetched_origin_main_base": "57161251c63be912a002d236d18e7c13cd48b1cc",
+  "decision_pr": 87,
+  "decision_reviewed_head": "9465cb0c233abeabf9a8493445d273acf0f37836",
+  "reference_semantic_change": true,
+  "behavioral_acceptance_change": false,
+  "reset_id_semantics": "UNIQUE_LABEL_ONLY",
+  "simulator_rng_seeded": false,
+  "source_path": "/home/juper007/projects/microduck-connectome-thor/p8-03-source",
+  "microduck_path": "/home/juper007/projects/microduck-connectome-thor/microduck",
+  "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+  "microduck_rl_path": "/home/juper007/projects/microduck-connectome-thor/microduck_rl",
+  "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+  "graph_path": "/home/juper007/projects/microduck-connectome-thor/evidence/g8-r1/graph-v2/c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc.json",
+  "graph_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+  "walking_policy_path": "/home/juper007/projects/microduck-connectome-thor/evidence/p7-02/policy-development-6012390-20260924/checkpoint1250-diagnostic/model1250.onnx",
+  "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+  "sim_executable": "/home/juper007/projects/microduck-connectome-thor/microduck/scripts/duck-sim",
+  "state_dir": "/tmp/p8-03-r2-prearm-ack-probe-v2-state",
+  "body_port": 7896,
+  "preflight_audit": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-prearm-ack-probe-v2/preflight.jsonl",
+  "development_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-prearm-ack-probe-v2/development",
+  "static_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-prearm-ack-probe-v2/static-unused",
+  "receding_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-prearm-ack-probe-v2/receding-unused",
+  "settled_gate": {
+    "official_up_exit_required": 0,
+    "post_up_min_capture_s": 1.0,
+    "post_up_max_capture_s": 8.0,
+    "settle_window_s": 0.5,
+    "minimum_distinct_pose_samples": 6,
+    "max_pose_gap_ms": 100,
+    "max_pose_response_age_ms": 100,
+    "max_robotd_state_age_ms": 100,
+    "max_health_age_ms": 300,
+    "max_planar_drift_m": 0.0005,
+    "max_z_drift_m": 0.0005,
+    "max_heading_drift_rad": 0.005,
+    "max_abs_roll_pitch_rad": 0.5,
+    "max_abs_applied_vx_mps": 0.0001,
+    "max_abs_applied_vy_mps": 0.0001,
+    "max_abs_applied_vyaw_radps": 0.0001,
+    "require_healthy": true,
+    "require_not_fallen": true,
+    "require_not_limp": true,
+    "capture_pose": "last_fresh_pose_in_first_qualifying_window",
+    "capture_before_move": true,
+    "required_policy_readback": "walk policy loaded with pinned SHA256",
+    "allowed_observed_policy_states": [
+      "stand",
+      "walk"
+    ],
+    "required_lifecycle": "healthy robotd with positive control_loop_ticks, non-fallen, non-limp",
+    "evidence_note": "R7 v3 diagnostic bounds; must be validated after explicit walk policy readback in development before final execution",
+    "max_health_poll_gap_ms": 300,
+    "require_continuous_healthy_health_samples": true,
+    "max_prearm_health_age_ms": 300,
+    "capture_deadline_note": "8 s allows explicit walk-policy load/readback after up; all 0.5 s settled health/pose gates remain mandatory; development must validate this prospective engineering choice"
+  },
+  "moving_gate": {
+    "after_local_reference": true,
+    "duration_s": 1.5,
+    "command_period_ms": 20,
+    "minimum_trunk_displacement_m": 0.01,
+    "minimum_pose_speed_mps": 0.015,
+    "minimum_speed_sustain_ms": 200,
+    "minimum_fresh_applied_vx_mps": 0.04,
+    "maximum_state_age_ms": 100,
+    "maximum_pose_age_ms": 100,
+    "no_deadman_or_fault": true,
+    "no_scheduler_exception": true
+  },
+  "scored_window_ms": 1000,
+  "static_distance_m": 0.85,
+  "static_tolerance_m": 0.005,
+  "receding_speed_mps": 0.2,
+  "receding_max_negative_frame_step_m": 0.005,
+  "visual_hz": 20,
+  "neural_hz": 50,
+  "control_hz": 50,
+  "freshness_ttl_ms": 100,
+  "max_false_stops_per_set": 1,
+  "max_false_stops_pooled": 2,
+  "max_safety_limit_violations": 0,
+  "max_prearm_attempts": 3,
+  "unknown_arm_retry": false,
+  "armed_retry": false,
+  "replacement_id": false,
+  "development_gate": {
+    "ids": [
+      {
+        "reset_id": "TPR2A-001",
+        "mode": "static",
+        "ordinal": 0,
+        "arm_elapsed_s": 2.0
+      },
+      {
+        "reset_id": "TPR2A-002",
+        "mode": "receding",
+        "ordinal": 1,
+        "arm_elapsed_s": 2.0
+      },
+      {
+        "reset_id": "TPR2A-003",
+        "mode": "receding",
+        "ordinal": 2,
+        "arm_elapsed_s": 2.0
+      }
+    ],
+    "required": "all three fresh development-only timing probes meet preregistered cadence and safety criteria; no behavioral or final IDs",
+    "on_failure": "preserve evidence and stop"
+  },
+  "final_static": [
+    {
+      "reset_id": "S889200",
+      "mode": "static",
+      "ordinal": 0,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889201",
+      "mode": "static",
+      "ordinal": 1,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889202",
+      "mode": "static",
+      "ordinal": 2,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889203",
+      "mode": "static",
+      "ordinal": 3,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889204",
+      "mode": "static",
+      "ordinal": 4,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889205",
+      "mode": "static",
+      "ordinal": 5,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889206",
+      "mode": "static",
+      "ordinal": 6,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889207",
+      "mode": "static",
+      "ordinal": 7,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889208",
+      "mode": "static",
+      "ordinal": 8,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889209",
+      "mode": "static",
+      "ordinal": 9,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889210",
+      "mode": "static",
+      "ordinal": 10,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889211",
+      "mode": "static",
+      "ordinal": 11,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889212",
+      "mode": "static",
+      "ordinal": 12,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889213",
+      "mode": "static",
+      "ordinal": 13,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889214",
+      "mode": "static",
+      "ordinal": 14,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889215",
+      "mode": "static",
+      "ordinal": 15,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889216",
+      "mode": "static",
+      "ordinal": 16,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "S889217",
+      "mode": "static",
+      "ordinal": 17,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "S889218",
+      "mode": "static",
+      "ordinal": 18,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "S889219",
+      "mode": "static",
+      "ordinal": 19,
+      "arm_elapsed_s": 2.6
+    }
+  ],
+  "final_receding": [
+    {
+      "reset_id": "R889300",
+      "mode": "receding",
+      "ordinal": 0,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889301",
+      "mode": "receding",
+      "ordinal": 1,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889302",
+      "mode": "receding",
+      "ordinal": 2,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889303",
+      "mode": "receding",
+      "ordinal": 3,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889304",
+      "mode": "receding",
+      "ordinal": 4,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889305",
+      "mode": "receding",
+      "ordinal": 5,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889306",
+      "mode": "receding",
+      "ordinal": 6,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889307",
+      "mode": "receding",
+      "ordinal": 7,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889308",
+      "mode": "receding",
+      "ordinal": 8,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889309",
+      "mode": "receding",
+      "ordinal": 9,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889310",
+      "mode": "receding",
+      "ordinal": 10,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889311",
+      "mode": "receding",
+      "ordinal": 11,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889312",
+      "mode": "receding",
+      "ordinal": 12,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889313",
+      "mode": "receding",
+      "ordinal": 13,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889314",
+      "mode": "receding",
+      "ordinal": 14,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889315",
+      "mode": "receding",
+      "ordinal": 15,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889316",
+      "mode": "receding",
+      "ordinal": 16,
+      "arm_elapsed_s": 2.6
+    },
+    {
+      "reset_id": "R889317",
+      "mode": "receding",
+      "ordinal": 17,
+      "arm_elapsed_s": 3.0
+    },
+    {
+      "reset_id": "R889318",
+      "mode": "receding",
+      "ordinal": 18,
+      "arm_elapsed_s": 2.0
+    },
+    {
+      "reset_id": "R889319",
+      "mode": "receding",
+      "ordinal": 19,
+      "arm_elapsed_s": 2.6
+    }
+  ],
+  "attempt_policy": "one armed attempt per ID; at most three fully logged exogenous pre-arm attempts; UNKNOWN_ARM is terminal",
+  "evidence_manifest": "all regular files except manifest itself: sha256, bytes, record_count where applicable; missing or extra file fails",
+  "final_down_and_port_probe_required": true,
+  "release_tag": "p8-03-r2-prearm-ack-probe-v2-evidence",
+  "selected_pipeline": {
+    "visual_representation": "fractional_rgb_v21",
+    "renderer": "render_fractional_pixels_8x8",
+    "detector": "FractionalRedTargetDetector",
+    "looming_estimator": {
+      "area_epsilon": 1e-06,
+      "full_scale_rate_per_s": 0.5,
+      "max_gap_ms": 150,
+      "method": "log_area",
+      "window_ms": 200
+    },
+    "visual_hz": 20,
+    "neural_hz": 50,
+    "control_hz": 50,
+    "perception_ttl_ms": 100,
+    "neural_readout_ttl_ms": 100,
+    "behavior_intent_ttl_ms": 100,
+    "graph_v2_sha256": "c4160c42941163079b6b569d117bf67afcf8b45eaa128c444f7c96c2567593cc",
+    "graph_manifest_sha256": "bb1d0e73f0b463ba908977d4e858f0219f956f72ebd830efc21e6fa40853fcfc",
+    "dataset_version": "male-cns:v1.0",
+    "escape_threshold": 0.5,
+    "boundary_center_distance_m": 0.25,
+    "maximum_visual_lineage_runtime_step_gap": 5,
+    "deadman_timeout_ms": 500,
+    "maximum_stop_refresh_ack_gap_ms": 100,
+    "config_sha256": {
+      "dn_readout": "9d171cd17d548fa51bbf5c8fbd807d01fc7297f39366bb53ebe361e6a130d291",
+      "escape_decoder": "932ec651a595f1f98bdabd4d42d76297d95c9ba43d7ffeea5bdb84d4d1343547",
+      "motion_adapter": "a5aa8d9360379db8a032e526c7d7ed43135b06daf52ced17f80d74ea156e39ee",
+      "neural_model": "db8143287a021ef4eb31d3aa84a83112b4db7c34301b7a620aa53680663babc3",
+      "safety_envelope": "73735e9414c676f6214441c3b31418706a2fd843fc5361a24501574a2124ef25",
+      "scheduler": "8d2c211ac64ae259a9b276b2270e1a59674caf7f26294a337b7661f0e39bed16",
+      "sensory_mapping": "241fa094a5ab1da5834019039ae976387f9cdb72461431129a42b7c0f84c913f",
+      "telemetry": "445729c3046d75fa7cb3d24f32dc0a6f8ac35407e9b8d5ec9b938395d863e069",
+      "watchdog": "8ba8fab36e6e6280006c791014729a6785bd4ff41e227c92baca45b9e75b8e10"
+    },
+    "fractional_rgb_module_sha256": "e1773019ab3934eb5cf7adcc90c381df88b381f49ff991140edffc2209d59bd6",
+    "looming_v2_module_sha256": "f16e69fc96f5d11ee5c5429a481b970b85c770754880a31eeeec89bd403be0c0",
+    "microduck_commit": "344925c9f8fa031f85428a305b1e8ec2eaae29c1",
+    "microduck_rl_commit": "cb70b792312d559a4da09064d92009079671815f",
+    "walking_policy_sha256": "98c3ea73fa6bb196bcf16586cf38b9fffb782787447d638fa1c1028df9082c1a",
+    "scenario_config_sha256": "3967c2efa327c0a69a6f9629a12ac0c80f38a7ca6b02b4e9aceecd4cbd53c9eb",
+    "visual_scheduler_config_sha256": "6f12f48687327b18b897a6ca3b7b14c911f03339ac51756ae2b7fde68d62f769",
+    "safety_limits": {
+      "max_abs_vx_mps": 0.08,
+      "max_abs_vy_mps": 0,
+      "max_abs_vyaw_radps": 0.5,
+      "max_delta_vx_per_s": 0.2,
+      "max_delta_vyaw_per_s2": 1.5
+    },
+    "pose_stopped_confirmation": {
+      "speed_below_mps": 0.008,
+      "sustained_ms": 200,
+      "source": "official MuJoCo trunk x/y"
+    }
+  },
+  "allowed_prearm_retry_cause_codes": [
+    "OFFICIAL_UP_PROCESS_FAILURE",
+    "IPC_UNREACHABLE_BEFORE_POLICY_OR_MOTION",
+    "FIXTURE_SETUP_IO_FAILURE",
+    "MOTION_ACQUISITION_EXOGENOUS_TRANSPORT_FAILURE"
+  ],
+  "nonretryable_prearm_cause_codes": [
+    "ROBOTD_UNHEALTHY",
+    "POLICY_INVALID",
+    "POSTURE_INVALID",
+    "TELEMETRY_STALE_OR_GAPPED",
+    "UNEXPECTED_MOTION",
+    "DEADMAN",
+    "SAFETY_VIOLATION",
+    "MOVING_BODY_NOT_ESTABLISHED_WITH_HEALTHY_TRANSPORT"
+  ],
+  "package_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-r2-prearm-ack-probe-v2",
+  "parent_implementation_pr": 91,
+  "failed_v1_execution_head": "821360b5a0f88ede760a0961a2f7f1bada53dbc4",
+  "failed_v1_id": "D889100",
+  "failed_v1_manifest_sha256": "63ea9f26cf24c5033dbd4d057bd45fec23f02ed5407a9d0cfc45bf1f32d57ec3",
+  "trial_child_timeout_s": 30
+}

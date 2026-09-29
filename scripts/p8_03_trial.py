@@ -40,11 +40,22 @@ from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move
                                     precondition_deadman_after_motion)
 from scripts.p8_03_local_reference import (PoseWithLineage, create_durable_arm_marker,
                                             verify_local_reference, wrap)
-from scripts.p8_03_timing_motion import MotionTimingCoordinator
+from scripts.p8_03_timing_motion import DurableMotionJournal, MotionTimingCoordinator
 
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def timing_execution_rel(args) -> str:
+    if not getattr(args, "timing_probe", False):
+        if getattr(args, "timing_probe_version", "v1") != "v1":
+            raise ValueError("v2 requires timing probe mode")
+        return "config/p8_03_local_reference_v1_r1.json"
+    version = getattr(args, "timing_probe_version", "v1")
+    if version not in ("v1", "v2"):
+        raise ValueError("unsupported timing probe version")
+    return f"config/p8_03_timing_probe_{version}.json"
 
 
 def json_write(path: Path, value: object) -> None:
@@ -91,9 +102,7 @@ def recent_moving_pose(rows: list[dict], now_ns: int, *, minimum_speed_mps: floa
 
 def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     root = args.root.resolve(strict=True)
-    execution_rel = ("config/p8_03_timing_probe_v1.json" if
-                     getattr(args, "timing_probe", False) else
-                     "config/p8_03_local_reference_v1_r1.json")
+    execution_rel = timing_execution_rel(args)
     execution_path = root / execution_rel
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     execution = json.loads(execution_path.read_text())
@@ -133,12 +142,18 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
         if args.stage != "D" or args.timing_ledger is None:
             raise RuntimeError("timing probe requires D stage and timing ledger")
         outputs += (args.timing_ledger,)
+        if getattr(args, "timing_probe_version", "v1") == "v2":
+            outputs += (args.timing_ledger.with_name("motion-request-journal.jsonl"),)
     if any(p.resolve().parent != folder.resolve() for p in outputs):
         raise RuntimeError("raw output must use frozen attempt directory")
     if any(p.exists() for p in (args.events, args.ledger, args.visual, args.summary,
                                 args.armed_marker) + ((args.timing_ledger,) if
                                 getattr(args, "timing_probe", False) else ())):
         raise RuntimeError("raw output path already exists")
+    if (getattr(args, "timing_probe", False) and
+            getattr(args, "timing_probe_version", "v1") == "v2"
+            and args.timing_ledger.with_name("motion-request-journal.jsonl").exists()):
+        raise RuntimeError("raw motion journal path already exists")
     selected = master["selected_pipeline"]
     if (selected != execution["selected_pipeline"] or
             selected["visual_representation"] != "fractional_rgb_v21"
@@ -191,9 +206,7 @@ def run(args) -> int:
     if sha(args.local_reference) != reference_hash:
         raise RuntimeError("local reference changed after trial verification")
     root = args.root.resolve()
-    execution_rel = ("config/p8_03_timing_probe_v1.json" if
-                     getattr(args, "timing_probe", False) else
-                     "config/p8_03_local_reference_v1_r1.json")
+    execution_rel = timing_execution_rel(args)
     mode = planned["motion"]
     graph = ConnectomeGraph.from_cache(Path(execution["graph_path"]).parent,
                                         execution["graph_sha256"])
@@ -473,6 +486,10 @@ def run(args) -> int:
         timing_motion = None
         timing_snapshot = None
         if timing_gate is not None:
+            ack_probe_v2 = getattr(args, "timing_probe_version", "v1") == "v2"
+            motion_journal = (DurableMotionJournal(
+                args.timing_ledger.with_name("motion-request-journal.jsonl"))
+                if ack_probe_v2 else None)
             def probe_fault(reason):
                 motion_errors.append(reason)
                 watchdog.latch_fault("motion_refresh_fault")
@@ -497,12 +514,19 @@ def run(args) -> int:
                         "pose": dict(measured),
                         "raw_body_packet": source["raw_packet"]}
 
-            timing_motion = MotionTimingCoordinator(
-                send_move=lambda: arbiter.move(lambda: acknowledged_precondition_move(
+            def send_probe_move():
+                trace = timing_motion.current_request_trace() if ack_probe_v2 else None
+                if trace is not None:
+                    trace["arbiter_lock_wait_start_ns"] = time.monotonic_ns()
+                return arbiter.move(lambda: acknowledged_precondition_move(
                     move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
-                    vyaw=pre["vyaw_radps"])),
+                    vyaw=pre["vyaw_radps"], trace=trace))
+
+            timing_motion = MotionTimingCoordinator(
+                send_move=send_probe_move,
                 observe_state=probe_state, observe_pose=probe_pose,
-                fault=probe_fault, gate=timing_gate)
+                fault=probe_fault, gate=timing_gate, journal=motion_journal,
+                request_id_hint=(lambda: move_client.next_id) if ack_probe_v2 else None)
             timing_motion.start()
             if not timing_motion.wait_ready(3):
                 raise RuntimeError("prearm motion coordinator not READY")
@@ -525,6 +549,15 @@ def run(args) -> int:
                 time.sleep(.01)
             prime_ns = time.monotonic_ns()
             frame = chain.perception(prime_ns)
+            if ack_probe_v2:
+                # The real neural prime holds the stop arbiter lock. Start it
+                # just after a genuine move ACK, leaving the full 20 ms until
+                # the next command deadline without weakening stop ordering.
+                phase_ack_ns = timing_motion.wait_for_ack_after(time.monotonic_ns(), .12)
+                prime_ns = time.monotonic_ns()
+                events.append({"kind": "prearm_prime_phase", "timestamp_ns": prime_ns,
+                               "preceding_move_ack_ns": phase_ack_ns,
+                               "ack_to_prime_start_ns": prime_ns - phase_ack_ns})
             update = chain.neural(frame, prime_ns)
             if (update is None or update.behavior_intent["stop"]
                     or not watchdog.observe_neural(update.readout)
@@ -823,6 +856,9 @@ def run(args) -> int:
                "neural_stop_acks": len(stop_acks), "fixture_errors": fixture_errors}
     if timing_gate is not None:
         summary["timing_ledger_sha256"] = sha(args.timing_ledger)
+        if getattr(args, "timing_probe_version", "v1") == "v2":
+            summary["motion_request_journal_sha256"] = sha(
+                args.timing_ledger.with_name("motion-request-journal.jsonl"))
         summary["timing_motion"] = {key: value for key, value in
                                     (timing_snapshot or {}).items() if key != "rows"}
         summary["timing_scheduler_ticks"] = sum(
@@ -845,6 +881,7 @@ def main() -> None:
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--source-head", required=True)
     ap.add_argument("--timing-probe", action="store_true")
+    ap.add_argument("--timing-probe-version", choices=("v1", "v2"), default="v1")
     ap.add_argument("--timing-ledger", type=Path)
     for name in ("policy_readback", "local_reference", "armed_marker", "progress", "events", "ledger",
                  "visual", "summary"):

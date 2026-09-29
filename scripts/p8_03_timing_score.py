@@ -19,7 +19,8 @@ from scripts.p8_03_local_reference import body_pose
 PERIOD_NS = 20_000_000
 VISUAL_PERIOD_NS = 50_000_000
 WINDOW_NS = 1_000_000_000
-IDS = ("TPR2-001", "TPR2-002", "TPR2-003")
+PROBE_IDS = {"p8-03-timing-probe-v1": ("TPR2-001", "TPR2-002", "TPR2-003"),
+             "p8-03-timing-probe-v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003")}
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -95,25 +96,123 @@ def _slots(rows: list[dict], *, domain: str, arm_ns: int, count: int,
     return ordered
 
 
+def _motion_request_accounting(journal: list[dict], timing: list[dict]) -> list[str]:
+    """Require a durable terminal and a timing-ledger row for every v2 attempt."""
+    errors = []
+    starts = [row for row in journal if row.get("kind") == "motion_request_start"]
+    ends = [row for row in journal if row.get("kind") == "motion_request_end"]
+    attempts = [row for row in timing if row.get("kind") == "motion_attempt"]
+    refreshes = [row for row in timing if row.get("kind") == "motion_refresh"]
+    if (len(starts) != len(ends) or len(ends) != len(attempts) or
+            len(journal) != len(starts) + len(ends)):
+        return ["motion_request_terminal_or_attempt_missing"]
+    keys = lambda rows: [(row.get("phase"), row.get("period_index"),
+                          row.get("scored_slot")) for row in rows]
+    start_keys, end_keys, attempt_keys = keys(starts), keys(ends), keys(attempts)
+    if (len(set(start_keys)) != len(starts) or start_keys != end_keys or
+            start_keys != attempt_keys):
+        errors.append("motion_request_identity_invalid")
+    common = ("period_index", "scored_slot", "phase", "scheduled_deadline_ns",
+              "next_deadline_ns", "worker_wake_ns", "thread_id",
+              "previous_slot_completion_ns", "state_queue_depth", "pose_queue_depth",
+              "request_id", "outstanding_before")
+    statuses = {"acknowledged", "late_ack", "exception", "arm_race",
+                "cancelled_at_arm"}
+    for start, end, attempt in zip(starts, ends, attempts):
+        if (any(start.get(key) != end.get(key) or end.get(key) != attempt.get(key)
+                for key in common) or
+                {key: value for key, value in end.items() if key != "kind"} !=
+                {key: value for key, value in attempt.items() if key != "kind"} or
+                type(start.get("period_index")) is not int or
+                start.get("phase") not in ("prearm", "scored", "postscore") or
+                type(start.get("thread_id")) is not int or
+                type(start.get("request_id")) is not int or
+                start.get("outstanding_before") != 0 or
+                start.get("next_deadline_ns") !=
+                start.get("scheduled_deadline_ns", -1) + PERIOD_NS or
+                not (type(start.get("worker_wake_ns")) is int and
+                     start.get("timestamp_ns") == start["worker_wake_ns"] and
+                     start["scheduled_deadline_ns"] <= start["worker_wake_ns"] <
+                     start["next_deadline_ns"] and
+                     type(end.get("timestamp_ns")) is int and
+                     end["timestamp_ns"] >= start["worker_wake_ns"])):
+            errors.append("motion_request_row_invalid")
+            break
+        if (end.get("status") not in statuses or
+                type(end.get("lock_wait_start_ns")) is not int or
+                type(end.get("command_lock_acquired_ns")) is not int or
+                not start["worker_wake_ns"] <= end["lock_wait_start_ns"] <=
+                end["command_lock_acquired_ns"] <= end["timestamp_ns"]):
+            errors.append("motion_request_status_or_lock_invalid")
+            break
+        status = end["status"]
+        if status in ("acknowledged", "late_ack"):
+            ordered = ("command_lock_acquired_ns", "pre_send_ns",
+                       "socket_write_start_ns", "socket_write_end_ns", "flush_end_ns",
+                       "response_wait_start_ns", "first_response_byte_ns",
+                       "parse_complete_ns", "ack_ns", "timestamp_ns")
+            values = [end.get(key) for key in ordered]
+            if (not all(type(value) is int for value in values) or
+                    values != sorted(values) or
+                    end.get("first_response_byte_observable") is not True or
+                    (status == "acknowledged") !=
+                    (end["ack_ns"] < end["next_deadline_ns"])):
+                errors.append("motion_request_ack_trace_invalid")
+                break
+        if status == "acknowledged":
+            matching = [row for row in refreshes if
+                        row.get("phase") == start["phase"] and
+                        row.get("period_index") == start["period_index"] and
+                        row.get("scored_slot") == start["scored_slot"]]
+            if (len(matching) != 1 or
+                    matching[0].get("move_ack_ns") != end.get("ack_ns") or
+                    matching[0].get("scheduled_deadline_ns") !=
+                    start["scheduled_deadline_ns"]):
+                errors.append("motion_request_refresh_mismatch")
+                break
+        elif any(row.get("phase") == start["phase"] and
+                 row.get("period_index") == start["period_index"] and
+                 row.get("scored_slot") == start["scored_slot"] for row in refreshes):
+            errors.append("motion_request_failed_refresh_present")
+            break
+        if status in ("late_ack", "exception", "arm_race") and not end.get("failure_reason"):
+            errors.append("motion_request_failure_reason_missing")
+            break
+        if status in ("late_ack", "exception", "arm_race"):
+            errors.append("motion_request_failed_attempt")
+    if len(refreshes) != sum(row.get("status") == "acknowledged" for row in ends):
+        errors.append("motion_request_refresh_count_mismatch")
+    return errors
+
+
 def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     ident = spec["reset_id"]
     errors: list[str] = []
     result = {"reset_id": ident, "result": "FAIL", "failure_causes": errors}
     names = {"events": "events.jsonl", "neural": "neural-ledger.jsonl",
-             "visual": "visual-frames.jsonl", "timing": "timing-ledger.jsonl"}
+              "visual": "visual-frames.jsonl", "timing": "timing-ledger.jsonl"}
+    if config.get("schema_version") == "p8-03-timing-probe-v2":
+        names["motion_request"] = "motion-request-journal.jsonl"
     try:
         rows = {name: _read_jsonl(folder / filename) for name, filename in names.items()}
         summary = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
-        marker = json.loads((folder / "armed.json").read_text(encoding="utf-8"))
         reference = json.loads((folder / "local-reference.json").read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
         errors.append(f"raw_unreadable:{type(error).__name__}")
         return result
+    if "motion_request" in rows:
+        errors.extend(_motion_request_accounting(rows["motion_request"], rows["timing"]))
     for name, filename in names.items():
         key = {"events": "event_sha256", "neural": "neural_ledger_sha256",
-               "visual": "visual_sha256", "timing": "timing_ledger_sha256"}[name]
+                "visual": "visual_sha256", "timing": "timing_ledger_sha256",
+                "motion_request": "motion_request_journal_sha256"}[name]
         if summary.get(key) != _sha(folder / filename):
             errors.append(f"{name}_summary_hash_mismatch")
+    try:
+        marker = json.loads((folder / "armed.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+        errors.append(f"raw_unreadable:{type(error).__name__}")
+        return result
     if (summary.get("reset_id") != ident or summary.get("armed") is not True or
             summary.get("scheduler_exceptions") != 0 or
             summary.get("safety_limit_violations") != 0 or
@@ -662,12 +761,13 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
 def score_batch(output: Path, config: dict) -> dict:
     """Reconstruct all three probe IDs from raw files; never trust summary PASS."""
     output = Path(output)
-    if (config.get("schema_version") != "p8-03-timing-probe-v1" or
+    ids = PROBE_IDS.get(config.get("schema_version"))
+    if (ids is None or
             (config.get("scored_window_ms"), config.get("visual_hz"),
              config.get("neural_hz"), config.get("control_hz")) != (1000, 20, 50, 50)):
         return {"result": "FAIL", "error": "frozen_probe_config_invalid"}
     specs = config.get("development_gate", {}).get("ids", [])
-    if [row.get("reset_id") for row in specs] != list(IDS):
+    if [row.get("reset_id") for row in specs] != list(ids):
         return {"result": "FAIL", "error": "probe_ID_allocation_invalid"}
     try:
         journal = json.loads((output / "batch-journal.json").read_text(encoding="utf-8"))
@@ -703,7 +803,7 @@ def score_batch(output: Path, config: dict) -> dict:
             trial["failure_causes"].append("journal_trial_incomplete")
             trial["result"] = "FAIL"
         trials.append(trial)
-    return {"schema_version": "p8-03-timing-probe-score-v1",
+    return {"schema_version": config["schema_version"].replace("probe-", "probe-score-"),
             "result": "PASS" if final_ok and len(trials) == 3 and
             all(t["result"] == "PASS" for t in trials)
             else "FAIL", "trials": trials, "final_down_raw_valid": final_ok,
