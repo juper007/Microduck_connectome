@@ -41,10 +41,27 @@ from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move
 from scripts.p8_03_local_reference import (PoseWithLineage, create_durable_arm_marker,
                                             verify_local_reference, wrap)
 from scripts.p8_03_timing_motion import DurableMotionJournal, MotionTimingCoordinator
+from scripts.p8_03_precondition_lineage import (
+    DurableStateLineage, acquisition_contaminated, classify_observation,
+    observation_journal_row)
 
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def motion_journal_evidence(path: Path, *, coordinator_reached: bool) -> dict:
+    """Describe a v2 journal without manufacturing evidence on prearm failure."""
+    if path.is_file():
+        return {"present": True, "sha256": sha(path), "reason": None,
+                "lifecycle": "PRESENT"}
+    if coordinator_reached:
+        return {"present": False, "sha256": None,
+                "reason": "missing_after_coordinator_start",
+                "lifecycle": "REQUIRED_BUT_MISSING_ARTIFACT"}
+    return {"present": False, "sha256": None,
+            "reason": "not_created_before_precondition_failure",
+            "lifecycle": "OPTIONAL_NOT_REACHED_ARTIFACT"}
 
 
 def timing_execution_rel(args) -> str:
@@ -141,7 +158,8 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     if getattr(args, "timing_probe", False):
         if args.stage != "D" or args.timing_ledger is None:
             raise RuntimeError("timing probe requires D stage and timing ledger")
-        outputs += (args.timing_ledger,)
+        outputs += (args.timing_ledger,
+                    args.timing_ledger.with_name("moving-acquisition-journal.jsonl"))
         if getattr(args, "timing_probe_version", "v1") == "v2":
             outputs += (args.timing_ledger.with_name("motion-request-journal.jsonl"),)
     if any(p.resolve().parent != folder.resolve() for p in outputs):
@@ -154,6 +172,9 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
             getattr(args, "timing_probe_version", "v1") == "v2"
             and args.timing_ledger.with_name("motion-request-journal.jsonl").exists()):
         raise RuntimeError("raw motion journal path already exists")
+    if (getattr(args, "timing_probe", False) and
+            args.timing_ledger.with_name("moving-acquisition-journal.jsonl").exists()):
+        raise RuntimeError("raw moving acquisition journal path already exists")
     selected = master["selected_pipeline"]
     if (selected != execution["selected_pipeline"] or
             selected["visual_representation"] != "fractional_rgb_v21"
@@ -219,6 +240,9 @@ def run(args) -> int:
     move_client = None
     sampler = None
     pose_reader = None
+    state_lineage = None
+    acquisition_active = [False]
+    acquisition_observations: list[dict] = []
     try:
         robot = RobotdClient(args.socket, timeout_s=2.0)
         robot.connect()
@@ -230,7 +254,16 @@ def run(args) -> int:
         publisher = IsolatedStopPublisher(adapter)
         move_client = JsonLines(args.socket)
         move_client.request("hello", {"api_version": 31})
-        sampler = RobotStateSampler(args.socket)
+        if getattr(args, "timing_probe", False):
+            state_lineage = DurableStateLineage(
+                args.timing_ledger.with_name("moving-acquisition-journal.jsonl"))
+        def record_state(observation: dict) -> None:
+            state_lineage.append(observation_journal_row(observation))
+            if acquisition_active[0]:
+                acquisition_observations.append(observation)
+
+        sampler = RobotStateSampler(
+            args.socket, on_state=record_state if state_lineage else None)
         pose_reader = PoseWithLineage(args.body_port)
         pose_lock = threading.Lock()
         arbiter = NeuralStopMotionArbiter()
@@ -422,11 +455,65 @@ def run(args) -> int:
                 int((gate["settle_window_s"] - .06) * 1e9)):
             raise RuntimeError("reference transition telemetry incomplete")
         poses = []
+        if state_lineage is not None:
+            with sampler.condition:
+                state_lineage.append({"kind": "moving_acquisition_start",
+                                      "timestamp_ns": time.monotonic_ns(),
+                                      "planned_motion_count": round(pre["duration_s"] * 1000 /
+                                                                    pre["command_period_ms"])})
+                acquisition_active[0] = True
         for i in range(round(pre["duration_s"] * 1000 / pre["command_period_ms"])):
             tick = time.monotonic_ns()
-            result, call, write, ack = arbiter.move(lambda: acknowledged_precondition_move(
-                move_client, vx=pre["vx_mps"], vy=pre["vy_mps"], vyaw=pre["vyaw_radps"]))
-            state, state_ns = sampler.after(ack)
+            pre_move_state = sampler.snapshot() if state_lineage is not None else None
+            request_id = move_client.next_id if state_lineage is not None else None
+            trace = {} if state_lineage is not None else None
+            if state_lineage is not None:
+                state_lineage.append({"kind": "pre_move_state", "timestamp_ns": tick,
+                                      "request_id": request_id,
+                                      "observation": pre_move_state})
+                state_lineage.append({"kind": "move_request_start", "timestamp_ns": tick,
+                                      "request_id": request_id,
+                                      "requested_velocity": [pre["vx_mps"], pre["vy_mps"],
+                                                             pre["vyaw_radps"]]})
+            try:
+                result, call, write, ack = arbiter.move(lambda: acknowledged_precondition_move(
+                    move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
+                    vyaw=pre["vyaw_radps"], trace=trace))
+            except BaseException:
+                if state_lineage is not None:
+                    state_lineage.append({"kind": "move_request_end",
+                                          "timestamp_ns": time.monotonic_ns(),
+                                          "request_id": request_id, "trace": trace})
+                raise
+            if state_lineage is not None:
+                state_lineage.append({"kind": "move_request_end", "timestamp_ns": ack,
+                                      "request_id": request_id, "trace": trace})
+                state_lineage.append({"kind": "move_ack", "timestamp_ns": ack,
+                                      "request_id": request_id, "accepted": result.get("accepted"),
+                                      "result": result})
+                observation = sampler.after_snapshot(ack)
+                state, state_ns = observation["state"], observation["received_ns"]
+                if pre_move_state is not None:
+                    decision = classify_observation(
+                        observation, pre_move_observation=pre_move_state,
+                        command_write_ns=trace.get("socket_write_start_ns"),
+                        command_ack_ns=ack, command_accepted=result.get("accepted") is True,
+                        source_clock_comparable=False,
+                        maximum_state_age_ns=int(move_gate["maximum_state_age_ms"] * 1e6),
+                        minimum_applied_vx_mps=move_gate["minimum_fresh_applied_vx_mps"],
+                        allowed_policies=frozenset(gate["allowed_observed_policy_states"]))
+                    state_lineage.append({"kind": "state_qualification",
+                                          "timestamp_ns": state_ns, "request_id": request_id,
+                                          **decision})
+                else:
+                    state_lineage.append({"kind": "state_qualification",
+                                          "timestamp_ns": state_ns, "request_id": request_id,
+                                          "state_index": observation["state_index"],
+                                          "causal_post_command": False,
+                                          "qualification_state": "TRANSIENT",
+                                          "reason": "no_pre_move_state"})
+            else:
+                state, state_ns = sampler.after(ack)
             with pose_lock:
                 pose = pose_reader.read()
                 pose_source = pose_reader.source(pose)
@@ -441,6 +528,12 @@ def run(args) -> int:
                                       "pose_request_ns": pose_source["request_ns"],
                                       "raw_body_packet": pose_source["raw_packet"]})
             time.sleep(max(0, .020 - (time.monotonic_ns() - tick) / 1e9))
+        if state_lineage is not None:
+            with sampler.condition:
+                acquisition_active[0] = False
+                observed_acquisition = list(acquisition_observations)
+        else:
+            observed_acquisition = []
         speeds = pose_speeds(poses, window_ms=100, max_window_ms=140)
         confirmed = first_sustained(speeds, threshold_mps=.015,
                                     duration_ms=200, at_or_above=True)
@@ -450,6 +543,7 @@ def run(args) -> int:
         if (confirmed is None or confirmed <= reset["capture_ns"]
                 or displacement < move_gate["minimum_trunk_displacement_m"]
                 or last_applied < move_gate["minimum_fresh_applied_vx_mps"]
+                or acquisition_contaminated(observed_acquisition)
                 or any(r["state_ns"] < r["timestamp_ns"] or
                        r["state_ns"] - r["timestamp_ns"] >
                        move_gate["maximum_state_age_ms"] * 1e6 or
@@ -463,6 +557,13 @@ def run(args) -> int:
                                       "robot_t_ns": r["robot_t_ns"]}} for r in precondition_rows],
                     confirmed)):
             raise RuntimeError("measured moving-body precondition failed")
+        if state_lineage is not None:
+            with sampler.condition:
+                sampler.on_state = None
+            state_lineage.append({"kind": "moving_acquisition_end",
+                                  "timestamp_ns": time.monotonic_ns(), "result": "PASS"})
+            state_lineage.close()
+            state_lineage = None
         with pose_lock:
             pose = pose_reader.read()
         chain.trial, _ = relative_trial(pose=pose, trial_id=planned["reset_id"],
@@ -791,6 +892,8 @@ def run(args) -> int:
                        "healthy": health_after.get("healthy") is True})
         move_client.close()
         sampler.close()
+        if state_lineage is not None:
+            state_lineage.close()
         pose_reader.close()
         robot.close()
 
@@ -856,11 +959,19 @@ def run(args) -> int:
                "neural_stop_acks": len(stop_acks), "fixture_errors": fixture_errors}
     if timing_gate is not None:
         summary["timing_ledger_sha256"] = sha(args.timing_ledger)
+        lineage_path = args.timing_ledger.with_name("moving-acquisition-journal.jsonl")
+        if lineage_path.is_file():
+            summary["moving_acquisition_journal_sha256"] = sha(lineage_path)
         if getattr(args, "timing_probe_version", "v1") == "v2":
-            summary["motion_request_journal_sha256"] = sha(
-                args.timing_ledger.with_name("motion-request-journal.jsonl"))
+            journal_path = args.timing_ledger.with_name("motion-request-journal.jsonl")
+            coordinator_reached = locals().get("timing_motion") is not None
+            summary["motion_coordinator_reached"] = coordinator_reached
+            summary["motion_journal"] = motion_journal_evidence(
+                journal_path, coordinator_reached=coordinator_reached)
+            summary["motion_request_journal_sha256"] = summary["motion_journal"]["sha256"]
         summary["timing_motion"] = {key: value for key, value in
-                                    (timing_snapshot or {}).items() if key != "rows"}
+                                    (locals().get("timing_snapshot") or {}).items()
+                                    if key != "rows"}
         summary["timing_scheduler_ticks"] = sum(
             row["kind"] == "scheduled_tick" for row in scheduler.timing_rows)
     summary["robotd_health_before"] = health_before
