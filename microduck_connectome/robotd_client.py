@@ -114,6 +114,11 @@ class RobotdClient:
         self._next_id = 1
         self._generation = 0
         self._peer_api_version: int | None = None
+        self._subscribed_hz: int | None = None
+        self._diagnostic_sequence: int | None = None
+        self._diagnostic_generation: int | None = None
+        self._diagnostic_source_ns: int | None = None
+        self._diagnostic_connection_generation: int | None = None
         self._last_motion_metadata: tuple[int, int] | None = None
         self._motion_generation = 0
         self._motion_requires_fresh_safe_stop = False
@@ -144,6 +149,10 @@ class RobotdClient:
         self._buffer.clear()
         self._generation += 1
         self._peer_api_version = None
+        self._subscribed_hz = None
+        self._diagnostic_sequence = None
+        self._diagnostic_generation = None
+        self._diagnostic_source_ns = None
         try:
             hello = self._call("hello", {"api_version": ROBOTD_API_VERSION})
             self._validate_hello(hello)
@@ -157,6 +166,10 @@ class RobotdClient:
         stream, self._socket = self._socket, None
         self._buffer.clear()
         self._peer_api_version = None
+        self._subscribed_hz = None
+        self._diagnostic_sequence = None
+        self._diagnostic_generation = None
+        self._diagnostic_source_ns = None
         if stream is not None:
             stream.close()
 
@@ -286,18 +299,23 @@ class RobotdClient:
             raise RobotdRemoteError(-1, result.get("reason") or "robot.enable refused")
         return result
 
-    def state(self, *, hz: int = 1) -> dict[str, Any]:
+    def state(
+        self, *, hz: int | None = 1, on_raw: Callable[[bytes], None] | None = None
+    ) -> dict[str, Any]:
         """Subscribe and return one newly received ``robot.state`` notification."""
-        if isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0:
+        if hz is not None and (isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0):
             raise ValueError("hz must be a positive integer")
-        accepted = self._call("robot.subscribe", {"hz": hz})
-        self._validate_subscribe(accepted)
-        if accepted.get("accepted") is not True:
-            raise RobotdProtocolError("robot.subscribe returned an unexpected result")
+        subscription = -1 if hz is None else hz
+        if self._subscribed_hz != subscription:
+            accepted = self._call("robot.subscribe", {} if hz is None else {"hz": hz})
+            self._validate_subscribe(accepted)
+            if accepted.get("accepted") is not True:
+                raise RobotdProtocolError("robot.subscribe returned an unexpected result")
+            self._subscribed_hz = subscription
 
         deadline = time.monotonic() + self.timeout_s
         while True:
-            message = self._read_message(deadline)
+            message = self._read_message(deadline, on_raw=on_raw)
             if not isinstance(message, dict):
                 raise RobotdProtocolError("robotd message must be a JSON object")
             if message.get("jsonrpc") != "2.0":
@@ -311,6 +329,53 @@ class RobotdClient:
             params = message.get("params")
             self._validate_state(params)
             return params
+
+    def diagnostic_state(
+        self,
+        *,
+        max_source_age_ns: int = 100_000_000,
+        on_frame: Callable[[dict[str, Any]], None] | None = None,
+        on_raw: Callable[[bytes], None] | None = None,
+    ) -> dict[str, Any]:
+        """Read an un-decimated state stream from a dedicated connection.
+
+        The caller must subscribe before sending moves and must not issue other
+        requests on this connection: `_call` discards interleaved notifications.
+        """
+        if self._subscribed_hz not in (None, -1):
+            raise RobotdProtocolError("diagnostic stream must not change subscription rate")
+        if (self._diagnostic_connection_generation is not None
+                and self.status.generation != self._diagnostic_connection_generation):
+            raise RobotdProtocolError("diagnostic stream reconnected")
+        if not hasattr(time, "CLOCK_MONOTONIC") or not hasattr(time, "clock_gettime_ns"):
+            raise RobotdProtocolError("diagnostic source clock cannot be verified")
+        self._require_uint(max_source_age_ns, "max_source_age_ns", maximum=U64_MAX)
+        state = self.state(hz=None, on_raw=on_raw)
+        if on_frame is not None:
+            on_frame(state)
+        sequence = state.get("control_tick_sequence")
+        generation = state.get("consumed_move_generation")
+        source_ns = state.get("t_ns")
+        for value, label in ((sequence, "control_tick_sequence"),
+                             (generation, "consumed_move_generation"),
+                             (source_ns, "t_ns")):
+            self._require_uint(value, f"robot.state {label}", maximum=U64_MAX)
+        if not sequence or not source_ns:
+            raise RobotdProtocolError("diagnostic state lacks tick or source timestamp")
+        if self._diagnostic_sequence is not None and sequence != self._diagnostic_sequence + 1:
+            raise RobotdProtocolError("diagnostic state tick gap or regression")
+        if self._diagnostic_generation is not None and generation < self._diagnostic_generation:
+            raise RobotdProtocolError("diagnostic state move generation regressed")
+        if self._diagnostic_source_ns is not None and source_ns <= self._diagnostic_source_ns:
+            raise RobotdProtocolError("diagnostic state source timestamp stalled or regressed")
+        now_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+        if source_ns > now_ns or now_ns - source_ns > max_source_age_ns:
+            raise RobotdProtocolError("diagnostic state source timestamp is not fresh")
+        self._diagnostic_connection_generation = self.status.generation
+        self._diagnostic_sequence = sequence
+        self._diagnostic_generation = generation
+        self._diagnostic_source_ns = source_ns
+        return state
 
     def close(self) -> None:
         self.disconnect()
@@ -379,7 +444,9 @@ class RobotdClient:
                 raise RobotdRemoteError(error["code"], error["message"])
             return message["result"]
 
-    def _read_message(self, deadline: float) -> Any:
+    def _read_message(
+        self, deadline: float, *, on_raw: Callable[[bytes], None] | None = None
+    ) -> Any:
         stream = self._require_socket()
         while True:
             newline = self._buffer.find(b"\n")
@@ -389,6 +456,8 @@ class RobotdClient:
                     raise RobotdProtocolError("robotd response exceeds the 64 KiB line limit")
                 raw = bytes(self._buffer[:newline])
                 del self._buffer[: newline + 1]
+                if on_raw is not None:
+                    on_raw(raw + b"\n")
                 if not raw.strip():
                     continue
                 try:
@@ -537,6 +606,11 @@ class RobotdClient:
             RobotdClient._require_uint(
                 result["t_ns"], "robot.state t_ns", maximum=U64_MAX
             )
+        for field in ("control_tick_sequence", "consumed_move_generation"):
+            if field in result:
+                RobotdClient._require_uint(
+                    result[field], f"robot.state {field}", maximum=U64_MAX
+                )
         RobotdClient._validate_state_imu(result.get("imu"))
         RobotdClient._validate_theremin(result.get("theremin"))
         RobotdClient._validate_chorale(result.get("chorale"))

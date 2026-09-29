@@ -141,6 +141,125 @@ def test_successful_health_and_state_responses():
     assert client.state()["t_ns"] == 1_250_000_000
 
 
+def test_state_reuses_subscription_without_discarding_buffered_frame():
+    calls = []
+
+    def handler(request):
+        calls.append(request["method"])
+        if request["method"] == "hello":
+            return _hello(request)
+        assert request["method"] == "robot.subscribe"
+        frames = []
+        for sequence in (1, 2):
+            frame = _state()
+            frame["control_tick_sequence"] = sequence
+            frames.append(json.dumps({"jsonrpc": "2.0", "method": "robot.state", "params": frame}) + "\n")
+        return _response(request, {"accepted": True}) + "".join(frames).encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    assert client.state()["control_tick_sequence"] == 1
+    assert client.state()["control_tick_sequence"] == 2
+    assert calls == ["hello", "robot.subscribe"]
+
+
+def test_diagnostic_stream_rejects_gap_and_coasted_source(monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000, raising=False)
+
+    def make_client(second_sequence, second_source):
+        def handler(request):
+            if request["method"] == "hello":
+                return _hello(request)
+            assert request["params"] == {}
+            frames = []
+            for sequence, source in ((1, 1_250_000_000), (second_sequence, second_source)):
+                frame = _state()
+                frame["control_tick_sequence"] = sequence
+                frame["consumed_move_generation"] = 4
+                frame["t_ns"] = source
+                frames.append(json.dumps({"jsonrpc": "2.0", "method": "robot.state", "params": frame}) + "\n")
+            return _response(request, {"accepted": True}) + "".join(frames).encode()
+
+        client, _ = _client(handler)
+        client.connect()
+        assert client.diagnostic_state()["control_tick_sequence"] == 1
+        return client
+
+    with pytest.raises(RobotdProtocolError, match="tick gap"):
+        make_client(3, 1_270_000_000).diagnostic_state()
+    with pytest.raises(RobotdProtocolError, match="stalled"):
+        make_client(2, 1_250_000_000).diagnostic_state()
+
+
+def test_diagnostic_stream_requires_metadata_but_regular_old_client_state_does_not(monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000, raising=False)
+
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        frame = {"jsonrpc": "2.0", "method": "robot.state", "params": _state()}
+        return _response(request, {"accepted": True}) + ((json.dumps(frame) + "\n") * 2).encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    assert client.state(hz=None)["t_ns"] == 1_250_000_000
+    with pytest.raises(RobotdProtocolError, match="control_tick_sequence"):
+        client.diagnostic_state()
+
+
+def test_diagnostic_stream_refuses_decimated_subscription():
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        assert request["params"] == {"hz": 25}
+        frame = {"jsonrpc": "2.0", "method": "robot.state", "params": _state()}
+        return _response(request, {"accepted": True}) + (json.dumps(frame) + "\n").encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    assert client.state(hz=25)["t_ns"] == 1_250_000_000
+    with pytest.raises(RobotdProtocolError, match="subscription rate"):
+        client.diagnostic_state()
+
+
+def test_pre_move_frame_can_arrive_after_ack_before_consuming_tick(monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000, raising=False)
+
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        assert request["params"] == {}
+        frames = []
+        for sequence, generation in ((1, 0), (2, 0), (3, 1)):
+            state = _state()
+            state.update(control_tick_sequence=sequence,
+                         consumed_move_generation=generation,
+                         t_ns=1_240_000_000 + sequence * 20_000_000)
+            frames.append(json.dumps({"jsonrpc": "2.0", "method": "robot.state",
+                                      "params": state}) + "\n")
+        return _response(request, {"accepted": True}) + "".join(frames).encode()
+
+    client, _ = _client(handler)
+    client.connect()
+    before = client.diagnostic_state()
+    ack = {"accepted": True, "accepted_move_generation": 1}
+    assert before["consumed_move_generation"] < ack["accepted_move_generation"]
+    delayed = client.diagnostic_state()
+    assert delayed["control_tick_sequence"] > before["control_tick_sequence"]
+    assert delayed["consumed_move_generation"] < ack["accepted_move_generation"]
+    consumed = client.diagnostic_state()
+    assert consumed["consumed_move_generation"] == ack["accepted_move_generation"]
+
+
 def test_watchdog_minted_move_is_notification_and_stop_requires_acceptance():
     seen = []
 
