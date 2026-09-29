@@ -1,0 +1,305 @@
+"""Prospective generation gate tests; historical lineage is unchanged."""
+
+import json
+
+import pytest
+
+from microduck_connectome.p8_03_causal_precondition_v2 import (
+    CausalPreconditionError, evaluate_causal_precondition,
+)
+
+
+START = 10_000_000_000
+GATE = {"duration_s": 1.5, "command_period_ms": 20,
+        "minimum_trunk_displacement_m": .01, "minimum_pose_speed_mps": .015,
+        "minimum_speed_sustain_ms": 200, "minimum_fresh_applied_vx_mps": .04,
+        "maximum_state_age_ms": 100, "maximum_pose_age_ms": 100}
+
+
+def fixture():
+    rows = []
+    def move(ident, generation, sent):
+        request = {"jsonrpc": "2.0", "id": ident, "method": "robot.move",
+                   "params": {"vx": .05, "vy": 0, "vyaw": 0}}
+        ack = {"jsonrpc": "2.0", "id": ident,
+               "result": {"accepted": True, "accepted_move_generation": generation}}
+        rows.extend(({"kind": "robot.move.request", "sent_at_ns": sent,
+                      "wire": json.dumps(request) + "\n"},
+                     {"kind": "robot.move.ack", "received_at_ns": sent + 100_000,
+                      "wire": json.dumps(ack) + "\n"}))
+    def state(tick, generation, received, *, limited=None):
+        rows.append({"kind": "robot.state", "received_at_ns": received,
+                     "state": {"control_tick_sequence": tick,
+                               "consumed_move_generation": generation,
+                               "t_ns": received - 1_000_000, "policy": "walk",
+                               "move": {"requested": [.05, 0, 0],
+                                        "applied": [.05, 0, 0],
+                                        "limited_by": limited or []},
+                               "safety": {"fallen": False, "limp": False}}})
+    state(1, 0, START - 20_000_000, limited=["deadman"])
+    for i in range(81):
+        sent = START - 1_000_000 if i == 0 else START + i * 20_000_000 - 1_000_000
+        move(i + 1, i + 1, sent)
+        state(i + 2, i + 1, START + i * 20_000_000)
+    state(83, 82, START + 1_620_000_000)
+    rows[-1]["state"]["move"]["requested"] = [0., 0., 0.]
+    rows[-1]["state"]["move"]["applied"] = [0., 0., 0.]
+    poses = [{"timestamp_ns": START + i * 20_000_000,
+              "request_ns": START + i * 20_000_000 - 1_000_000,
+              "x_m": i * .0006, "y_m": 0., "raw_body_packet": "{}"}
+             for i in range(81)]
+    return rows, poses
+
+
+def score(tmp_path, rows, poses, *, end=START + 1_610_000_000,
+          ack=START + 1_611_000_000):
+    path = tmp_path / "diagnostic.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return evaluate_causal_precondition(path, poses, pre_move_tick=1,
+                                        stop_sent_ns=end, stop_ack_ns=ack, gate=GATE)
+
+
+def test_old_generation_deadman_retained_outside_window(tmp_path):
+    rows, poses = fixture()
+    result = score(tmp_path, rows, poses)
+    assert result["result"] == "PASS"
+    assert result["first_causal_tick"] == 2
+    assert result["deadman_count_in_window"] == 0
+
+
+def test_first_consumed_deadman_fails_and_later_clean_cannot_erase(tmp_path):
+    rows, poses = fixture()
+    first = next(r for r in rows if r["kind"] == "robot.state" and
+                 r["state"]["control_tick_sequence"] == 2)
+    first["state"]["move"]["limited_by"] = ["deadman"]
+    with pytest.raises(CausalPreconditionError, match="deadman"):
+        score(tmp_path, rows, poses)
+
+
+def test_later_fault_fails(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[20]["state"]["safety"]["fallen"] = True
+    with pytest.raises(CausalPreconditionError, match="safety"):
+        score(tmp_path, rows, poses)
+
+
+def test_superseded_and_same_valued_distinct(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[1]["state"]["consumed_move_generation"] = 0
+    result = score(tmp_path, rows, poses)
+    assert result["superseded_before_consumption"] == [1]
+    assert result["first_consumed_generation"] == 2
+    assert result["first_causal_tick"] == 3
+    assert result["accepted_move_generations"][:2] == [1, 2]
+
+
+@pytest.mark.parametrize("change,reason", [
+    ("gap", "tick gap"), ("regression", "generation regression"),
+    ("missing", "consumed generation"), ("reconnect", "diagnostic stream failed"),
+])
+def test_stream_fails_closed(tmp_path, change, reason):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    if change == "gap":
+        states[5]["state"]["control_tick_sequence"] += 1
+    elif change == "regression":
+        states[5]["state"]["consumed_move_generation"] = 0
+    elif change == "missing":
+        del states[5]["state"]["consumed_move_generation"]
+    else:
+        rows.append({"kind": "diagnostic.failure", "error": "reconnected"})
+    with pytest.raises(CausalPreconditionError, match=reason):
+        score(tmp_path, rows, poses)
+
+
+def test_physical_movement_required(tmp_path):
+    rows, poses = fixture()
+    for p in poses:
+        p["x_m"] = 0.
+    with pytest.raises(CausalPreconditionError, match="no qualifying moving state"):
+        score(tmp_path, rows, poses)
+
+
+def test_duration_starts_at_causal_state(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    for row in states[75:-1]:
+        rows.remove(row)
+    states[-1]["state"]["control_tick_sequence"] = 76
+    with pytest.raises(CausalPreconditionError, match="causal duration"):
+        score(tmp_path, rows, poses)
+
+
+def test_no_eligibility_before_complete_gate(tmp_path):
+    rows, poses = fixture()
+    with pytest.raises(CausalPreconditionError):
+        score(tmp_path, rows, poses, end=START + 1_000_000_000)
+
+
+def test_initial_cadence_gap_fails(tmp_path):
+    rows, poses = fixture()
+    for row in rows:
+        if row["kind"] == "robot.move.request" and START <= row["sent_at_ns"] < START + 100_000_000:
+            row["sent_at_ns"] += 100_000_000
+    with pytest.raises(CausalPreconditionError, match="cadence"):
+        score(tmp_path, rows, poses)
+
+
+def test_late_delivery_of_pre_stop_deadman_fails(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[-2]["received_at_ns"] = START + 1_615_000_000
+    states[-2]["state"]["move"]["limited_by"] = ["deadman"]
+    with pytest.raises(CausalPreconditionError, match="deadman"):
+        score(tmp_path, rows, poses)
+
+
+def test_unknown_writer_before_barrier_cannot_close_window(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[-2]["state"]["consumed_move_generation"] = 82
+    states[-1]["state"]["consumed_move_generation"] = 83
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses)
+
+
+def test_first_post_stop_source_tick_still_consuming_move_is_checked(tmp_path):
+    rows, poses = fixture()
+    stop = next(r for r in rows if r["kind"] == "robot.state" and
+                r["state"]["control_tick_sequence"] == 83)
+    stop["state"]["control_tick_sequence"] = 84
+    stop["received_at_ns"] += 20_000_000
+    stop["state"]["t_ns"] += 20_000_000
+    rows.append({"kind": "robot.state", "received_at_ns": START + 1_620_000_000,
+                 "state": {"control_tick_sequence": 83,
+                           "consumed_move_generation": 81,
+                           "t_ns": START + 1_619_000_000, "policy": "walk",
+                           "move": {"requested": [.05, 0, 0], "applied": [.05, 0, 0],
+                                    "limited_by": ["deadman"]},
+                           "safety": {"fallen": False, "limp": False}}})
+    rows[-2], rows[-1] = rows[-1], rows[-2]
+    with pytest.raises(CausalPreconditionError, match="deadman"):
+        score(tmp_path, rows, poses)
+
+
+def test_pre_stop_zero_state_delivered_late_cannot_close_window(tmp_path):
+    rows, poses = fixture()
+    stop = next(r for r in rows if r["kind"] == "robot.state" and
+                r["state"]["control_tick_sequence"] == 83)
+    stop["state"]["t_ns"] = START + 1_609_000_000
+    later = json.loads(json.dumps(stop))
+    later["received_at_ns"] += 20_000_000
+    later["state"]["control_tick_sequence"] = 84
+    later["state"]["t_ns"] = START + 1_639_000_000
+    rows.append(later)
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses)
+
+
+def test_zero_state_after_send_but_before_stop_ack_fails(tmp_path):
+    rows, poses = fixture()
+    with pytest.raises(CausalPreconditionError, match="unexpected generation"):
+        score(tmp_path, rows, poses, ack=START + 1_625_000_000)
+
+
+def test_ramp_is_monitored_but_does_not_qualify(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    for i, vx in enumerate((.014, .0252, .03416, .041328, .0470624), 1):
+        states[i]["state"]["move"]["applied"][0] = vx
+        states[i]["state"]["policy"] = "stand"
+        del states[i]["state"]["move"]["limited_by"]
+    result = score(tmp_path, rows, poses)
+    assert result["first_causal_tick"] == 2
+    assert result["first_qualifying_tick"] == 7
+    assert result["ramp_duration_ms"] == 100
+    assert result["duration_start"] == "FIRST_CAUSAL_TICK"
+    assert result["causal_window_duration_s"] >= 1.5
+    assert result["qualifying_window_duration_s"] < result["causal_window_duration_s"]
+
+
+@pytest.mark.parametrize("contamination,reason", [
+    (["deadman"], "deadman"), (["safety"], "safety"),
+])
+def test_ramp_contamination_is_terminal(tmp_path, contamination, reason):
+    rows, poses = fixture()
+    first = next(r for r in rows if r["kind"] == "robot.state" and
+                 r["state"]["control_tick_sequence"] == 2)
+    first["state"]["move"]["applied"][0] = .014
+    first["state"]["policy"] = "stand"
+    first["state"]["move"]["limited_by"] = contamination
+    with pytest.raises(CausalPreconditionError, match=reason):
+        score(tmp_path, rows, poses)
+
+
+def test_fault_during_ramp_is_terminal(tmp_path):
+    rows, poses = fixture()
+    first = next(r for r in rows if r["kind"] == "robot.state" and
+                 r["state"]["control_tick_sequence"] == 2)
+    first["state"]["move"]["applied"][0] = .014
+    first["state"]["policy"] = "stand"
+    first["state"]["safety"]["fallen"] = True
+    with pytest.raises(CausalPreconditionError, match="safety"):
+        score(tmp_path, rows, poses)
+
+
+def test_tick_gap_during_ramp_is_terminal(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[1]["state"]["move"]["applied"][0] = .014
+    states[1]["state"]["policy"] = "stand"
+    states[2]["state"]["control_tick_sequence"] += 1
+    with pytest.raises(CausalPreconditionError, match="tick gap"):
+        score(tmp_path, rows, poses)
+
+
+def test_threshold_never_reached_fails(tmp_path):
+    rows, poses = fixture()
+    for row in rows:
+        if row["kind"] == "robot.state" and 1 < row["state"]["control_tick_sequence"] < 83:
+            row["state"]["move"]["applied"][0] = .039
+    with pytest.raises(CausalPreconditionError, match="fresh applied vx"):
+        score(tmp_path, rows, poses)
+
+
+def test_prequalification_movement_cannot_supply_body_gate(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    for row in states[1:16]:
+        row["state"]["move"]["applied"][0] = .014
+        row["state"]["policy"] = "stand"
+    for i, pose in enumerate(poses):
+        pose["x_m"] = min(i, 20) * .0006
+    # Earlier movement exceeds 0.01 m and lasts more than 200 ms. After
+    # qualification it contributes less than 0.01 m and then stops.
+    with pytest.raises(CausalPreconditionError, match="physical movement"):
+        score(tmp_path, rows, poses)
+
+
+@pytest.mark.parametrize("limited,valid", [
+    ([], True), (None, False), (["unknown_limiter"], False),
+    (["deadman"], False), (["safety"], False), (["deadman", 1], False),
+])
+def test_limiter_schema(tmp_path, limited, valid):
+    rows, poses = fixture()
+    first = next(r for r in rows if r["kind"] == "robot.state" and
+                 r["state"]["control_tick_sequence"] == 2)
+    first["state"]["move"]["limited_by"] = limited
+    if valid:
+        assert score(tmp_path, rows, poses)["result"] == "PASS"
+    else:
+        with pytest.raises(CausalPreconditionError):
+            score(tmp_path, rows, poses)
+
+
+def test_v1_historical_evaluator_retained():
+    from microduck_connectome.p8_03_causal_precondition_v1 import evaluate_causal_precondition as v1
+    assert v1 is not evaluate_causal_precondition
+
+
+def test_historical_lineage_remains_separate():
+    from scripts.p8_03_precondition_lineage import acquisition_contaminated
+    assert acquisition_contaminated([{"state": {"move": {"limited_by": ["deadman"]},
+                                              "safety": {}}}]) is True
