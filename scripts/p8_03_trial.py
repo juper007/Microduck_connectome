@@ -27,6 +27,8 @@ from microduck_connectome.looming_v2 import LoomingEstimatorV2, LoomingV2Config
 from microduck_connectome.motion_adapter import RobotMotionAdapter
 from microduck_connectome.neural_stop_arbiter import MotionLatched, NeuralStopMotionArbiter
 from microduck_connectome.neural_stop_scheduler import NeuralStopRefreshScheduler
+from microduck_connectome.p8_03_timing_gate import ReadyStartGate
+from microduck_connectome.p8_03_timing_scheduler import ReadyTimingScheduler
 from microduck_connectome.fault_stop import FaultStopLatch
 from microduck_connectome.p8_03_geometry import relative_trial
 from microduck_connectome.robotd_client import RobotdClient
@@ -38,6 +40,7 @@ from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move
                                     precondition_deadman_after_motion)
 from scripts.p8_03_local_reference import (PoseWithLineage, create_durable_arm_marker,
                                             verify_local_reference, wrap)
+from scripts.p8_03_timing_motion import MotionTimingCoordinator
 
 
 def sha(path: Path) -> str:
@@ -68,7 +71,10 @@ def checked_reference(path: Path, gate: dict, reset_id: str,
 
 def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     root = args.root.resolve(strict=True)
-    execution_path = root / "config/p8_03_local_reference_v1_r1.json"
+    execution_rel = ("config/p8_03_timing_probe_v1.json" if
+                     getattr(args, "timing_probe", False) else
+                     "config/p8_03_local_reference_v1_r1.json")
+    execution_path = root / execution_rel
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     execution = json.loads(execution_path.read_text())
     master = json.loads(master_path.read_text())
@@ -81,7 +87,7 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
         raise RuntimeError("source must be clean at reviewed HEAD")
     if root != Path(execution["source_path"]).resolve():
         raise RuntimeError("source checkout path differs from frozen execution config")
-    for rel in ("config/p8_03_local_reference_v1_r1.json", "config/p8_v2_final_protocol_v1.json",
+    for rel in (execution_rel, "config/p8_v2_final_protocol_v1.json",
                 "scripts/p8_03_trial.py", "scripts/p8_03_batch.py", "scripts/p8_03_score.py",
                 "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
                 "microduck_connectome/p8_03_geometry.py"):
@@ -101,12 +107,17 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     row = {"reset_id": raw["reset_id"], "ordinal": raw["ordinal"],
            "motion": raw["mode"], "arm_elapsed_s": raw["arm_elapsed_s"]}
     folder = output / row["reset_id"] / f"attempt-{args.attempt:02d}"
-    if any(p.resolve().parent != folder.resolve() for p in
-           (args.events, args.ledger, args.visual, args.summary, args.armed_marker,
-            args.progress, args.policy_readback)):
+    outputs = (args.events, args.ledger, args.visual, args.summary, args.armed_marker,
+               args.progress, args.policy_readback)
+    if getattr(args, "timing_probe", False):
+        if args.stage != "D" or args.timing_ledger is None:
+            raise RuntimeError("timing probe requires D stage and timing ledger")
+        outputs += (args.timing_ledger,)
+    if any(p.resolve().parent != folder.resolve() for p in outputs):
         raise RuntimeError("raw output must use frozen attempt directory")
     if any(p.exists() for p in (args.events, args.ledger, args.visual, args.summary,
-                                args.armed_marker)):
+                                args.armed_marker) + ((args.timing_ledger,) if
+                                getattr(args, "timing_probe", False) else ())):
         raise RuntimeError("raw output path already exists")
     selected = master["selected_pipeline"]
     if (selected != execution["selected_pipeline"] or
@@ -160,6 +171,9 @@ def run(args) -> int:
     if sha(args.local_reference) != reference_hash:
         raise RuntimeError("local reference changed after trial verification")
     root = args.root.resolve()
+    execution_rel = ("config/p8_03_timing_probe_v1.json" if
+                     getattr(args, "timing_probe", False) else
+                     "config/p8_03_local_reference_v1_r1.json")
     mode = planned["motion"]
     graph = ConnectomeGraph.from_cache(Path(execution["graph_path"]).parent,
                                         execution["graph_sha256"])
@@ -190,7 +204,8 @@ def run(args) -> int:
         chain = LoomingChain(root, graph, scenario, pose_reader, pose_lock,
                              planned["arm_elapsed_s"], arbiter,
                              estimator=LoomingEstimatorV2(estimator_config), visual_hz=20,
-                             visual_representation="fractional_rgb_v21")
+                             visual_representation="fractional_rgb_v21",
+                             timing_enabled=getattr(args, "timing_probe", False))
         watchdog = ControllerWatchdog(root / "config/watchdog_v1.json")
         fault_latch = FaultStopLatch()
         events: list[dict] = []
@@ -285,11 +300,15 @@ def run(args) -> int:
             with lock:
                 events.append(event)
 
-        scheduler = NeuralStopRefreshScheduler(
+        timing_gate = ReadyStartGate(6) if getattr(args, "timing_probe", False) else None
+        scheduler_type = (ReadyTimingScheduler if timing_gate is not None
+                          else NeuralStopRefreshScheduler)
+        scheduler = scheduler_type(
             fault_latch=fault_latch, motion_arbiter=arbiter,
             config=root / "config/p8_r3_visual_scheduler_v1.json", watchdog=watchdog,
             perception_step=chain.perception, neural_step=chain.neural,
-            publisher=publish, control_observer=observe)
+            publisher=publish, control_observer=observe,
+            **({"start_gate": timing_gate} if timing_gate is not None else {}))
         pre = master["scenario"]["moving_precondition"]
         move_gate = execution["moving_gate"]
     except BaseException:
@@ -431,6 +450,99 @@ def run(args) -> int:
             raise RuntimeError("health or local reference invalid before arm")
         events.append({"kind": "prearm_health", "timestamp_ns": health_prearm_ns,
                        "health": health_prearm})
+        timing_motion = None
+        timing_snapshot = None
+        if timing_gate is not None:
+            def probe_fault(reason):
+                motion_errors.append(reason)
+                watchdog.latch_fault("motion_refresh_fault")
+                arbiter.latch("fault_motion_refresh_fault")
+                timing_gate.abort()
+
+            def probe_state(ack_ns):
+                state, state_ns = sampler.after(ack_ns)
+                return {"timestamp_ns": state_ns,
+                        "requested_velocity": state["move"]["requested"],
+                        "applied_velocity": state["move"]["applied"],
+                        "limited_by": state["move"].get("limited_by", []),
+                        "robot_t_ns": state.get("t_ns"),
+                        "policy": state.get("policy"), "safety": state.get("safety")}
+
+            def probe_pose(_ack_ns):
+                with pose_lock:
+                    measured = pose_reader.read()
+                    source = pose_reader.source(measured)
+                return {"timestamp_ns": source["response_ns"],
+                        "request_ns": source["request_ns"],
+                        "pose": dict(measured),
+                        "raw_body_packet": source["raw_packet"]}
+
+            timing_motion = MotionTimingCoordinator(
+                send_move=lambda: arbiter.move(lambda: acknowledged_precondition_move(
+                    move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
+                    vyaw=pre["vyaw_radps"])),
+                observe_state=probe_state, observe_pose=probe_pose,
+                fault=probe_fault, gate=timing_gate)
+            timing_motion.start()
+            if not timing_motion.wait_ready(3):
+                raise RuntimeError("prearm motion coordinator not READY")
+            first_continuation_ack = timing_motion.snapshot()["first_move_ack_ns"]
+            if (first_continuation_ack is None or
+                    first_continuation_ack - precondition_rows[-1]["timestamp_ns"] >
+                    move_gate["maximum_state_age_ms"] * 1e6):
+                raise RuntimeError("prearm move handoff exceeded continuity bound")
+            prime_ns = time.monotonic_ns()
+            frame = chain.perception(prime_ns)
+            update = chain.neural(frame, prime_ns)
+            if (update is None or update.behavior_intent["stop"]
+                    or not watchdog.observe_neural(update.readout)
+                    or not watchdog.observe_behavior(update.behavior_intent)):
+                raise RuntimeError("unhealthy or stopping prearm neural prime")
+            scheduler.prime_perception(frame, now_ns=time.monotonic_ns())
+
+            def run_scheduler():
+                nonlocal scheduler_result
+                try:
+                    scheduler_result = scheduler.run(10)
+                except BaseException as error:
+                    scheduler_errors.append(f"{type(error).__name__}: {error}")
+                    timing_gate.abort()
+
+            scheduler_thread = threading.Thread(target=run_scheduler,
+                                                name="p8-03-scheduler")
+            scheduler_thread.start()
+            if not timing_gate.wait_ready(3):
+                raise RuntimeError("scored workers not READY before arm")
+            fresh_state, fresh_state_ns = sampler.after(time.monotonic_ns())
+            fresh_pose = timing_motion.snapshot()
+            pose_observations = [r for r in fresh_pose["rows"]
+                                 if r["kind"] == "pose_observation"]
+            state_observations = [r for r in fresh_pose["rows"]
+                                  if r["kind"] == "state_observation"]
+            latest_pose_ns = (pose_observations[-1]["source_timestamp_ns"]
+                              if pose_observations else None)
+            if (fresh_state["move"]["applied"][0] <
+                    move_gate["minimum_fresh_applied_vx_mps"] or
+                    any(reason in ("deadman", "fault", "safety") for reason in
+                        fresh_state["move"].get("limited_by", [])) or
+                    not pose_observations or not state_observations or
+                    latest_pose_ns is None or
+                    time.monotonic_ns() - latest_pose_ns > 100_000_000 or
+                    fresh_pose["fault_reason"] is not None):
+                raise RuntimeError("moving-body state failed prearm revalidation")
+            events.append({"kind": "timing_prearm_ready", "timestamp_ns": fresh_state_ns,
+                           "applied_velocity": fresh_state["move"]["applied"],
+                           "last_move_ack_ns": fresh_pose["last_move_ack_ns"],
+                           "last_pose_source_ns": latest_pose_ns,
+                           "worker_count": 6})
+            health_prearm = robot.health()
+            health_prearm_ns = time.monotonic_ns()
+            if (health_prearm.get("healthy") is not True or
+                    health_prearm.get("degraded") not in (None, False) or
+                    health_prearm.get("control_loop", {}).get("ticks", 0) <= 0):
+                raise RuntimeError("health failed after READY")
+            events.append({"kind": "prearm_health", "timestamp_ns": health_prearm_ns,
+                           "health": health_prearm, "after_ready": True})
         candidate_arm_ns = time.monotonic_ns()
         if ((candidate_arm_ns - health_prearm_ns) / 1e6 >
                 execution["settled_gate"]["max_prearm_health_age_ms"]):
@@ -439,12 +551,38 @@ def run(args) -> int:
                   "task": "P8-03-LOCAL-REFERENCE-PROTOCOL-V1",
                   "reset_id": planned["reset_id"], "ordinal": planned["ordinal"],
                   "attempt": args.attempt, "source_head": args.source_head,
-                  "config_sha256": sha(root / "config/p8_03_local_reference_v1_r1.json"),
+                  "config_sha256": sha(root / execution_rel),
                   "reference_sha256": reference_hash,
                   "armed_at_utc_ns": time.time_ns(),
                   "armed_at_monotonic_ns": candidate_arm_ns, "state": "ARMED"}
         create_durable_arm_marker(args.armed_marker, marker)
-        arm_ns = time.monotonic_ns()
+        if timing_motion is not None:
+            def final_arm_check():
+                now_ns = time.monotonic_ns()
+                snap = timing_motion.snapshot()
+                if (snap["fault_reason"] is not None or
+                        snap["last_move_ack_ns"] is None or
+                        now_ns - snap["last_move_ack_ns"] > 40_000_000 or
+                        now_ns - fresh_state_ns > 100_000_000 or
+                        now_ns - latest_pose_ns > 100_000_000 or
+                        now_ns - health_prearm_ns >
+                        execution["settled_gate"]["max_prearm_health_age_ms"] * 1e6):
+                    raise RuntimeError("prearm movement or health stale at release")
+            def align_fixture_to_arm(actual_arm_ns):
+                # Pre-arm priming must not advance the receding geometry clock.
+                # The latest independently observed moving pose is the arm
+                # anchor; the scorer keeps its source timestamp and raw packet.
+                anchor = pose_observations[-1]
+                chain.trial, _ = relative_trial(
+                    pose=anchor["value"]["pose"], trial_id=planned["reset_id"],
+                    ordinal=planned["ordinal"], mode=mode, elapsed_after_arm_s=0.0)
+                chain.started_ns = actual_arm_ns
+                events.append({"kind": "timing_arm_anchor", "timestamp_ns": actual_arm_ns,
+                               "pose_source_ns": anchor["source_timestamp_ns"],
+                               "pose": anchor["value"]["pose"]})
+            arm_ns = timing_motion.release_arm(final_arm_check, align_fixture_to_arm)
+        else:
+            arm_ns = time.monotonic_ns()
         jsonl_write(args.progress, [{"state": "NEURAL_OBSERVATION_ARMED",
                                     "timestamp_ns": arm_ns}])
         events.append({"kind": "arm", "timestamp_ns": arm_ns,
@@ -452,13 +590,16 @@ def run(args) -> int:
                        "moving_confirmed_ns": confirmed,
                        "precondition_displacement_m": displacement,
                        "precondition_applied_vx_mps": last_applied})
-        frame = chain.perception(arm_ns)
-        update = chain.neural(frame, arm_ns)
-        if (update is None or update.behavior_intent["stop"]
-                or not watchdog.observe_neural(update.readout)
-                or not watchdog.observe_behavior(update.behavior_intent)):
-            raise RuntimeError("unhealthy or stopping neural prime")
-        scheduler.prime_perception(frame, now_ns=time.monotonic_ns())
+        if timing_gate is not None:
+            process_cpu_at_arm_ns = time.process_time_ns()
+        if timing_gate is None:
+            frame = chain.perception(arm_ns)
+            update = chain.neural(frame, arm_ns)
+            if (update is None or update.behavior_intent["stop"]
+                    or not watchdog.observe_neural(update.readout)
+                    or not watchdog.observe_behavior(update.behavior_intent)):
+                raise RuntimeError("unhealthy or stopping neural prime")
+            scheduler.prime_perception(frame, now_ns=time.monotonic_ns())
         deadline = arm_ns + execution["scored_window_ms"] * 1_000_000
 
         def motion_worker():
@@ -491,29 +632,47 @@ def run(args) -> int:
                     break
                 time.sleep(max(0, .020 - (time.monotonic_ns() - tick) / 1e9))
 
-        motion_thread = threading.Thread(target=motion_worker, name="p8-03-motion")
-        scheduler_thread = threading.Thread(target=lambda: run_scheduler(), name="p8-03-scheduler")
+        if timing_gate is None:
+            motion_thread = threading.Thread(target=motion_worker, name="p8-03-motion")
+            scheduler_thread = threading.Thread(target=lambda: run_scheduler(),
+                                                name="p8-03-scheduler")
 
-        def run_scheduler():
-            nonlocal scheduler_result
-            try:
-                scheduler_result = scheduler.run(1.5)
-            except BaseException as error:
-                scheduler_errors.append(f"{type(error).__name__}: {error}")
+            def run_scheduler():
+                nonlocal scheduler_result
+                try:
+                    scheduler_result = scheduler.run(1.5)
+                except BaseException as error:
+                    scheduler_errors.append(f"{type(error).__name__}: {error}")
 
-        motion_thread.start()
-        scheduler_thread.start()
+            motion_thread.start()
+            scheduler_thread.start()
         time.sleep(max(0, (deadline - time.monotonic_ns()) / 1e9))
         scheduler.request_complete()
-        motion_thread.join(timeout=3)
+        if timing_motion is not None:
+            timing_snapshot = timing_motion.stop()
+            motion_rows.extend(timing_snapshot["rows"])
+            if timing_snapshot["fault_reason"]:
+                motion_errors.append(timing_snapshot["fault_reason"])
+        else:
+            motion_thread.join(timeout=3)
         scheduler_thread.join(timeout=3)
-        if motion_thread.is_alive() or scheduler_thread.is_alive():
+        if ((timing_gate is None and motion_thread.is_alive()) or
+                scheduler_thread.is_alive()):
             scheduler_errors.append("worker_join_timeout")
         events.append({"kind": "window_complete", "timestamp_ns": time.monotonic_ns()})
+        if timing_gate is not None:
+            events.append({"kind": "timing_process_cpu", "timestamp_ns": time.monotonic_ns(),
+                           "cpu_at_arm_ns": process_cpu_at_arm_ns,
+                           "cpu_at_complete_ns": time.process_time_ns()})
     except BaseException as error:
         events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
                        "error": f"{type(error).__name__}: {error}"})
     finally:
+        if timing_gate is not None:
+            timing_gate.abort()
+        if locals().get("timing_motion") is not None and timing_snapshot is None:
+            timing_snapshot = timing_motion.stop()
+            motion_rows.extend(timing_snapshot["rows"])
         if scheduler._threads and not scheduler._fixture_complete.is_set():
             scheduler.request_complete()
         arbiter.latch("planned_cleanup" if arm_ns is not None else "safe_abort")
@@ -562,6 +721,16 @@ def run(args) -> int:
     events.extend(geometry)
     events.extend(motion_rows)
     events.extend(precondition_rows)
+    if timing_gate is not None:
+        events.extend(scheduler.timing_rows)
+        for row in motion_rows:
+            if row["kind"] == "state_observation":
+                state = row["value"]
+                events.append({"kind": "robot_state", "timestamp_ns": row["timestamp_ns"],
+                               "deadman_limited": "deadman" in state["limited_by"],
+                               "requested_velocity": state["requested_velocity"],
+                               "applied_velocity": state["applied_velocity"],
+                               "policy": state["policy"], "safety": state["safety"]})
     for error in motion_errors + observer_errors + scheduler_errors:
         events.append({"kind": "scheduler_exception", "timestamp_ns": time.monotonic_ns(),
                        "error": error})
@@ -579,6 +748,11 @@ def run(args) -> int:
     jsonl_write(args.events, events)
     jsonl_write(args.ledger, chain.neural_ledger)
     jsonl_write(args.visual, chain.visual_frames)
+    if timing_gate is not None:
+        jsonl_write(args.timing_ledger,
+                    [{"kind": "neural_span", "timestamp_ns": row["neural_call_timestamp_ns"],
+                      **row} for row in chain.timing_ledger] +
+                    scheduler.timing_rows + motion_rows)
     fixture_errors = [r["error"] for r in events if r["kind"] in
                       ("fixture_error", "scheduler_exception")]
     summary = {"schema_version": "p8-03-local-trial-v1", "reset_id": planned["reset_id"],
@@ -589,6 +763,12 @@ def run(args) -> int:
                "scheduler_exceptions": len(scheduler_errors),
                "safety_limit_violations": violation_count,
                "neural_stop_acks": len(stop_acks), "fixture_errors": fixture_errors}
+    if timing_gate is not None:
+        summary["timing_ledger_sha256"] = sha(args.timing_ledger)
+        summary["timing_motion"] = {key: value for key, value in
+                                    (timing_snapshot or {}).items() if key != "rows"}
+        summary["timing_scheduler_ticks"] = sum(
+            row["kind"] == "scheduled_tick" for row in scheduler.timing_rows)
     summary["robotd_health_before"] = health_before
     summary["robotd_health_after"] = health_after
     json_write(args.summary, summary)
@@ -606,6 +786,8 @@ def main() -> None:
     ap.add_argument("--microduck", type=Path, required=True)
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--source-head", required=True)
+    ap.add_argument("--timing-probe", action="store_true")
+    ap.add_argument("--timing-ledger", type=Path)
     for name in ("policy_readback", "local_reference", "armed_marker", "progress", "events", "ledger",
                  "visual", "summary"):
         ap.add_argument("--" + name.replace("_", "-"), type=Path, required=True)
