@@ -357,11 +357,12 @@ def run(args) -> dict:
                 attempt["child_timeout"] = timed_out
                 attempt["armed"] = (folder / "armed.json").is_file()
                 attempt["trial_exit"] = code
-                attempt["status"] = "INTERRUPTED_UNKNOWN_ARM" if was_interrupted else "TRIAL_EXITED"
+                attempt["status"] = ("INTERRUPTED_UNKNOWN_ARM"
+                                     if was_interrupted or code != 0 else "TRIAL_EXITED")
                 if (folder / "summary.json").is_file():
                     attempt["summary_sha256"] = sha(folder / "summary.json")
                 checkpoint(output, journal)
-                if was_interrupted:
+                if was_interrupted or code != 0:
                     interrupted = True
                     item["status"] = "INTERRUPTED_UNKNOWN_ARM"
                 else:

@@ -20,10 +20,15 @@ from scripts import p8_03_batch as batch
 class FakeRobot:
     def __init__(self, *_args, **_kwargs):
         self.closed = False
+        self.stops = 0
+        self.fail_enable = False
     def connect(self):
         pass
     def enable(self, _value):
-        pass
+        if self.fail_enable:
+            raise RuntimeError("injected enable failure")
+    def stop(self):
+        self.stops += 1
     def health(self):
         return {"healthy": True, "degraded": False, "control_loop": {"ticks": 1}}
     def close(self):
@@ -193,6 +198,30 @@ class TrialPathTests(unittest.TestCase):
             else:
                 self.assertIn("injected after moving-body acquisition",
                               str(summary["fixture_errors"]))
+
+
+    def test_failure_before_secondary_client_uses_robotd_stop(self):
+        with tempfile.TemporaryDirectory() as dirname:
+            folder = Path(dirname)
+            reference = folder / "local-reference.json"
+            reference.write_text("{}", encoding="utf-8")
+            digest = hashlib.sha256(reference.read_bytes()).hexdigest()
+            args = SimpleNamespace(root=folder, local_reference=reference, socket="unused",
+                                   source_head="a" * 40)
+            robot = FakeRobot()
+            robot.fail_enable = True
+            selected = {"looming_estimator": {"method": "log_area", "area_epsilon": 1e-6,
+                        "full_scale_rate_per_s": .5, "max_gap_ms": 150, "window_ms": 200}}
+            with (patch.object(trial, "verify", return_value=({},
+                    {"graph_path": str(folder / "graph.json"), "graph_sha256": "b"*64},
+                    {"reset_id": "D889400", "ordinal": 0, "motion": "static",
+                     "arm_elapsed_s": 2.}, selected, {}, digest)),
+                  patch.object(trial.ConnectomeGraph, "from_cache", return_value=object()),
+                  patch.object(trial, "RobotdClient", return_value=robot)):
+                with self.assertRaisesRegex(RuntimeError, "injected enable failure"):
+                    trial.run(args)
+            self.assertEqual(robot.stops, 1)
+            self.assertTrue(robot.closed)
 
     def test_setup_exception_closes_subscribers_and_stops(self):
         self._run_path(fail_setup=True)

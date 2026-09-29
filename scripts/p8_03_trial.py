@@ -293,9 +293,16 @@ def run(args) -> int:
         pre = master["scenario"]["moving_precondition"]
         move_gate = execution["moving_gate"]
     except BaseException:
+        stopped = False
         if move_client is not None:
             try:
                 move_client.request("robot.stop", {})
+                stopped = True
+            except BaseException:
+                pass
+        if not stopped and robot is not None:
+            try:
+                robot.stop()
             except BaseException:
                 pass
         for resource in (move_client, sampler, pose_reader, robot):
