@@ -1,0 +1,384 @@
+diff --git a/duck-ipc-proto/src/lib.rs b/duck-ipc-proto/src/lib.rs
+index d112f63..3c75f96 100644
+--- a/duck-ipc-proto/src/lib.rs
++++ b/duck-ipc-proto/src/lib.rs
+@@ -357,7 +357,12 @@ pub const JSONRPC_VERSION: &str = "2.0";
+ /// `init` argues with that rather than winning. Without it a client either guesses — sitting a
+ /// standing duck down every other press — or asks somebody to reach for the pad, which is what the
+ /// playground did.
+-pub const API_VERSION: u32 = 31;
++/// # v32 — diagnostic move/tick lineage
++///
++/// Request-form `robot.move` accepts with `accepted_move_generation`; each `robot.state`
++/// includes the tick sequence and generation consumed by that tick. Existing clients can
++/// ignore these additive fields; diagnostic clients require all three.
++pub const API_VERSION: u32 = 32;
+ 
+ /// The observation width every policy this robot family runs is built against.
+ ///
+@@ -3447,6 +3452,14 @@ pub struct IntentResult {
+     pub reason: Option<String>,
+ }
+ 
++/// Acceptance of a request-form `robot.move`. This identifies storage of the twist;
++/// a later state frame is needed to prove a control tick consumed it.
++#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
++pub struct MoveAccepted {
++    pub accepted: bool,
++    pub accepted_move_generation: u64,
++}
++
+ impl IntentResult {
+     pub fn accepted() -> Self {
+         Self {
+@@ -3488,6 +3501,14 @@ pub struct RobotState {
+     /// Seconds since the daemon started. Monotonic: it is for correlating samples, not for
+     /// telling the time.
+     pub t: f64,
++    /// Tick identity advances even when a sensor failure prevents publication.
++    /// Zero when parsing a frame from an older daemon.
++    #[serde(default)]
++    pub control_tick_sequence: u64,
++    /// Generation of the twist read by this tick's single intent snapshot.
++    /// Zero when parsing a frame from an older daemon or before the first twist.
++    #[serde(default)]
++    pub consumed_move_generation: u64,
+     #[serde(rename = "move")]
+     pub movement: MoveState,
+     pub head: [f64; 4],
+@@ -5812,6 +5833,8 @@ mod tests {
+     fn the_theremin_block_is_absent_until_there_is_a_theremin() {
+         let mut state = RobotState {
+             t: 1.5,
++            control_tick_sequence: 1,
++            consumed_move_generation: 0,
+             t_ns: 0,
+             imu: None,
+             frames: None,
+@@ -5873,6 +5896,8 @@ mod tests {
+     fn robot_state_uses_the_documented_field_names() {
+         let state = RobotState {
+             t: 1.5,
++            control_tick_sequence: 7,
++            consumed_move_generation: 3,
+             t_ns: 0,
+             imu: None,
+             frames: None,
+@@ -5905,12 +5930,35 @@ mod tests {
+         assert!(line.contains(r#""method":"robot.state""#), "{line}");
+         assert!(line.contains(r#""move":"#), "{line}");
+         assert!(line.contains(r#""loop":"#), "{line}");
++        assert!(line.contains(r#""control_tick_sequence":7"#), "{line}");
++        assert!(line.contains(r#""consumed_move_generation":3"#), "{line}");
+         assert!(!line.contains("movement"), "{line}");
+         assert!(!line.contains("control_loop"), "{line}");
+ 
+         let back: Request = serde_json::from_str(&line).unwrap();
+         assert!(back.is_notification(), "state carries no id");
+         assert_eq!(back.as_state().unwrap(), state);
++
++        let mut old = serde_json::to_value(&state).unwrap();
++        let object = old.as_object_mut().unwrap();
++        object.remove("control_tick_sequence");
++        object.remove("consumed_move_generation");
++        let parsed: RobotState = serde_json::from_value(old).unwrap();
++        assert_eq!(parsed.control_tick_sequence, 0);
++        assert_eq!(parsed.consumed_move_generation, 0);
++    }
++
++    #[test]
++    fn move_acceptance_is_additive_for_existing_intent_readers() {
++        let encoded = serde_json::to_string(&MoveAccepted {
++            accepted: true,
++            accepted_move_generation: 42,
++        }).unwrap();
++        let old: IntentResult = serde_json::from_str(&encoded).unwrap();
++        assert!(old.accepted);
++        assert_eq!(old.reason, None);
++        let decoded: MoveAccepted = serde_json::from_str(&encoded).unwrap();
++        assert_eq!(decoded.accepted_move_generation, 42);
+     }
+ 
+     /// An unlimited command must not carry an empty array — a consumer checking
+diff --git a/robotctl/src/monitor.rs b/robotctl/src/monitor.rs
+index 4de591a..0b20f26 100644
+--- a/robotctl/src/monitor.rs
++++ b/robotctl/src/monitor.rs
+@@ -4713,6 +4713,8 @@ mod tests {
+     fn a_state() -> proto::RobotState {
+         proto::RobotState {
+             t: 1.0,
++            control_tick_sequence: 1,
++            consumed_move_generation: 0,
+             movement: proto::MoveState {
+                 requested: [0.0; 3],
+                 applied: [0.0; 3],
+diff --git a/robotd/src/intents.rs b/robotd/src/intents.rs
+index b3f515f..133bb12 100644
+--- a/robotd/src/intents.rs
++++ b/robotd/src/intents.rs
+@@ -47,6 +47,13 @@ struct Stamped<T> {
+     at_us: u64,
+ }
+ 
++#[derive(Debug, Clone, Copy)]
++struct StampedTwist {
++    value: [f64; 3],
++    at_us: u64,
++    generation: u64,
++}
++
+ /// The body-pose intent, as the loop consumes it.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ pub struct PoseIntent {
+@@ -137,7 +144,9 @@ pub enum WheeeHold {
+ pub struct Intents {
+     /// Epoch for every stamp. `Instant` so the clock cannot run backwards under us.
+     epoch: Instant,
+-    twist: ArcSwap<Stamped<[f64; 3]>>,
++    twist: ArcSwap<StampedTwist>,
++    /// Serializes generation allocation and publication for all twist writers.
++    twist_writer: Mutex<u64>,
+     head: ArcSwap<Stamped<[f64; 4]>>,
+     /// Standing body pose. Unstamped: `active: false` is its own "nobody is posing".
+     pose: ArcSwap<PoseIntent>,
+@@ -239,6 +248,7 @@ pub enum PowerRequest {
+ #[derive(Debug, Clone, Copy)]
+ pub struct Snapshot {
+     pub command: Command,
++    pub move_generation: u64,
+     /// Age of the most recent *twist*, which is what the deadman guards. A stale head pose
+     /// is harmless; a stale velocity walks the robot into a wall.
+     pub twist_age: Duration,
+@@ -264,10 +274,12 @@ impl Intents {
+             // Stamped at zero, so before any client connects the twist already reads as
+             // maximally stale and the deadman holds the robot still. Starting "fresh" would
+             // mean a robot that briefly believes it has a live driver.
+-            twist: ArcSwap::from_pointee(Stamped {
++            twist: ArcSwap::from_pointee(StampedTwist {
+                 value: [0.0; 3],
+                 at_us: 0,
++                generation: 0,
+             }),
++            twist_writer: Mutex::new(0),
+             head: ArcSwap::from_pointee(Stamped {
+                 value: [0.0; 4],
+                 at_us: 0,
+@@ -297,11 +309,17 @@ impl Intents {
+         self.epoch.elapsed().as_micros() as u64
+     }
+ 
+-    pub fn set_twist(&self, twist: [f64; 3]) {
+-        self.twist.store(Arc::new(Stamped {
++    pub fn set_twist(&self, twist: [f64; 3]) -> u64 {
++        let mut generation = self.twist_writer.lock().unwrap();
++        *generation = generation
++            .checked_add(1)
++            .expect("move generation exhausted");
++        self.twist.store(Arc::new(StampedTwist {
+             value: twist,
+             at_us: self.now_us(),
++            generation: *generation,
+         }));
++        *generation
+     }
+ 
+     pub fn set_head(&self, head: [f64; 4]) {
+@@ -572,6 +590,7 @@ impl Intents {
+         let head = self.head.load();
+         let pose = **self.pose.load();
+         Snapshot {
++            move_generation: twist.generation,
+             command: Command {
+                 twist: twist.value,
+                 head: head.value,
+@@ -592,6 +611,45 @@ impl Intents {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn concurrent_twist_writers_publish_in_generation_order() {
++        let intents = Arc::new(Intents::new());
++        let mut writers = Vec::new();
++        for writer in 0..8 {
++            let intents = Arc::clone(&intents);
++            writers.push(std::thread::spawn(move || {
++                (0..100).map(|index| {
++                    let value = (writer * 100 + index) as f64;
++                    (intents.set_twist([value, 0.0, 0.0]), value)
++                }).collect::<Vec<_>>()
++            }));
++        }
++        let mut published = writers
++            .into_iter()
++            .flat_map(|writer| writer.join().unwrap())
++            .collect::<Vec<_>>();
++        published.sort_by_key(|entry| entry.0);
++        assert_eq!(published.len(), 800);
++        for (index, (generation, _)) in published.iter().enumerate() {
++            assert_eq!(*generation, index as u64 + 1);
++        }
++        let last = published.last().unwrap();
++        let snapshot = intents.snapshot();
++        assert_eq!(snapshot.move_generation, last.0);
++        assert_eq!(snapshot.command.twist, [last.1, 0.0, 0.0]);
++    }
++
++    #[test]
++    fn identical_twists_and_stop_each_have_distinct_generations() {
++        let intents = Intents::new();
++        let first = intents.set_twist([0.1, 0.0, 0.0]);
++        let second = intents.set_twist([0.1, 0.0, 0.0]);
++        assert_eq!(second, first + 1);
++        assert_eq!(intents.snapshot().move_generation, second);
++        intents.stop();
++        assert_eq!(intents.snapshot().move_generation, second + 1);
++    }
++
+     /// The hold's three states, which the ride's two different exits depend on. A `false`
+     /// from a live client and a `true` that went stale must not read the same: one cuts the
+     /// ride, the other plays it out.
+diff --git a/robotd/src/main.rs b/robotd/src/main.rs
+index 80320e6..4f2418f 100644
+--- a/robotd/src/main.rs
++++ b/robotd/src/main.rs
+@@ -1957,9 +1957,13 @@ async fn control_loop<T: RobotIo>(
+     // `robot.state` timestamp by one inference otherwise. It rides the coast: a coasted tick
+     // republishes the last fresh sample, so it must republish that sample's read time too.
+     let mut sensors_read_ns = 0u64;
++    let mut control_tick_sequence = 0u64;
+     while !state.shutdown.load(Ordering::Relaxed) {
+         ticker.tick().await;
+         let tick_start = Instant::now();
++        control_tick_sequence = control_tick_sequence
++            .checked_add(1)
++            .expect("control tick exhausted");
+ 
+         let read_at = proto::clock::monotonic_ns();
+         let fresh = match safety.read() {
+@@ -3076,6 +3080,8 @@ async fn control_loop<T: RobotIo>(
+         {
+             let _ = state.state_tx.send(proto::RobotState {
+                 t: state.started.elapsed().as_secs_f64(),
++                control_tick_sequence,
++                consumed_move_generation: snapshot.move_generation,
+                 movement: proto::MoveState {
+                     requested: snapshot.command.twist,
+                     applied: command.twist,
+@@ -4148,8 +4154,17 @@ fn dispatch(
+     call: &proto::Call,
+ ) -> proto::Response {
+     match call {
+-        proto::Call::RobotMove(_)
+-        | proto::Call::RobotHead(_)
++        proto::Call::RobotMove(p) => {
++            let generation = intents.set_twist([p.vx, p.vy, p.vyaw]);
++            proto::Response::ok(
++                Some(id),
++                &proto::MoveAccepted {
++                    accepted: true,
++                    accepted_move_generation: generation,
++                },
++            )
++        }
++        proto::Call::RobotHead(_)
+         | proto::Call::RobotPose(_)
+         | proto::Call::RobotMouth(_) => {
+             apply_intent(state, intents, call);
+@@ -5822,6 +5837,33 @@ mod tests {
+         assert_eq!(snap.mouth, 0.5);
+     }
+ 
++    #[test]
++    fn move_ack_identifies_the_stored_twist_not_an_earlier_tick() {
++        let state = state();
++        let intents = Intents::new();
++        let before = intents.snapshot();
++        assert_eq!(before.move_generation, 0);
++        let call = proto::Call::RobotMove(proto::MoveParams {
++            vx: 0.1,
++            vy: 0.0,
++            vyaw: 0.0,
++        });
++        let ack: proto::MoveAccepted = dispatch(&state, &intents, id(), &call)
++            .result_as()
++            .unwrap();
++        assert!(ack.accepted);
++        assert_eq!(ack.accepted_move_generation, 1);
++        // A frame assembled before the ACK can be delivered later; its snapshot
++        // remains attributable to the old generation.
++        assert_eq!(before.move_generation, 0);
++        assert_eq!(intents.snapshot().move_generation, 1);
++        let second: proto::MoveAccepted = dispatch(&state, &intents, id(), &call)
++            .result_as()
++            .unwrap();
++        assert_eq!(second.accepted_move_generation, 2);
++        assert_eq!(intents.snapshot().command.twist, [0.1, 0.0, 0.0]);
++    }
++
+     /// `robot.shutdown` on a robot that cannot sit (no policy driving) cuts torque and
+     /// powers off — the request must never be silently lost. The sit-first path needs a
+     /// policy and therefore ONNX Runtime, so it is exercised on a board rather than here.
+@@ -6481,7 +6523,15 @@ mod tests {
+         let intents = Arc::new(Intents::new());
+         intents.set_enabled(true);
+         // Asked for, but never refreshed — so already past the deadman.
+-        intents.set_twist([0.4, 0.0, 0.0]);
++        let move_call = proto::Call::RobotMove(proto::MoveParams {
++            vx: 0.4,
++            vy: 0.0,
++            vyaw: 0.0,
++        });
++        let first_ack: proto::MoveAccepted = dispatch(&s, &intents, id(), &move_call)
++            .result_as()
++            .unwrap();
++        assert_eq!(first_ack.accepted_move_generation, 1);
+         tokio::time::sleep(Duration::from_millis(params.safety.deadman_ms + 20)).await;
+ 
+         let loop_state = Arc::clone(&s);
+@@ -6500,9 +6550,6 @@ mod tests {
+             .expect("a frame within five seconds")
+             .expect("the stream stayed open");
+ 
+-        s.shutdown.store(true, Ordering::Relaxed);
+-        handle.await.unwrap();
+-
+         assert_eq!(
+             frame.movement.requested,
+             [0.4, 0.0, 0.0],
+@@ -6518,7 +6565,35 @@ mod tests {
+             frame.movement.limited_by
+         );
+         assert_eq!(frame.policy, "held", "no policy was loaded");
++        assert_eq!(frame.control_tick_sequence, 1);
++        assert_eq!(frame.consumed_move_generation, first_ack.accepted_move_generation);
+         assert_eq!(frame.joints.len(), NUM_JOINTS);
++
++        // The first attributed tick is genuinely deadman-limited. A later clean
++        // tick cannot rewrite that history, even when the request value is equal.
++        let second_ack: proto::MoveAccepted = dispatch(&s, &intents, id(), &move_call)
++            .result_as()
++            .unwrap();
++        assert_eq!(second_ack.accepted_move_generation, 2);
++        let fresh = tokio::time::timeout(Duration::from_secs(5), async {
++            loop {
++                let next = states.recv().await.expect("state stream stayed open");
++                if next.consumed_move_generation == second_ack.accepted_move_generation {
++                    break next;
++                }
++                assert_eq!(next.consumed_move_generation, first_ack.accepted_move_generation);
++            }
++        })
++        .await
++        .expect("second move consumed within five seconds");
++        assert!(fresh.control_tick_sequence > frame.control_tick_sequence);
++        assert_eq!(fresh.movement.requested, frame.movement.requested);
++        assert!(!fresh.movement.limited_by.contains(&"deadman".to_owned()));
++        assert!(fresh.movement.applied[0] > 0.0);
++        assert!(frame.movement.limited_by.contains(&"deadman".to_owned()));
++
++        s.shutdown.store(true, Ordering::Relaxed);
++        handle.await.unwrap();
+     }
+ 
+     /// Assembling a frame allocates, on the thread that should not be visiting the
