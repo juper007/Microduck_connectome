@@ -242,7 +242,7 @@ index b3f515f..c2898d9 100644
      /// from a live client and a `true` that went stale must not read the same: one cuts the
      /// ride, the other plays it out.
 diff --git a/robotd/src/main.rs b/robotd/src/main.rs
-index 80320e6..f52e7c8 100644
+index 80320e6..da02f00 100644
 --- a/robotd/src/main.rs
 +++ b/robotd/src/main.rs
 @@ -1957,9 +1957,13 @@ async fn control_loop<T: RobotIo>(
@@ -290,7 +290,7 @@ index 80320e6..f52e7c8 100644
              apply_intent(state, intents, call);
              proto::Response::ok(Some(id), &proto::IntentResult::accepted())
          }
-@@ -5822,6 +5835,30 @@ mod tests {
+@@ -5822,6 +5835,31 @@ mod tests {
          assert_eq!(snap.mouth, 0.5);
      }
  
@@ -298,6 +298,7 @@ index 80320e6..f52e7c8 100644
 +    fn move_ack_identifies_the_stored_twist_not_an_earlier_tick() {
 +        let state = state();
 +        let intents = Intents::new();
++        let id = || proto::Id::Number(1);
 +        let before = intents.snapshot();
 +        assert_eq!(before.move_generation, 0);
 +        let call = proto::Call::RobotMove(proto::MoveParams {
@@ -321,9 +322,11 @@ index 80320e6..f52e7c8 100644
      /// `robot.shutdown` on a robot that cannot sit (no policy driving) cuts torque and
      /// powers off — the request must never be silently lost. The sit-first path needs a
      /// policy and therefore ONNX Runtime, so it is exercised on a board rather than here.
-@@ -6481,7 +6518,15 @@ mod tests {
+@@ -6480,8 +6518,17 @@ mod tests {
+ 
          let intents = Arc::new(Intents::new());
          intents.set_enabled(true);
++        let id = || proto::Id::Number(1);
          // Asked for, but never refreshed — so already past the deadman.
 -        intents.set_twist([0.4, 0.0, 0.0]);
 +        let move_call = proto::Call::RobotMove(proto::MoveParams {
@@ -338,7 +341,7 @@ index 80320e6..f52e7c8 100644
          tokio::time::sleep(Duration::from_millis(params.safety.deadman_ms + 20)).await;
  
          let loop_state = Arc::clone(&s);
-@@ -6500,9 +6545,6 @@ mod tests {
+@@ -6500,9 +6547,6 @@ mod tests {
              .expect("a frame within five seconds")
              .expect("the stream stayed open");
  
@@ -348,7 +351,7 @@ index 80320e6..f52e7c8 100644
          assert_eq!(
              frame.movement.requested,
              [0.4, 0.0, 0.0],
-@@ -6518,7 +6560,41 @@ mod tests {
+@@ -6518,7 +6562,41 @@ mod tests {
              frame.movement.limited_by
          );
          assert_eq!(frame.policy, "held", "no policy was loaded");
