@@ -21,10 +21,10 @@
   "sim_executable": "/home/juper007/projects/microduck-connectome-thor/microduck/scripts/duck-sim",
   "state_dir": "/tmp/p8-03-local-v1-state",
   "body_port": 7894,
-  "preflight_audit": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1-preflight.jsonl",
-  "development_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1-development",
-  "static_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1-static",
-  "receding_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1-receding",
+  "preflight_audit": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1/preflight.jsonl",
+  "development_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1/development",
+  "static_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1/static",
+  "receding_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1/receding",
   "settled_gate": {
     "official_up_exit_required": 0,
     "post_up_min_capture_s": 1.0,
@@ -472,5 +472,6 @@
     "DEADMAN",
     "SAFETY_VIOLATION",
     "MOVING_BODY_NOT_ESTABLISHED_WITH_HEALTHY_TRANSPORT"
-  ]
+  ],
+  "package_output": "/home/juper007/projects/microduck-connectome-thor/evidence/p8-v2-final/p8-03-local-v1"
 }
