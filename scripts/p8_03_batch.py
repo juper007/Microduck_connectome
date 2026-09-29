@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import signal
 import socket
 import subprocess
 import sys
@@ -73,9 +74,52 @@ def recover_only(root: Path) -> dict:
             "files": inventory(root)}
 
 
+
+def run_trial_child(command: list[str], log: Path, env: dict, *, progress,
+                    timeout_s: float) -> tuple[int, bool, bool]:
+    """Bound a trial process; the batch performs stop/down/probe on timeout."""
+    if timeout_s <= 0:
+        raise ValueError("trial timeout must be positive")
+    with log.open("wb") as out:
+        child = subprocess.Popen(command, stdout=out, stderr=subprocess.STDOUT, env=env)
+        deadline = time.monotonic() + timeout_s
+        timed_out = False
+        interrupted = False
+        try:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                try:
+                    code = child.wait(timeout=min(.05, remaining))
+                    progress()
+                    return code, False, False
+                except subprocess.TimeoutExpired:
+                    progress()
+        except KeyboardInterrupt:
+            interrupted = True
+        finally:
+            if child.poll() is None:
+                child.send_signal(signal.SIGINT)
+                try:
+                    child.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    child.terminate()
+                    try:
+                        child.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait(timeout=2)
+            progress()
+            out.flush()
+            os.fsync(out.fileno())
+        return child.returncode, timed_out or interrupted, timed_out
+
+
 def preflight(args) -> tuple[dict, dict, list[dict], dict]:
     root = args.root.resolve()
-    config_path = root / "config/p8_03_local_reference_v1.json"
+    config_path = root / "config/p8_03_local_reference_v1_r1.json"
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     config = json.loads(config_path.read_text())
     master = json.loads(master_path.read_text())
@@ -147,7 +191,7 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
                 config["receding_max_negative_frame_step_m"] ==
                 abs(controls["receding_min_increment_tolerance_m"]),
                 "P8-V2 moving/geometry contract changed")
-        for rel in ("config/p8_03_local_reference_v1.json", "config/p8_v2_final_protocol_v1.json",
+        for rel in ("config/p8_03_local_reference_v1_r1.json", "config/p8_v2_final_protocol_v1.json",
                     "scripts/p8_03_batch.py", "scripts/p8_03_trial.py", "scripts/p8_03_score.py",
                     "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
                     "microduck_connectome/p8_03_geometry.py"):
@@ -208,7 +252,7 @@ def run(args) -> dict:
     output.mkdir(parents=True, exist_ok=False)
     journal = {"schema_version": "p8-03-local-batch-journal-v1", "stage": args.stage,
                "source_head": args.reviewed_head, "source_path": str(args.root.resolve()),
-               "config_sha256": sha(args.root / "config/p8_03_local_reference_v1.json"),
+               "config_sha256": sha(args.root / "config/p8_03_local_reference_v1_r1.json"),
                "result": "RUNNING", "preflight": preflight_record,
                "ids": [{"reset_id": r["reset_id"], "ordinal": r["ordinal"],
                         "status": "PENDING", "attempts": []} for r in rows],
@@ -307,7 +351,10 @@ def run(args) -> dict:
                         attempt["status"] = "NEURAL_OBSERVATION_ARMED" if armed else "TRIAL_CHILD_STARTED"
                         checkpoint(output, journal)
 
-                code, was_interrupted = run_child(command, folder / "trial.log", env, progress=progress)
+                code, was_interrupted, timed_out = run_trial_child(
+                    command, folder / "trial.log", env, progress=progress,
+                    timeout_s=config["trial_child_timeout_s"])
+                attempt["child_timeout"] = timed_out
                 attempt["armed"] = (folder / "armed.json").is_file()
                 attempt["trial_exit"] = code
                 attempt["status"] = "INTERRUPTED_UNKNOWN_ARM" if was_interrupted else "TRIAL_EXITED"

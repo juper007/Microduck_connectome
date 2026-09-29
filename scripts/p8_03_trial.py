@@ -36,7 +36,8 @@ from scripts.p6_telemetry_runtime_fixture import RobotStateSampler
 from scripts.p7_pretrial_acquisition import validate_loaded_walk_policy
 from scripts.p8_02_r1_trial import (LoomingChain, acknowledged_precondition_move,
                                     precondition_deadman_after_motion)
-from scripts.p8_03_local_reference import PoseWithLineage, create_durable_arm_marker, wrap
+from scripts.p8_03_local_reference import (PoseWithLineage, create_durable_arm_marker,
+                                            verify_local_reference, wrap)
 
 
 def sha(path: Path) -> str:
@@ -53,9 +54,21 @@ def jsonl_write(path: Path, rows: list[dict]) -> None:
                                         allow_nan=False) + "\n" for row in rows), encoding="utf-8")
 
 
-def verify(args) -> tuple[dict, dict, dict, dict, dict]:
+
+def checked_reference(path: Path, gate: dict, reset_id: str,
+                      attempt: int) -> tuple[dict, str]:
+    """Validate persisted canonical bytes before any trial client is opened."""
+    raw = path.read_bytes()
+    record = json.loads(raw)
+    if (record.get("reset_id") != reset_id or record.get("attempt") != attempt
+            or not verify_local_reference(record, gate)):
+        raise RuntimeError("per-reset settled local reference was not verified")
+    return record, hashlib.sha256(raw).hexdigest()
+
+
+def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
     root = args.root.resolve(strict=True)
-    execution_path = root / "config/p8_03_local_reference_v1.json"
+    execution_path = root / "config/p8_03_local_reference_v1_r1.json"
     master_path = root / "config/p8_v2_final_protocol_v1.json"
     execution = json.loads(execution_path.read_text())
     master = json.loads(master_path.read_text())
@@ -68,7 +81,7 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict]:
         raise RuntimeError("source must be clean at reviewed HEAD")
     if root != Path(execution["source_path"]).resolve():
         raise RuntimeError("source checkout path differs from frozen execution config")
-    for rel in ("config/p8_03_local_reference_v1.json", "config/p8_v2_final_protocol_v1.json",
+    for rel in ("config/p8_03_local_reference_v1_r1.json", "config/p8_v2_final_protocol_v1.json",
                 "scripts/p8_03_trial.py", "scripts/p8_03_batch.py", "scripts/p8_03_score.py",
                 "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
                 "microduck_connectome/p8_03_geometry.py"):
@@ -136,18 +149,16 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict]:
                                 execution["walking_policy_sha256"])
     if args.local_reference.resolve().parent != folder.resolve():
         raise RuntimeError("local reference path differs from frozen attempt")
-    reset = json.loads(args.local_reference.read_text())
-    if (reset.get("schema_version") != "p8-03-local-reference-v1" or
-            reset.get("result") != "PASS" or
-            reset.get("reset_id") != row["reset_id"] or
-            reset.get("attempt") != args.attempt):
-        raise RuntimeError("per-reset settled local reference was not verified")
-    reference_hash = sha(args.local_reference)
-    return master, execution, row, selected, load_config(root / "config/looming_scenario_v1.json")
+    _reset, reference_hash = checked_reference(
+        args.local_reference, execution["settled_gate"], row["reset_id"], args.attempt)
+    return (master, execution, row, selected,
+            load_config(root / "config/looming_scenario_v1.json"), reference_hash)
 
 
 def run(args) -> int:
-    master, execution, planned, selected, scenario = verify(args)
+    master, execution, planned, selected, scenario, reference_hash = verify(args)
+    if sha(args.local_reference) != reference_hash:
+        raise RuntimeError("local reference changed after trial verification")
     root = args.root.resolve()
     mode = planned["motion"]
     graph = ConnectomeGraph.from_cache(Path(execution["graph_path"]).parent,
@@ -157,126 +168,143 @@ def run(args) -> int:
         method=estimator["method"], area_epsilon=estimator["area_epsilon"],
         full_scale_rate_per_s=estimator["full_scale_rate_per_s"],
         max_gap_ms=estimator["max_gap_ms"], window_ms=estimator["window_ms"])
-    robot = RobotdClient(args.socket, timeout_s=2.0)
-    robot.connect()
-    robot.enable(True)
-    health_before = robot.health()
-    if health_before.get("healthy") is not True:
-        raise RuntimeError("robotd health is not healthy before neural arm")
-    adapter = RobotMotionAdapter(robot, root / "config/motion_adapter_v1.json")
-    publisher = IsolatedStopPublisher(adapter)
-    move_client = JsonLines(args.socket)
-    move_client.request("hello", {"api_version": 31})
-    sampler = RobotStateSampler(args.socket)
-    pose_reader = PoseWithLineage(args.body_port)
-    pose_lock = threading.Lock()
-    arbiter = NeuralStopMotionArbiter()
-    chain = LoomingChain(root, graph, scenario, pose_reader, pose_lock,
-                         planned["arm_elapsed_s"], arbiter,
-                         estimator=LoomingEstimatorV2(estimator_config), visual_hz=20,
-                         visual_representation="fractional_rgb_v21")
-    watchdog = ControllerWatchdog(root / "config/watchdog_v1.json")
-    fault_latch = FaultStopLatch()
-    events: list[dict] = []
-    events.append({"kind": "robotd_health_before", "timestamp_ns": time.monotonic_ns(),
-                   "healthy": health_before["healthy"]})
-    geometry: list[dict] = []
-    motion_errors: list[str] = []
-    observer_errors: list[str] = []
-    scheduler_errors: list[str] = []
-    motion_rows: list[dict] = []
-    precondition_rows: list[dict] = []
-    if sha(args.local_reference) != reference_hash:
-        raise RuntimeError("local reference changed after trial verification")
-    reset = json.loads(args.local_reference.read_text())
-    events.append({"kind": "local_reference", "timestamp_ns": time.monotonic_ns(),
-                   "result": reset["result"], "reference": reset["reference"],
-                   "capture_ns": reset["capture_ns"],
-                   "reset_id": reset["reset_id"], "attempt": reset["attempt"]})
-    arm_ns = None
-    scheduler_result = None
-    stop_acks: list[int] = []
-    published: dict[int, tuple[int, int]] = {}
-    lock = threading.Lock()
+    robot = None
+    move_client = None
+    sampler = None
+    pose_reader = None
+    try:
+        robot = RobotdClient(args.socket, timeout_s=2.0)
+        robot.connect()
+        robot.enable(True)
+        health_before = robot.health()
+        if health_before.get("healthy") is not True:
+            raise RuntimeError("robotd health is not healthy before neural arm")
+        adapter = RobotMotionAdapter(robot, root / "config/motion_adapter_v1.json")
+        publisher = IsolatedStopPublisher(adapter)
+        move_client = JsonLines(args.socket)
+        move_client.request("hello", {"api_version": 31})
+        sampler = RobotStateSampler(args.socket)
+        pose_reader = PoseWithLineage(args.body_port)
+        pose_lock = threading.Lock()
+        arbiter = NeuralStopMotionArbiter()
+        chain = LoomingChain(root, graph, scenario, pose_reader, pose_lock,
+                             planned["arm_elapsed_s"], arbiter,
+                             estimator=LoomingEstimatorV2(estimator_config), visual_hz=20,
+                             visual_representation="fractional_rgb_v21")
+        watchdog = ControllerWatchdog(root / "config/watchdog_v1.json")
+        fault_latch = FaultStopLatch()
+        events: list[dict] = []
+        events.append({"kind": "robotd_health_before", "timestamp_ns": time.monotonic_ns(),
+                       "healthy": health_before["healthy"]})
+        geometry: list[dict] = []
+        motion_errors: list[str] = []
+        observer_errors: list[str] = []
+        scheduler_errors: list[str] = []
+        motion_rows: list[dict] = []
+        precondition_rows: list[dict] = []
+        reset = json.loads(args.local_reference.read_text())
+        events.append({"kind": "local_reference", "timestamp_ns": time.monotonic_ns(),
+                       "result": reset["result"], "reference": reset["reference"],
+                       "reference_sha256": reference_hash,
+                       "capture_ns": reset["capture_ns"],
+                       "reset_id": reset["reset_id"], "attempt": reset["attempt"]})
+        arm_ns = None
+        scheduler_result = None
+        stop_acks: list[int] = []
+        published: dict[int, tuple[int, int]] = {}
+        lock = threading.Lock()
 
-    def render(config, _trial, *, pose, elapsed_s):
-        pose_source = pose_reader.source(pose)
-        after_arm = max(0.0, elapsed_s - planned["arm_elapsed_s"])
-        virtual, distance = relative_trial(
-            pose=pose, trial_id=planned["reset_id"], ordinal=planned["ordinal"],
-            mode=mode, elapsed_after_arm_s=after_arm)
-        pixels = render_fractional_pixels(config, virtual, pose=pose, elapsed_s=0)
-        area = sum(p[0] for row in pixels for p in row) / (
-            255 * config["image_width_px"] * config["image_height_px"])
-        geometry.append({"kind": "visual_frame", "timestamp_ns": time.monotonic_ns(),
-                         "source_valid": True, "distance_m": distance,
-                         "target_distance_m": distance, "image_area": area,
-                         "pixels_sha256": pixels_sha256(pixels),
-                         "bearing_rad": 0.0, "pose": dict(pose),
-                         "pose_request_ns": pose_source["request_ns"],
-                         "pose_response_ns": pose_source["response_ns"],
-                         "raw_body_packet": pose_source["raw_packet"],
-                         "virtual_center_x_m": virtual.anchor_x_m,
-                         "virtual_center_y_m": virtual.anchor_y_m})
-        return pixels
+        def render(config, _trial, *, pose, elapsed_s):
+            pose_source = pose_reader.source(pose)
+            after_arm = max(0.0, elapsed_s - planned["arm_elapsed_s"])
+            virtual, distance = relative_trial(
+                pose=pose, trial_id=planned["reset_id"], ordinal=planned["ordinal"],
+                mode=mode, elapsed_after_arm_s=after_arm)
+            pixels = render_fractional_pixels(config, virtual, pose=pose, elapsed_s=0)
+            area = sum(p[0] for row in pixels for p in row) / (
+                255 * config["image_width_px"] * config["image_height_px"])
+            geometry.append({"kind": "visual_frame", "timestamp_ns": time.monotonic_ns(),
+                             "source_valid": True, "distance_m": distance,
+                             "target_distance_m": distance, "image_area": area,
+                             "pixels_sha256": pixels_sha256(pixels),
+                             "bearing_rad": 0.0, "pose": dict(pose),
+                             "pose_request_ns": pose_source["request_ns"],
+                             "pose_response_ns": pose_source["response_ns"],
+                             "raw_body_packet": pose_source["raw_packet"],
+                             "virtual_center_x_m": virtual.anchor_x_m,
+                             "virtual_center_y_m": virtual.anchor_y_m})
+            return pixels
 
-    chain.render_pixels = render
+        chain.render_pixels = render
 
-    original_perception = chain.perception
+        original_perception = chain.perception
 
-    def perception_with_tof_lineage(now_ns):
-        frame = original_perception(now_ns)
-        if frame is not None:
-            chain.visual_frames[-1].update({
-                "tof_left_mm": scenario["tof_mm"],
-                "tof_center_mm": scenario["tof_mm"],
-                "tof_right_mm": scenario["tof_mm"],
-                "tof_timestamp_ns": now_ns,
-                "tof_frame_id": chain.visual_frames[-1]["frame_id"],
-                "tof_source": "frozen_synthetic_fixture"})
-        return frame
+        def perception_with_tof_lineage(now_ns):
+            frame = original_perception(now_ns)
+            if frame is not None:
+                chain.visual_frames[-1].update({
+                    "tof_left_mm": scenario["tof_mm"],
+                    "tof_center_mm": scenario["tof_mm"],
+                    "tof_right_mm": scenario["tof_mm"],
+                    "tof_timestamp_ns": now_ns,
+                    "tof_frame_id": chain.visual_frames[-1]["frame_id"],
+                    "tof_source": "frozen_synthetic_fixture"})
+            return frame
 
-    chain.perception = perception_with_tof_lineage
+        chain.perception = perception_with_tof_lineage
 
-    def publish(output):
-        call = time.monotonic_ns()
-        result = publisher.send(output)
-        ack = time.monotonic_ns()
-        with lock:
-            published[output["intent"]["sequence"]] = (call, ack)
-            if result == "robot_stop_refreshed":
-                stop_acks.append(ack)
-        return result
+        def publish(output):
+            call = time.monotonic_ns()
+            result = publisher.send(output)
+            ack = time.monotonic_ns()
+            with lock:
+                published[output["intent"]["sequence"]] = (call, ack)
+                if result == "robot_stop_refreshed":
+                    stop_acks.append(ack)
+            return result
 
-    def observe(update, output, transport):
-        seq = output["intent"]["sequence"]
-        with lock:
-            call, ack = published.pop(seq)
-        if update is not None:
-            chain.neural_stop_latch.confirm(
-                output=output, transport_result=transport, ack_ns=ack,
-                source_neural_sequence=update.readout["sequence"],
-                source_intent_stop=bool(update.behavior_intent["stop"]))
-        event = {"kind": "control_publish", "timestamp_ns": ack,
-                 "sequence": seq, "ack_ns": ack,
-                 "transport": "robot.stop" if transport == "robot_stop_refreshed" else transport,
-                 "neural_origin": bool(update is not None and update.trace is not None
-                                       and update.trace["male_cns"]["healthy"]
-                                       and update.trace["dn_readout"]["escape"] >= .5
-                                       and update.trace["raw_decoded_intent"]["stop"]),
-                 "watchdog_state": output["watchdog_state"],
-                 "stop": output["intent"]["stop"], "call_ns": call,
-                 "intent": dict(output["intent"])}
-        with lock:
-            events.append(event)
+        def observe(update, output, transport):
+            seq = output["intent"]["sequence"]
+            with lock:
+                call, ack = published.pop(seq)
+            if update is not None:
+                chain.neural_stop_latch.confirm(
+                    output=output, transport_result=transport, ack_ns=ack,
+                    source_neural_sequence=update.readout["sequence"],
+                    source_intent_stop=bool(update.behavior_intent["stop"]))
+            event = {"kind": "control_publish", "timestamp_ns": ack,
+                     "sequence": seq, "ack_ns": ack,
+                     "transport": "robot.stop" if transport == "robot_stop_refreshed" else transport,
+                     "neural_origin": bool(update is not None and update.trace is not None
+                                           and update.trace["male_cns"]["healthy"]
+                                           and update.trace["dn_readout"]["escape"] >= .5
+                                           and update.trace["raw_decoded_intent"]["stop"]),
+                     "watchdog_state": output["watchdog_state"],
+                     "stop": output["intent"]["stop"], "call_ns": call,
+                     "intent": dict(output["intent"])}
+            with lock:
+                events.append(event)
 
-    scheduler = NeuralStopRefreshScheduler(
-        fault_latch=fault_latch, motion_arbiter=arbiter,
-        config=root / "config/p8_r3_visual_scheduler_v1.json", watchdog=watchdog,
-        perception_step=chain.perception, neural_step=chain.neural,
-        publisher=publish, control_observer=observe)
-    pre = master["scenario"]["moving_precondition"]
-    move_gate = execution["moving_gate"]
+        scheduler = NeuralStopRefreshScheduler(
+            fault_latch=fault_latch, motion_arbiter=arbiter,
+            config=root / "config/p8_r3_visual_scheduler_v1.json", watchdog=watchdog,
+            perception_step=chain.perception, neural_step=chain.neural,
+            publisher=publish, control_observer=observe)
+        pre = master["scenario"]["moving_precondition"]
+        move_gate = execution["moving_gate"]
+    except BaseException:
+        if move_client is not None:
+            try:
+                move_client.request("robot.stop", {})
+            except BaseException:
+                pass
+        for resource in (move_client, sampler, pose_reader, robot):
+            if resource is not None:
+                try:
+                    resource.close()
+                except BaseException:
+                    pass
+        raise
     try:
         gate = execution["settled_gate"]
         transition: list[dict] = []
@@ -404,7 +432,8 @@ def run(args) -> int:
                   "task": "P8-03-LOCAL-REFERENCE-PROTOCOL-V1",
                   "reset_id": planned["reset_id"], "ordinal": planned["ordinal"],
                   "attempt": args.attempt, "source_head": args.source_head,
-                  "config_sha256": sha(root / "config/p8_03_local_reference_v1.json"),
+                  "config_sha256": sha(root / "config/p8_03_local_reference_v1_r1.json"),
+                  "reference_sha256": reference_hash,
                   "armed_at_utc_ns": time.time_ns(),
                   "armed_at_monotonic_ns": candidate_arm_ns, "state": "ARMED"}
         create_durable_arm_marker(args.armed_marker, marker)
@@ -547,7 +576,8 @@ def run(args) -> int:
                       ("fixture_error", "scheduler_exception")]
     summary = {"schema_version": "p8-03-local-trial-v1", "reset_id": planned["reset_id"],
                "ordinal": planned["ordinal"], "stage": args.stage, "source_head": args.source_head,
-               "armed": arm_ns is not None, "event_sha256": sha(args.events),
+               "armed": arm_ns is not None, "reference_sha256": reference_hash,
+               "event_sha256": sha(args.events),
                "neural_ledger_sha256": sha(args.ledger), "visual_sha256": sha(args.visual),
                "scheduler_exceptions": len(scheduler_errors),
                "safety_limit_violations": violation_count,

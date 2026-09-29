@@ -40,7 +40,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--static-root", type=Path, required=True)
     ap.add_argument("--receding-root", type=Path, required=True)
-    ap.add_argument("--config", type=Path, default=Path("config/p8_03_local_reference_v1.json"))
+    ap.add_argument("--config", type=Path, default=Path("config/p8_03_local_reference_v1_r1.json"))
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
     result = finalize(args.static_root, args.receding_root,

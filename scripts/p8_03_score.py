@@ -624,8 +624,12 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
             result["clean_true_negative"] = False
         else:
             raw_reset = [r for r in events if r.get("kind") == "local_reference"]
+            expected_reference_hash = hashlib.sha256(reset_path.read_bytes()).hexdigest()
             if (len(raw_reset) != 1 or raw_reset[0].get("reference") != reset.get("reference")
-                    or raw_reset[0].get("capture_ns") != reset.get("capture_ns")):
+                    or raw_reset[0].get("capture_ns") != reset.get("capture_ns")
+                    or (config["task_id"] == "P8-03-LOCAL-REFERENCE-V1-R1" and
+                        (raw_reset[0].get("reference_sha256") != expected_reference_hash or
+                         marker.get("reference_sha256") != expected_reference_hash))):
                 result["failure_causes"].append("local_reference_event_mismatch")
                 result["clean_true_negative"] = False
         summary = folder / "summary.json"
@@ -639,7 +643,10 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
                     or retained_summary.get("ordinal") != row["ordinal"]
                     or retained_summary.get("stage") != stage
                     or retained_summary.get("armed") is not True
-                    or retained_summary.get("source_head") != journal.get("source_head")):
+                    or retained_summary.get("source_head") != journal.get("source_head")
+                    or (config["task_id"] == "P8-03-LOCAL-REFERENCE-V1-R1" and
+                        retained_summary.get("reference_sha256") !=
+                        attempts[-1].get("local_reference_sha256"))):
                 result["failure_causes"].append("summary_identity")
             result["failure_causes"].extend(
                 audit_original_ledgers(folder, events, retained_summary,
@@ -672,7 +679,7 @@ def score_batch(root: Path, config: dict, stage: str) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw-root", type=Path, required=True)
-    ap.add_argument("--config", type=Path, default=Path("config/p8_03_local_reference_v1.json"))
+    ap.add_argument("--config", type=Path, default=Path("config/p8_03_local_reference_v1_r1.json"))
     ap.add_argument("--stage", choices=("D", "S", "R"), required=True)
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
