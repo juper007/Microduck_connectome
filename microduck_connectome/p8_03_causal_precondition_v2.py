@@ -191,13 +191,7 @@ def evaluate_causal_precondition(
            p["timestamp_ns"] - _uint(p.get("request_ns"), "pose request") >
            gate["maximum_pose_age_ms"] * 1e6 for p in points):
         raise CausalPreconditionError("official raw pose missing")
-    displacement = math.hypot(points[-1]["x_m"] - points[0]["x_m"],
-                              points[-1]["y_m"] - points[0]["y_m"])
     speeds = pose_speeds(points, window_ms=100, max_window_ms=140)
-    confirmed = first_sustained(speeds, threshold_mps=gate["minimum_pose_speed_mps"],
-                                duration_ms=gate["minimum_speed_sustain_ms"], at_or_above=True)
-    if displacement < gate["minimum_trunk_displacement_m"] or confirmed is None:
-        raise CausalPreconditionError("physical movement below frozen minimum")
     qualifying = None
     for row in pre_stop_window:
         state = row["state"]
@@ -220,7 +214,23 @@ def evaluate_causal_precondition(
            r["state"]["move"]["applied"][0] < gate["minimum_fresh_applied_vx_mps"]
            for r in pre_stop_window[qualifying_index:]):
         raise CausalPreconditionError("qualifying motion interrupted")
-    valid_speeds = sorted(r["pose_speed_mps"] for r in speeds if r["pose_speed_mps"] is not None)
+    # Movement accumulated before applied/policy qualification cannot satisfy
+    # the frozen body gate. Recompute both displacement and sustained speed
+    # strictly from the first qualifying pose onward.
+    qualified_points = [p for p in points
+                        if p["timestamp_ns"] >= qualifying["received_at_ns"]]
+    if len(qualified_points) < 3:
+        raise CausalPreconditionError("physical movement below frozen minimum")
+    qualified_speeds = pose_speeds(qualified_points, window_ms=100, max_window_ms=140)
+    displacement = math.hypot(qualified_points[-1]["x_m"] - qualified_points[0]["x_m"],
+                              qualified_points[-1]["y_m"] - qualified_points[0]["y_m"])
+    confirmed = first_sustained(
+        qualified_speeds, threshold_mps=gate["minimum_pose_speed_mps"],
+        duration_ms=gate["minimum_speed_sustain_ms"], at_or_above=True)
+    if displacement < gate["minimum_trunk_displacement_m"] or confirmed is None:
+        raise CausalPreconditionError("physical movement below frozen minimum")
+    valid_speeds = sorted(r["pose_speed_mps"] for r in qualified_speeds
+                          if r["pose_speed_mps"] is not None)
     return {"schema_version": "p8-03-causal-precondition-v2", "result": "PASS",
             "accepted_move_generations": sorted(positive),
             "superseded_before_consumption": superseded,

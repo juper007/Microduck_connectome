@@ -118,7 +118,7 @@ def test_physical_movement_required(tmp_path):
     rows, poses = fixture()
     for p in poses:
         p["x_m"] = 0.
-    with pytest.raises(CausalPreconditionError, match="physical movement"):
+    with pytest.raises(CausalPreconditionError, match="no qualifying moving state"):
         score(tmp_path, rows, poses)
 
 
@@ -234,12 +234,47 @@ def test_ramp_contamination_is_terminal(tmp_path, contamination, reason):
         score(tmp_path, rows, poses)
 
 
+def test_fault_during_ramp_is_terminal(tmp_path):
+    rows, poses = fixture()
+    first = next(r for r in rows if r["kind"] == "robot.state" and
+                 r["state"]["control_tick_sequence"] == 2)
+    first["state"]["move"]["applied"][0] = .014
+    first["state"]["policy"] = "stand"
+    first["state"]["safety"]["fallen"] = True
+    with pytest.raises(CausalPreconditionError, match="safety"):
+        score(tmp_path, rows, poses)
+
+
+def test_tick_gap_during_ramp_is_terminal(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    states[1]["state"]["move"]["applied"][0] = .014
+    states[1]["state"]["policy"] = "stand"
+    states[2]["state"]["control_tick_sequence"] += 1
+    with pytest.raises(CausalPreconditionError, match="tick gap"):
+        score(tmp_path, rows, poses)
+
+
 def test_threshold_never_reached_fails(tmp_path):
     rows, poses = fixture()
     for row in rows:
         if row["kind"] == "robot.state" and 1 < row["state"]["control_tick_sequence"] < 83:
             row["state"]["move"]["applied"][0] = .039
     with pytest.raises(CausalPreconditionError, match="fresh applied vx"):
+        score(tmp_path, rows, poses)
+
+
+def test_prequalification_movement_cannot_supply_body_gate(tmp_path):
+    rows, poses = fixture()
+    states = [r for r in rows if r["kind"] == "robot.state"]
+    for row in states[1:16]:
+        row["state"]["move"]["applied"][0] = .014
+        row["state"]["policy"] = "stand"
+    for i, pose in enumerate(poses):
+        pose["x_m"] = min(i, 20) * .0006
+    # Earlier movement exceeds 0.01 m and lasts more than 200 ms. After
+    # qualification it contributes less than 0.01 m and then stops.
+    with pytest.raises(CausalPreconditionError, match="physical movement"):
         score(tmp_path, rows, poses)
 
 
