@@ -14,6 +14,7 @@ import socket
 import subprocess
 import threading
 import time
+from typing import Callable
 
 from microduck_connectome.dn_aggregator import DNActivityAggregator, load_dn_readout_config
 from microduck_connectome.escape_decoder import EscapeDecoder, load_escape_decoder_config
@@ -68,12 +69,16 @@ class BodyReader:
 class RobotStateSampler:
     """Keep actual robot.state notifications off the 50 Hz controller socket."""
 
-    def __init__(self, socket_path: str):
+    def __init__(self, socket_path: str, *, on_state: Callable[[dict], None] | None = None):
         self.client = RobotdClient(socket_path, timeout_s=2.0)
         self.client.connect()
+        self.on_state = on_state
         self.condition = threading.Condition()
         self.latest = None
+        self.latest_observation = None
         self.received_ns = None
+        self.state_index = 0
+        self.previous_source_t_ns = None
         self.error = None
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self._run, name="p6-05-state", daemon=False)
@@ -85,8 +90,24 @@ class RobotStateSampler:
                 state = self.client.state(hz=50)
                 received_ns = time.monotonic_ns()
                 with self.condition:
+                    source_t_ns = state.get("t_ns")
+                    observation = {
+                        "state_index": self.state_index,
+                        "previous_state_index": self.state_index - 1 if self.state_index else None,
+                        "source_timestamp_ns": source_t_ns,
+                        "previous_source_timestamp_ns": self.previous_source_t_ns,
+                        "received_ns": received_ns,
+                        "state": copy.deepcopy(state),
+                    }
+                    # A failed durable callback must fail the sampler closed. Never
+                    # expose a notification that was not retained by its observer.
+                    if self.on_state is not None:
+                        self.on_state(copy.deepcopy(observation))
                     self.latest = copy.deepcopy(state)
+                    self.latest_observation = observation
                     self.received_ns = received_ns
+                    self.previous_source_t_ns = source_t_ns
+                    self.state_index += 1
                     self.condition.notify_all()
         except BaseException as error:
             if not self.stop.is_set():
@@ -105,6 +126,26 @@ class RobotStateSampler:
             if self.error is not None:
                 raise RuntimeError("robot.state sampler failed") from self.error
             return copy.deepcopy(self.latest), self.received_ns
+
+    def snapshot(self) -> dict | None:
+        """Return the latest state and metadata atomically, or None before receipt."""
+        with self.condition:
+            if self.error is not None:
+                raise RuntimeError("robot.state sampler failed") from self.error
+            return copy.deepcopy(self.latest_observation)
+
+    def after_snapshot(self, timestamp_ns: int) -> dict:
+        """Return the notification chosen by ``after`` with its exact lineage."""
+        deadline = time.monotonic() + 0.15
+        with self.condition:
+            while self.error is None and (self.received_ns is None or self.received_ns < timestamp_ns):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError("no post-command robot.state within 150 ms")
+                self.condition.wait(remaining)
+            if self.error is not None:
+                raise RuntimeError("robot.state sampler failed") from self.error
+            return copy.deepcopy(self.latest_observation)
 
     def close(self):
         self.stop.set()

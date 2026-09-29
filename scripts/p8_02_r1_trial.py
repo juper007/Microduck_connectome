@@ -372,27 +372,58 @@ def validate_frozen_output_dir(protocol: dict, output: Path) -> None:
         raise RuntimeError("official output must use the frozen raw directory")
 
 
-def acknowledged_precondition_move(client, *, vx, vy, vyaw):
+def acknowledged_precondition_move(client, *, vx, vy, vyaw, trace=None):
     """Use official request-form robot.move to obtain an actual robotd ACK."""
     request_id = client.next_id
     client.next_id += 1
     payload = {"jsonrpc": "2.0", "id": request_id, "method": "robot.move",
                "params": {"vx": vx, "vy": vy, "vyaw": vyaw}}
     call_ns = time.monotonic_ns()
-    client.file.write((json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode())
-    client.file.flush()
-    write_done_ns = time.monotonic_ns()
-    while True:
-        reply = json.loads(client.file.readline())
-        if reply.get("id") != request_id:
-            continue
-        ack_ns = time.monotonic_ns()
-        if "error" in reply:
-            raise RuntimeError(reply["error"])
-        result = reply["result"]
-        if not isinstance(result, dict) or result.get("accepted") is not True:
-            raise RuntimeError(f"robot.move was not accepted: {result!r}")
-        return result, call_ns, write_done_ns, ack_ns
+    if trace is not None:
+        trace.update(request_id=request_id, pre_send_ns=call_ns,
+                     timeout_s=client.socket.gettimeout(),
+                     first_response_byte_observable=True)
+    try:
+        encoded = (json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode()
+        if trace is not None:
+            trace["socket_write_start_ns"] = time.monotonic_ns()
+        client.file.write(encoded)
+        if trace is not None:
+            trace["socket_write_end_ns"] = time.monotonic_ns()
+        client.file.flush()
+        write_done_ns = time.monotonic_ns()
+        if trace is not None:
+            trace["flush_end_ns"] = write_done_ns
+        while True:
+            if trace is not None:
+                trace["response_wait_start_ns"] = time.monotonic_ns()
+                first_byte = client.file.read(1)
+                trace["first_response_byte_ns"] = time.monotonic_ns()
+                if not first_byte:
+                    raise EOFError("robot.move response stream closed")
+                raw = first_byte + client.file.readline()
+            else:
+                raw = client.file.readline()
+            reply = json.loads(raw)
+            if trace is not None:
+                trace["parse_complete_ns"] = time.monotonic_ns()
+            if reply.get("id") != request_id:
+                if trace is not None:
+                    raise RuntimeError("unexpected robot.move response id on dedicated socket")
+                continue
+            ack_ns = time.monotonic_ns()
+            if trace is not None:
+                trace["ack_ns"] = ack_ns
+            if "error" in reply:
+                raise RuntimeError(reply["error"])
+            result = reply["result"]
+            if not isinstance(result, dict) or result.get("accepted") is not True:
+                raise RuntimeError(f"robot.move was not accepted: {result!r}")
+            return result, call_ns, write_done_ns, ack_ns
+    except BaseException as error:
+        if trace is not None:
+            trace["exception"] = f"{type(error).__name__}: {error}"
+        raise
 
 
 class VisualCadence:
@@ -417,10 +448,27 @@ class VisualCadence:
             self.next_ns += self.period_ns
         return True
 
+    def rephase_at_arm(self, arm_ns: int) -> None:
+        """Retain the pre-arm frame but begin a new full scored visual second."""
+        if type(arm_ns) is not int or arm_ns < 0 or self.next_ns is None:
+            raise ValueError("visual rephase requires a prior real pre-arm frame")
+        self.next_ns = arm_ns
+
+
+def _timed_neural_span(spans, name, operation):
+    if spans is None:
+        return operation()
+    started_ns = time.monotonic_ns()
+    try:
+        return operation()
+    finally:
+        spans[name] = {"start_ns": started_ns, "end_ns": time.monotonic_ns()}
+
 
 class LoomingChain(FullChain):
     def __init__(self, root, graph, scenario, pose_reader, pose_lock, elapsed_start_s,
-                 arbiter, *, estimator, visual_hz, visual_representation):
+                 arbiter, *, estimator, visual_hz, visual_representation,
+                 timing_enabled=False):
         super().__init__(root, graph)
         self.pipeline = PerceptionPipeline(
             camera_detector=(FractionalRedTargetDetector()
@@ -439,6 +487,8 @@ class LoomingChain(FullChain):
         self.started_ns = None
         self.scenario = "stop"
         self.neural_ledger = []
+        self.timing_enabled = timing_enabled
+        self.timing_ledger = []
         self.graph_identity = graph.root_key
         self.handoff_ack_ns = None
         self.discarded_visual_after_ack = []
@@ -479,27 +529,38 @@ class LoomingChain(FullChain):
                                    "perception_looming": frame["looming"]})
         return frame
 
-    def _compute_neural(self, frame, now_ns):
+    def _compute_neural(self, frame, now_ns, timing_spans=None):
         """Run the ordinary decoder once, then apply the stop latch and safety once."""
         self.neural_sequence += 1
         if frame is None:
             return None
-        channels = self.mapper.map_channels(frame, now_ns=now_ns)
-        mapped = self.mapper.build_external(frame, now_ns=now_ns)
+        channels = _timed_neural_span(
+            timing_spans, "sensory_channels",
+            lambda: self.mapper.map_channels(frame, now_ns=now_ns))
+        mapped = _timed_neural_span(
+            timing_spans, "sensory_external",
+            lambda: self.mapper.build_external(frame, now_ns=now_ns))
         external = {body_id: value for body_id, value in mapped.items()
                     if body_id in self.runtime_index}
-        snapshot = self.runtime.step(external)
+        snapshot = _timed_neural_span(
+            timing_spans, "graph_runtime", lambda: self.runtime.step(external))
         projected_spikes = tuple(
             snapshot["spikes"][self.runtime_index[body_id]]
             if body_id in self.runtime_index else False for body_id in self.dn_ids)
-        readout = self.aggregator.update(
-            projected_spikes, timestamp_ns=now_ns,
-            sequence=self.neural_sequence, runtime_healthy=snapshot["healthy"])
-        raw_decoded = self.escape.apply(readout, self.steering.decode(readout))
-        selected, safe, held_nonstop = self.neural_stop_latch.apply(
-            readout=readout, decoded_intent=raw_decoded, safety=self.safety,
-            now_ns=now_ns, graph_runtime_step=self.neural_sequence)
-        latched = self.neural_stop_latch.snapshot()
+        readout = _timed_neural_span(
+            timing_spans, "readout",
+            lambda: self.aggregator.update(
+                projected_spikes, timestamp_ns=now_ns,
+                sequence=self.neural_sequence, runtime_healthy=snapshot["healthy"]))
+        def decode_and_latch():
+            raw_decoded = self.escape.apply(readout, self.steering.decode(readout))
+            selected, safe, held_nonstop = self.neural_stop_latch.apply(
+                readout=readout, decoded_intent=raw_decoded, safety=self.safety,
+                now_ns=now_ns, graph_runtime_step=self.neural_sequence)
+            return raw_decoded, selected, safe, held_nonstop, self.neural_stop_latch.snapshot()
+        raw_decoded, selected, safe, held_nonstop, latched = _timed_neural_span(
+            timing_spans, "decoder_safety_latch", decode_and_latch)
+        trace_started_ns = time.monotonic_ns() if timing_spans is not None else None
         trace = {
             "camera_frame_id": frame["frame_id"],
             "tof_frame_id": frame["frame_id"],
@@ -523,18 +584,41 @@ class LoomingChain(FullChain):
                     latched.first_healthy_stop_ack_ns if latched is not None else None),
             },
         }
+        if timing_spans is not None:
+            timing_spans["trace_construction"] = {
+                "start_ns": trace_started_ns, "end_ns": time.monotonic_ns()}
         return NeuralUpdate(readout, safe["intent"], trace)
 
     def neural(self, frame, now_ns):
+        timing_enabled = getattr(self, "timing_enabled", False)
+        timing_spans = {} if timing_enabled else None
+        thread_cpu_started_ns = time.thread_time_ns() if timing_enabled else None
         call_started_ns = time.monotonic_ns()
-        update = self.arbiter.neural_step(lambda: self._compute_neural(frame, now_ns))
+        def compute():
+            if timing_spans is not None:
+                timing_spans["arbiter_lock_wait"] = {
+                    "start_ns": call_started_ns, "end_ns": time.monotonic_ns()}
+            return self._compute_neural(frame, now_ns, timing_spans)
+        update = self.arbiter.neural_step(compute)
         call_returned_ns = time.monotonic_ns()
+        thread_cpu_returned_ns = time.thread_time_ns() if timing_enabled else None
+        ledger_started_ns = time.monotonic_ns() if timing_enabled else None
         if update is None or update.trace is None:
             self.neural_ledger.append({"neural_call_timestamp_ns": now_ns,
                                        "neural_call_started_ns": call_started_ns,
                                        "neural_call_returned_ns": call_returned_ns,
                                        "result_none": True, "input_none": frame is None,
                                        "perception_age_ms": None})
+            if timing_enabled:
+                timing_spans["ledger_append"] = {
+                    "start_ns": ledger_started_ns, "end_ns": time.monotonic_ns()}
+                self.timing_ledger.append({
+                    "neural_call_timestamp_ns": now_ns, "thread_id": threading.get_ident(),
+                    "thread_cpu_start_ns": thread_cpu_started_ns,
+                    "thread_cpu_return_ns": thread_cpu_returned_ns,
+                    "spans": {"neural_call": {"start_ns": call_started_ns,
+                                               "end_ns": call_returned_ns}, **timing_spans},
+                    "result_none": True})
             return update
         trace = update.trace
         perception = trace["perception_frame"]
@@ -568,6 +652,16 @@ class LoomingChain(FullChain):
             "latched_stop_source": trace["neural_stop_latch"]["source"],
             "post_safety_stop": trace["safety_result"]["intent"]["stop"],
         })
+        if timing_enabled:
+            timing_spans["ledger_append"] = {
+                "start_ns": ledger_started_ns, "end_ns": time.monotonic_ns()}
+            self.timing_ledger.append({
+                "neural_call_timestamp_ns": now_ns, "thread_id": threading.get_ident(),
+                "thread_cpu_start_ns": thread_cpu_started_ns,
+                "thread_cpu_return_ns": thread_cpu_returned_ns,
+                "spans": {"neural_call": {"start_ns": call_started_ns,
+                                           "end_ns": call_returned_ns}, **timing_spans},
+                "result_none": False})
         return update
 
 
