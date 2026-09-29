@@ -8,6 +8,7 @@ on:
       - 'tests/test_robotd_client.py'
       - 'tests/test_robotd_diagnostic.py'
       - 'patches/microduck/p8-03-robotd-diagnostic-metadata.patch'
+      - 'docs/tasks/P8-03-ROBOTD-DIAGNOSTIC-METADATA-HANDOFF.md'
       - '.github/workflows/p8-03-diagnostic.yml'
 
 jobs:
