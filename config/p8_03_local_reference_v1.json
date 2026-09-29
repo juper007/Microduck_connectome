@@ -34,7 +34,7 @@
     "max_pose_gap_ms": 100,
     "max_pose_response_age_ms": 100,
     "max_robotd_state_age_ms": 100,
-    "max_health_age_ms": 750,
+    "max_health_age_ms": 300,
     "max_planar_drift_m": 0.0005,
     "max_z_drift_m": 0.0005,
     "max_heading_drift_rad": 0.005,
@@ -42,7 +42,6 @@
     "max_abs_applied_vx_mps": 0.0001,
     "max_abs_applied_vy_mps": 0.0001,
     "max_abs_applied_vyaw_radps": 0.0001,
-    "required_policy": "walk",
     "require_healthy": true,
     "require_not_fallen": true,
     "require_not_limp": true,
@@ -54,7 +53,10 @@
       "walk"
     ],
     "required_lifecycle": "healthy robotd with positive control_loop_ticks, non-fallen, non-limp",
-    "evidence_note": "R7 v3 diagnostic bounds; must be validated after explicit walk policy readback in development before final execution"
+    "evidence_note": "R7 v3 diagnostic bounds; must be validated after explicit walk policy readback in development before final execution",
+    "max_health_poll_gap_ms": 300,
+    "require_continuous_healthy_health_samples": true,
+    "max_prearm_health_age_ms": 300
   },
   "moving_gate": {
     "after_local_reference": true,
@@ -82,7 +84,6 @@
   "max_false_stops_pooled": 2,
   "max_safety_limit_violations": 0,
   "max_prearm_attempts": 3,
-  "allowed_retry": "exogenous pre-arm simulator startup, IPC acquisition, policy/fixture acquisition, or measured motion acquisition only; every attempt logged",
   "unknown_arm_retry": false,
   "armed_retry": false,
   "replacement_id": false,
@@ -455,5 +456,21 @@
       "sustained_ms": 200,
       "source": "official MuJoCo trunk x/y"
     }
-  }
+  },
+  "allowed_prearm_retry_cause_codes": [
+    "OFFICIAL_UP_PROCESS_FAILURE",
+    "IPC_UNREACHABLE_BEFORE_POLICY_OR_MOTION",
+    "FIXTURE_SETUP_IO_FAILURE",
+    "MOTION_ACQUISITION_EXOGENOUS_TRANSPORT_FAILURE"
+  ],
+  "nonretryable_prearm_cause_codes": [
+    "ROBOTD_UNHEALTHY",
+    "POLICY_INVALID",
+    "POSTURE_INVALID",
+    "TELEMETRY_STALE_OR_GAPPED",
+    "UNEXPECTED_MOTION",
+    "DEADMAN",
+    "SAFETY_VIOLATION",
+    "MOVING_BODY_NOT_ESTABLISHED_WITH_HEALTHY_TRANSPORT"
+  ]
 }
