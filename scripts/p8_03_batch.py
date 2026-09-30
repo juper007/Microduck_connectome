@@ -21,6 +21,7 @@ from scripts.p8_02_r1_batch import (append_audit, atomic_json, emergency_stop,
                                     inventory, now, run_child)
 from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_local_reference import acquire_local_reference
+from microduck_connectome.p8_03_upstream_source import verify_reconstructed_source
 
 
 PROBE_CONFIGS = {"v1": "config/p8_03_timing_probe_v1.json",
@@ -232,26 +233,17 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
         require(args.microduck.resolve() == Path(config["microduck_path"]).resolve() and
                 args.microduck_rl.resolve() == Path(config["microduck_rl_path"]).resolve(),
                 "upstream operator path mismatch")
-        expected_microduck = (config["microduck_candidate_sha"]
-                              if timing_probe and
-                              getattr(args, "timing_probe_version", "v1") == "v3"
-                              else config["microduck_commit"])
-        require(git_head(args.microduck) == expected_microduck and
-                git_head(args.microduck_rl) == config["microduck_rl_commit"],
-                "upstream commit mismatch")
-        if timing_probe and getattr(args, "timing_probe_version", "v1") == "v3":
-            require(subprocess.check_output(
-                ["git", "-C", str(args.microduck), "rev-parse", "c47085a57770c52ed4cd00d5960b17598df2d7af^{tree}"],
-                text=True).strip() == "8118cb336af98fb0947f3de592843dc8b5434096" and
-                subprocess.check_output(
-                    ["git", "-C", str(args.microduck), "write-tree"],
-                    text=True).strip() == "8118cb336af98fb0947f3de592843dc8b5434096" and
-                not subprocess.check_output(
-                    ["git", "-C", str(args.microduck), "status", "--porcelain"],
-                    text=True).strip() and
-                sha(root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch") ==
-                "828ff2619ee378d4fe49fe358944dcc9b5aa9b6583e7aef1afe43a353411655a",
-                "reviewed MicroDuck candidate tree or patch mismatch")
+        causal_v3 = timing_probe and getattr(args, "timing_probe_version", "v1") == "v3"
+        require(git_head(args.microduck_rl) == config["microduck_rl_commit"],
+                "MicroDuck RL commit mismatch")
+        if causal_v3:
+            upstream_identity = verify_reconstructed_source(
+                args.microduck,
+                root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch",
+                run_tests=True)
+        else:
+            require(git_head(args.microduck) == config["microduck_commit"],
+                    "upstream MicroDuck commit mismatch")
         require(args.graph.resolve() == Path(config["graph_path"]).resolve() and
                 sha(args.graph) == config["graph_sha256"], "graph path/hash mismatch")
         require(args.policy.resolve() == Path(config["walking_policy_path"]).resolve() and
@@ -354,6 +346,7 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
                 "policy_sha256": config["walking_policy_sha256"],
                 "config_sha256": sha(config_path),
                 "simulator_rng_seeded": False}
+            record["provenance"].update(upstream_identity)
         record["result"] = "PASS"
         return master, config, rows, record
     except BaseException as error:

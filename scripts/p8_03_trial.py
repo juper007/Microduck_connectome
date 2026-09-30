@@ -30,6 +30,7 @@ from microduck_connectome.neural_stop_scheduler import NeuralStopRefreshSchedule
 from microduck_connectome.p8_03_timing_gate import ReadyStartGate
 from microduck_connectome.p8_03_timing_scheduler import ReadyTimingScheduler
 from microduck_connectome.p8_03_causal_timing import evaluate_causal_arm
+from microduck_connectome.p8_03_upstream_source import verify_reconstructed_source
 from microduck_connectome.fault_stop import FaultStopLatch
 from microduck_connectome.p8_03_geometry import relative_trial
 from microduck_connectome.robotd_client import RobotdClient
@@ -213,28 +214,15 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
                            selected["graph_manifest_sha256"])):
         if sha(root / rel) != expected:
             raise RuntimeError(f"frozen material hash mismatch: {rel}")
-    expected_microduck = (execution["microduck_candidate_sha"]
-                          if getattr(args, "timing_probe_version", "v1") == "v3"
-                          else execution["microduck_commit"])
-    for source, expected in ((args.microduck, expected_microduck),
-                             (args.microduck_rl, execution["microduck_rl_commit"])):
-        if subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"],
-                                   text=True).strip() != expected:
-            raise RuntimeError("upstream commit mismatch")
+    if subprocess.check_output(["git", "-C", str(args.microduck_rl), "rev-parse", "HEAD"],
+                               text=True).strip() != execution["microduck_rl_commit"]:
+        raise RuntimeError("MicroDuck RL commit mismatch")
     if getattr(args, "timing_probe_version", "v1") == "v3":
-        candidate_tree = subprocess.check_output(
-            ["git", "-C", str(args.microduck), "rev-parse",
-             execution["microduck_candidate_sha"] + "^{tree}"],
-            text=True).strip()
-        if (candidate_tree != subprocess.check_output(
-                ["git", "-C", str(args.microduck), "write-tree"],
-                text=True).strip() or
-                subprocess.check_output(
-                    ["git", "-C", str(args.microduck), "status", "--porcelain"],
-                    text=True).strip() or
-                sha(root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch") !=
-                execution["microduck_patch_sha256"]):
-            raise RuntimeError("unreviewed upstream candidate or patch bytes")
+        verify_reconstructed_source(
+            args.microduck, root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch")
+    elif subprocess.check_output(["git", "-C", str(args.microduck), "rev-parse", "HEAD"],
+                                 text=True).strip() != execution["microduck_commit"]:
+        raise RuntimeError("upstream MicroDuck commit mismatch")
     if sha(Path(execution["graph_path"])) != execution["graph_sha256"]:
         raise RuntimeError("graph artifact hash mismatch")
     if sha(Path(execution["walking_policy_path"])) != execution["walking_policy_sha256"]:
