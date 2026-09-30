@@ -488,6 +488,7 @@ def run(args) -> int:
         causal_v3 = getattr(args, "timing_probe_version", "v1") == "v3"
         if causal_v3:
             diagnostic.assert_healthy()
+            diagnostic.checkpoint()
             raw_diagnostic = [json.loads(line) for line in
                               args.timing_ledger.with_name("diagnostic.jsonl").read_text().splitlines()]
             pre_move_tick = max(row["state"]["control_tick_sequence"] for row in

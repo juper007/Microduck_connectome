@@ -163,7 +163,7 @@ def test_state_reuses_subscription_without_discarding_buffered_frame():
     assert calls == ["hello", "robot.subscribe"]
 
 
-def test_diagnostic_stream_rejects_gap_and_coasted_source(monkeypatch):
+def test_diagnostic_stream_rejects_gap_but_allows_fresh_coasted_source(monkeypatch):
     import microduck_connectome.robotd_client as client_module
 
     monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
@@ -190,8 +190,38 @@ def test_diagnostic_stream_rejects_gap_and_coasted_source(monkeypatch):
 
     with pytest.raises(RobotdProtocolError, match="tick gap"):
         make_client(3, 1_270_000_000).diagnostic_state()
-    with pytest.raises(RobotdProtocolError, match="stalled"):
-        make_client(2, 1_250_000_000).diagnostic_state()
+    assert make_client(2, 1_250_000_000).diagnostic_state()["control_tick_sequence"] == 2
+
+
+def test_diagnostic_freshness_uses_reader_boundary_before_callback(monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    observed = [1_300_000_000]
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: observed[0],
+                        raising=False)
+
+    def handler(request):
+        if request["method"] == "hello":
+            return _hello(request)
+        frames = []
+        for sequence, source in ((1, 1_250_000_000), (2, 1_250_000_000)):
+            frame = _state()
+            frame.update(control_tick_sequence=sequence, consumed_move_generation=4,
+                         t_ns=source)
+            frames.append(json.dumps({"jsonrpc": "2.0", "method": "robot.state",
+                                      "params": frame}) + "\n")
+        return _response(request, {"accepted": True}) + "".join(frames).encode()
+
+    client, _ = _client(handler)
+    client.connect()
+
+    def slow_callback(_):
+        observed[0] += 200_000_000
+
+    assert client.diagnostic_state(on_frame=slow_callback)["control_tick_sequence"] == 1
+    with pytest.raises(RobotdProtocolError, match="not fresh"):
+        client.diagnostic_state()
 
 
 def test_diagnostic_stream_requires_metadata_but_regular_old_client_state_does_not(monkeypatch):

@@ -118,6 +118,7 @@ class RobotdClient:
         self._diagnostic_sequence: int | None = None
         self._diagnostic_generation: int | None = None
         self._diagnostic_source_ns: int | None = None
+        self._last_message_observed_ns: int | None = None
         self._diagnostic_connection_generation: int | None = None
         self._last_motion_metadata: tuple[int, int] | None = None
         self._motion_generation = 0
@@ -350,7 +351,12 @@ class RobotdClient:
         if not hasattr(time, "CLOCK_MONOTONIC") or not hasattr(time, "clock_gettime_ns"):
             raise RobotdProtocolError("diagnostic source clock cannot be verified")
         self._require_uint(max_source_age_ns, "max_source_age_ns", maximum=U64_MAX)
+        if max_source_age_ns != 100_000_000:
+            raise ValueError("diagnostic source freshness limit is frozen at 100 ms")
         state = self.state(hz=None, on_raw=on_raw)
+        # The line is observed at the reader boundary, before parsing or any
+        # diagnostic callback. Disk latency cannot refresh or age the source.
+        observed_ns = self._last_message_observed_ns
         if on_frame is not None:
             on_frame(state)
         sequence = state.get("control_tick_sequence")
@@ -366,10 +372,10 @@ class RobotdClient:
             raise RobotdProtocolError("diagnostic state tick gap or regression")
         if self._diagnostic_generation is not None and generation < self._diagnostic_generation:
             raise RobotdProtocolError("diagnostic state move generation regressed")
-        if self._diagnostic_source_ns is not None and source_ns <= self._diagnostic_source_ns:
-            raise RobotdProtocolError("diagnostic state source timestamp stalled or regressed")
-        now_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
-        if source_ns > now_ns or now_ns - source_ns > max_source_age_ns:
+        if self._diagnostic_source_ns is not None and source_ns < self._diagnostic_source_ns:
+            raise RobotdProtocolError("diagnostic state source timestamp regressed")
+        if (observed_ns is None or source_ns > observed_ns
+                or observed_ns - source_ns > max_source_age_ns):
             raise RobotdProtocolError("diagnostic state source timestamp is not fresh")
         self._diagnostic_connection_generation = self.status.generation
         self._diagnostic_sequence = sequence
@@ -456,6 +462,7 @@ class RobotdClient:
                     raise RobotdProtocolError("robotd response exceeds the 64 KiB line limit")
                 raw = bytes(self._buffer[:newline])
                 del self._buffer[: newline + 1]
+                self._last_message_observed_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
                 if on_raw is not None:
                     on_raw(raw + b"\n")
                 if not raw.strip():
