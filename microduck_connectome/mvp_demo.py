@@ -330,26 +330,24 @@ def main(argv=None) -> int:
 
     client = RobotdClient(args.socket, timeout_s=2.0)
     observer = DemoObserver()
-    client.connect()
-    health = client.health()
-    if not health["healthy"]:
-        client.close()
-        raise RuntimeError(f"robotd is not healthy: {health!r}")
-    client.enable(True)
-    adapter = RobotMotionAdapter(
-        client, root / "config" / "motion_adapter_v1.json"
-    )
-    scheduler = ClosedLoopScheduler(
-        config=root / "config" / "scheduler_v1.json",
-        watchdog=ControllerWatchdog(root / "config" / "watchdog_v1.json"),
-        perception_step=chain.perception,
-        neural_step=chain.neural,
-        publisher=adapter.send,
-        control_observer=observer,
-    )
-
     started = time.monotonic()
     try:
+        client.connect()
+        health = client.health()
+        if not health["healthy"]:
+            raise RuntimeError(f"robotd is not healthy: {health!r}")
+        client.enable(True)
+        adapter = RobotMotionAdapter(
+            client, root / "config" / "motion_adapter_v1.json"
+        )
+        scheduler = ClosedLoopScheduler(
+            config=root / "config" / "scheduler_v1.json",
+            watchdog=ControllerWatchdog(root / "config" / "watchdog_v1.json"),
+            perception_step=chain.perception,
+            neural_step=chain.neural,
+            publisher=adapter.send,
+            control_observer=observer,
+        )
         scheduler_summary = scheduler.run(args.duration_s)
     finally:
         try:
