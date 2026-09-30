@@ -3,7 +3,8 @@ from contextlib import redirect_stdout
 from types import SimpleNamespace
 import unittest
 
-from microduck_connectome.mvp_demo import DemoObserver
+from microduck_connectome.mvp_demo import DemoObserver, MvpChain, phase_frame_counts
+from microduck_connectome.perception_compositor import PerceptionPipeline
 
 
 def _update(scenario, *, left=0.0, right=0.0, escape=0.0, stop=False):
@@ -25,6 +26,60 @@ def _output(vyaw=0.0, stop=False):
         "intent": {"vyaw": vyaw, "stop": stop},
         "watchdog_state": "healthy",
     }
+
+
+class PhaseTimingTests(unittest.TestCase):
+    def test_sustained_turns_extend_actual_stimulus_phases(self):
+        chain = object.__new__(MvpChain)
+        chain.phase_frames = phase_frame_counts(8, 3, 25)
+        chain.scenarios = ("neutral", "left", "right", "center", "stop")
+        chain.pipeline = PerceptionPipeline()
+        chain.frame_id = 0
+        observed = {}
+        for frame_id in range(1, 537):
+            frame = chain.perception(frame_id * 40_000_000)
+            observed[frame_id] = (chain.scenario, frame["target_x"])
+        self.assertEqual(observed[30][0], "neutral")
+        self.assertEqual(observed[31], ("left", -1.0))
+        self.assertEqual(observed[230], ("left", -1.0))
+        self.assertEqual(observed[231], ("right", 1.0))
+        self.assertEqual(observed[430], ("right", 1.0))
+        self.assertEqual(observed[431][0], "center")
+        self.assertEqual(observed[461][0], "stop")
+        self.assertEqual(observed[536][0], "stop")
+
+    def test_quick_mode_and_fractional_seconds(self):
+        self.assertEqual(phase_frame_counts(1.2, 1.2, 25), (30, 30, 30, 30, 30))
+        self.assertEqual(phase_frame_counts(1.21, 3, 25), (30, 31, 31, 30, 75))
+
+    def test_repeated_phases_are_scheduled_before_final_stop(self):
+        chain = object.__new__(MvpChain)
+        chain.phase_frames = phase_frame_counts(8, 3, 25, 2)
+        chain.scenarios = ("neutral", "left", "right", "left", "right", "center", "stop")
+        chain.pipeline = PerceptionPipeline()
+        chain.frame_id = 0
+        observed = {}
+        for frame_id in range(1, 862):
+            chain.perception(frame_id * 40_000_000)
+            observed[frame_id] = chain.scenario
+        self.assertEqual(observed[430], "right")
+        self.assertEqual(observed[431], "left")
+        self.assertEqual(observed[630], "left")
+        self.assertEqual(observed[631], "right")
+        self.assertEqual(observed[830], "right")
+        self.assertEqual(observed[831], "center")
+        self.assertEqual(observed[861], "stop")
+        for cycles in (0, -1, 1.5, True):
+            with self.assertRaises(ValueError):
+                phase_frame_counts(8, 3, 25, cycles)
+
+    def test_invalid_phase_duration_is_rejected(self):
+        for value in (0, -1, float("inf"), float("nan")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    phase_frame_counts(value, 3, 25)
+                with self.assertRaises(ValueError):
+                    phase_frame_counts(8, value, 25)
 
 
 class DemoObserverTests(unittest.TestCase):

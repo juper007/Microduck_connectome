@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import socket
 import time
@@ -28,15 +29,28 @@ from .temporal_steering import P7TemporalSteeringDecoder, load_temporal_steering
 
 SCENARIOS = ("neutral", "left", "right", "center", "stop")
 FRAMES_PER_SCENARIO = 30
-DEFAULT_DURATION_S = 6.4
 DEFAULT_SOCKET = "/run/robotd.sock"
 TURN_EPSILON = 0.01
+
+
+def phase_frame_counts(turn_s, stop_s, perception_hz, turn_cycles=1):
+    if type(turn_cycles) is not int or turn_cycles < 1:
+        raise ValueError("turn-cycles must be a positive integer")
+    if any(not math.isfinite(value) or value <= 0 for value in (turn_s, stop_s)):
+        raise ValueError("turn-s and stop-s must be finite and positive")
+    return (FRAMES_PER_SCENARIO,) + (math.ceil(turn_s * perception_hz),) * (2 * turn_cycles) + (
+        FRAMES_PER_SCENARIO, math.ceil(stop_s * perception_hz),
+    )
 
 
 class MvpChain:
     """Small vertical slice over the existing MaleCNS controller components."""
 
-    def __init__(self, root: Path, graph: ConnectomeGraph):
+    def __init__(self, root: Path, graph: ConnectomeGraph, *, turn_s=1.2, stop_s=1.2, turn_cycles=1):
+        perception_hz = json.loads((root / "config" / "scheduler_v1.json").read_text())["perception_hz"]
+        self.phase_frames = phase_frame_counts(turn_s, stop_s, perception_hz, turn_cycles)
+        self.scenarios = ("neutral",) + ("left", "right") * turn_cycles + ("center", "stop")
+        self.scenario_duration_s = sum(self.phase_frames) / perception_hz
         self.pipeline = PerceptionPipeline()
         sensory_config = load_sensory_mapping_config(
             root / "config" / "sensory_mapping_v1.json"
@@ -104,8 +118,13 @@ class MvpChain:
 
     def perception(self, now_ns: int):
         self.frame_id += 1
-        segment = min((self.frame_id - 1) // FRAMES_PER_SCENARIO, len(SCENARIOS) - 1)
-        self.scenario = SCENARIOS[segment]
+        remaining = self.frame_id - 1
+        self.scenario = self.scenarios[-1]
+        for scenario, frames in zip(self.scenarios, self.phase_frames):
+            if remaining < frames:
+                self.scenario = scenario
+                break
+            remaining -= frames
         pixels = self._pixels(self.scenario, self.frame_id)
         return self.pipeline.process(
             pixels,
@@ -319,7 +338,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--graph-cache", type=Path)
     parser.add_argument("--graph-key")
     parser.add_argument("--socket", default=DEFAULT_SOCKET)
-    parser.add_argument("--duration-s", type=float, default=DEFAULT_DURATION_S)
+    parser.add_argument("--turn-s", type=float, default=1.2,
+                        help="seconds per left/right stimulus phase (try 8 for visible turns)")
+    parser.add_argument("--turn-cycles", type=int, default=1,
+                        help="left/right repetitions (try 2 to see reversal from each side)")
+    parser.add_argument("--stop-s", type=float, default=1.2,
+                        help="seconds observing the final looming/stop phase (try 3)")
+    parser.add_argument("--duration-s", type=float,
+                        help="total runtime; defaults to all configured phases plus 0.4 s")
     parser.add_argument(
         "--check-only",
         action="store_true",
@@ -333,7 +359,10 @@ def main(argv=None) -> int:
     root = args.root.resolve()
     graph_cache, graph_key = resolve_graph(root, args.graph_cache, args.graph_key)
     graph = ConnectomeGraph.from_cache(graph_cache, graph_key)
-    chain = MvpChain(root, graph)
+    chain = MvpChain(root, graph, turn_s=args.turn_s, stop_s=args.stop_s, turn_cycles=args.turn_cycles)
+    duration_s = args.duration_s if args.duration_s is not None else round(chain.scenario_duration_s + 0.4, 9)
+    if not math.isfinite(duration_s) or duration_s < chain.scenario_duration_s + 0.2:
+        raise ValueError("duration-s must cover all configured phases plus at least 0.2 s")
 
     if args.check_only:
         print(
@@ -342,7 +371,9 @@ def main(argv=None) -> int:
                     "check": "PASS",
                     "graph_key": graph.root_key,
                     "node_count": len(graph.body_ids),
-                    "scenarios": list(SCENARIOS),
+                    "scenarios": list(chain.scenarios),
+                    "phase_frames": list(chain.phase_frames),
+                    "duration_s": duration_s,
                 },
                 sort_keys=True,
             )
@@ -353,9 +384,6 @@ def main(argv=None) -> int:
         raise RuntimeError(
             "motion demo must run on Jetson Thor; use --check-only for config validation"
         )
-    if args.duration_s < 6.2:
-        raise ValueError("duration-s must be >= 6.2 to reach all MVP scenarios")
-
     client = RobotdClient(args.socket, timeout_s=2.0)
     observer = DemoObserver()
     started = time.monotonic()
@@ -376,7 +404,7 @@ def main(argv=None) -> int:
             publisher=adapter.send,
             control_observer=observer,
         )
-        scheduler_summary = scheduler.run(args.duration_s)
+        scheduler_summary = scheduler.run(duration_s)
     finally:
         try:
             if client.status.connected:
@@ -385,6 +413,7 @@ def main(argv=None) -> int:
             client.close()
 
     summary = observer.summary()
+    summary["phase_frames"] = list(chain.phase_frames)
     summary["elapsed_s"] = round(time.monotonic() - started, 3)
     summary["graph_key"] = graph.root_key
     summary["scheduler_exceptions"] = scheduler_summary["scheduler_exceptions"]
