@@ -19,10 +19,12 @@ from .perception_compositor import PerceptionPipeline
 from .robotd_client import RobotdClient
 from .safety_clamp import SafetyClamp, load_safety_envelope
 from .scheduler import ClosedLoopScheduler, NeuralUpdate
-from .sensory_mapping import SensoryMapper, load_sensory_mapping_config
+from .sensory_mapping import load_sensory_mapping_config
+from .target_stimulus_gain import TargetDriveSensoryMapper, load_target_stimulus_drive
 from .sparse_runtime import SparseNeuralRuntime
 from .steering_decoder import SteeringDecoder, load_steering_decoder_config
 from .watchdog import ControllerWatchdog
+from .temporal_steering import P7TemporalSteeringDecoder, load_temporal_steering_config
 
 SCENARIOS = ("neutral", "left", "right", "center", "stop")
 FRAMES_PER_SCENARIO = 30
@@ -46,7 +48,12 @@ class MvpChain:
                 for body_id in spec["body_ids"]
             )
         )
-        self.mapper = SensoryMapper(sensory_ids, sensory_config)
+        # Reuse the established bounded LC10a engineering drive; raw P4
+        # target-area amplitudes do not recruit DNa02 in graph-v2.
+        self.mapper = TargetDriveSensoryMapper(
+            sensory_ids, sensory_config,
+            load_target_stimulus_drive(root / "config" / "target_stimulus_drive_v3.json"),
+        )
         self.runtime = SparseNeuralRuntime(
             graph,
             json.loads((root / "config" / "neural_model_v1.json").read_text()),
@@ -63,10 +70,12 @@ class MvpChain:
         self.runtime_index = {
             body_id: index for index, body_id in enumerate(graph.body_ids)
         }
-        self.steering = SteeringDecoder(
-            load_steering_decoder_config(
-                root / "config" / "steering_decoder_v1.json"
-            )
+        # Reuse the existing freshness-gated bridge for sparse DNa02 bursts.
+        self.steering = P7TemporalSteeringDecoder(
+            SteeringDecoder(load_steering_decoder_config(
+                root / "config" / "steering_decoder_p7_v1.json"
+            )),
+            load_temporal_steering_config(root / "config" / "steering_temporal_p7_v1.json"),
         )
         self.escape = EscapeDecoder(
             load_escape_decoder_config(root / "config" / "escape_decoder_v1.json")
@@ -114,6 +123,7 @@ class MvpChain:
         self.neural_sequence += 1
         if frame is None:
             return None
+        self.steering.observe_frame(frame, now_ns=now_ns)
         channels = self.mapper.map_channels(frame, now_ns=now_ns)
         mapped = self.mapper.build_external(frame, now_ns=now_ns)
         external = {
@@ -177,15 +187,25 @@ class DemoObserver:
         pre_safety = trace["pre_safety_intent"]
         intent = output["intent"]
 
-        if scenario == "left" and not intent["stop"]:
+        turn_observed = (
+            not intent["stop"]
+            and output["watchdog_state"] == "healthy"
+            and transport_result == "move"
+            and float(readout["steering_left"]) != float(readout["steering_right"])
+            and float(intent["vyaw"]) * float(pre_safety["vyaw"]) > 0.0
+        )
+        if scenario == "left" and turn_observed:
             self.left_yaw.append(float(intent["vyaw"]))
-        elif scenario == "right" and not intent["stop"]:
+        elif scenario == "right" and turn_observed:
             self.right_yaw.append(float(intent["vyaw"]))
 
         neural_escape = (
             scenario == "stop"
             and bool(pre_safety["stop"])
             and float(readout["escape"]) >= 0.5
+            and bool(intent["stop"])
+            and output["watchdog_state"] == "healthy"
+            and transport_result == "robot_stop_refreshed"
         )
         self.escape_seen = self.escape_seen or neural_escape
 
@@ -210,7 +230,7 @@ class DemoObserver:
         if (
             scenario in ("left", "right")
             and scenario not in self._reported_turn
-            and not intent["stop"]
+            and turn_observed
             and abs(float(intent["vyaw"])) >= TURN_EPSILON
         ):
             self._reported_turn.add(scenario)
@@ -221,6 +241,9 @@ class DemoObserver:
                         "scenario": scenario,
                         "vyaw": round(float(intent["vyaw"]), 3),
                         "transport": transport_result,
+                        "dn": readout,
+                        "stimulus_channels": trace.get("stimulus_channels", {}),
+                        "watchdog": output["watchdog_state"],
                     },
                     sort_keys=True,
                 ),
@@ -236,6 +259,9 @@ class DemoObserver:
                         "escape": round(float(readout["escape"]), 3),
                         "robot_stop": bool(intent["stop"]),
                         "transport": transport_result,
+                        "dn": readout,
+                        "stimulus_channels": trace.get("stimulus_channels", {}),
+                        "watchdog": output["watchdog_state"],
                     },
                     sort_keys=True,
                 ),
@@ -244,7 +270,9 @@ class DemoObserver:
 
     @staticmethod
     def _peak(values: list[float]) -> float:
-        return max(values, key=abs, default=0.0)
+        # Prefer the latest equally strong command after a side transition;
+        # the beginning of the right segment may still contain left-turn slew.
+        return max(reversed(values), key=abs, default=0.0)
 
     def summary(self) -> dict:
         left_peak = self._peak(self.left_yaw)
