@@ -18,6 +18,7 @@ class TimingBatchTests(unittest.TestCase):
         cls.baseline = json.loads((ROOT / "config/p8_03_local_reference_v1_r1.json").read_text())
         cls.probe = json.loads((ROOT / "config/p8_03_timing_probe_v1.json").read_text())
         cls.ack_probe = json.loads((ROOT / "config/p8_03_timing_probe_v2.json").read_text())
+        cls.causal_probe = json.loads((ROOT / "config/p8_03_timing_probe_v3.json").read_text())
 
     def test_preregistered_ids_and_frozen_materials(self):
         rows = validate_probe_config(self.probe, self.baseline)
@@ -60,6 +61,15 @@ class TimingBatchTests(unittest.TestCase):
             changed["development_gate"]["ids"][0]["reset_id"] = rejected_id
             with self.assertRaises(ValueError):
                 validate_probe_config(changed, self.baseline)
+
+    def test_causal_probe_accepts_only_its_isolated_source_path(self):
+        rows = validate_probe_config(self.causal_probe, self.baseline)
+        self.assertEqual([row["reset_id"] for row in rows],
+                         ["CTP3-001", "CTP3-002", "CTP3-003"])
+        changed = copy.deepcopy(self.causal_probe)
+        changed["source_path"] = self.baseline["source_path"]
+        with self.assertRaisesRegex(RuntimeError, "timing probe isolation mismatch"):
+            validate_probe_config(changed, self.baseline)
 
     def test_probe_rejects_final_stage_before_file_or_sim_access(self):
         with self.assertRaisesRegex(RuntimeError, "stage D only"):

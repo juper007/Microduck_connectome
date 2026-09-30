@@ -21,15 +21,19 @@ from scripts.p8_02_r1_batch import (append_audit, atomic_json, emergency_stop,
                                     inventory, now, run_child)
 from scripts.p8_03_score import manifest_check, planned, score_batch
 from scripts.p8_03_local_reference import acquire_local_reference
+from microduck_connectome.p8_03_upstream_source import verify_reconstructed_source
 
 
 PROBE_CONFIGS = {"v1": "config/p8_03_timing_probe_v1.json",
-                 "v2": "config/p8_03_timing_probe_v2.json"}
+                 "v2": "config/p8_03_timing_probe_v2.json",
+                 "v3": "config/p8_03_timing_probe_v3.json"}
 R1_CONFIG = "config/p8_03_local_reference_v1_r1.json"
 PROBE_IDS = {"v1": ("TPR2-001", "TPR2-002", "TPR2-003"),
-             "v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003")}
+             "v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003"),
+             "v3": ("CTP3-001", "CTP3-002", "CTP3-003")}
 PROBE_TASKS = {"v1": "P8-03-R2-TIMING-ARCHITECTURE-AND-PROBE",
-               "v2": "P8-03-R2-PREARM-MOTION-ACK-REMEDIATION"}
+               "v2": "P8-03-R2-PREARM-MOTION-ACK-REMEDIATION",
+               "v3": "P8-03-R3-CAUSAL-50HZ-TIMING-PROBE"}
 
 
 def probe_config(args) -> str:
@@ -60,14 +64,36 @@ def probe_rows(config: dict) -> list[dict]:
 
 def validate_probe_config(config: dict, baseline: dict) -> list[dict]:
     rows = probe_rows(config)
+    v3 = config["schema_version"] == "p8-03-timing-probe-v3"
     allowed = {"schema_version", "task_id", "status", "state_dir", "body_port",
                "preflight_audit", "development_output", "static_output",
                "receding_output", "package_output", "development_gate",
                "release_tag", "parent_implementation_pr"}
-    require(set(config) == set(baseline), "timing probe config field set changed")
+    if v3:
+        allowed.update({"decision_pr", "decision_reviewed_head",
+                        "reference_semantic_change", "causal_pr96_head",
+                        "microduck_candidate_sha", "microduck_patch_sha256",
+                        "source_path", "microduck_path", "sim_executable"})
+        require(set(config) == set(baseline) | {
+            "causal_pr96_head", "microduck_candidate_sha", "microduck_patch_sha256"},
+            "causal timing config field set changed")
+        require(config["causal_pr96_head"] ==
+                "9fe4a2345606d993fb40511a9b06822aa4f30c91" and
+                config["microduck_candidate_sha"] ==
+                "c47085a57770c52ed4cd00d5960b17598df2d7af" and
+                config["microduck_patch_sha256"] ==
+                "828ff2619ee378d4fe49fe358944dcc9b5aa9b6583e7aef1afe43a353411655a" and
+                config["decision_pr"] == 96 and
+                config["decision_reviewed_head"] == config["causal_pr96_head"] and
+                config["reference_semantic_change"] is False and
+                config["parent_implementation_pr"] == 96,
+                "causal timing provenance mismatch")
+    else:
+        require(set(config) == set(baseline), "timing probe config field set changed")
     for key in set(config) - allowed:
         require(config[key] == baseline[key], f"frozen probe material changed: {key}")
     require(config["body_port"] != baseline["body_port"] and
+            (not v3 or config["source_path"] != baseline["source_path"]) and
             config["state_dir"] != baseline["state_dir"] and
             config["package_output"] != baseline["package_output"] and
             config["development_output"] != baseline["development_output"] and
@@ -208,9 +234,17 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
         require(args.microduck.resolve() == Path(config["microduck_path"]).resolve() and
                 args.microduck_rl.resolve() == Path(config["microduck_rl_path"]).resolve(),
                 "upstream operator path mismatch")
-        require(git_head(args.microduck) == config["microduck_commit"] and
-                git_head(args.microduck_rl) == config["microduck_rl_commit"],
-                "upstream commit mismatch")
+        causal_v3 = timing_probe and getattr(args, "timing_probe_version", "v1") == "v3"
+        require(git_head(args.microduck_rl) == config["microduck_rl_commit"],
+                "MicroDuck RL commit mismatch")
+        if causal_v3:
+            upstream_identity = verify_reconstructed_source(
+                args.microduck,
+                root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch",
+                run_tests=True)
+        else:
+            require(git_head(args.microduck) == config["microduck_commit"],
+                    "upstream MicroDuck commit mismatch")
         require(args.graph.resolve() == Path(config["graph_path"]).resolve() and
                 sha(args.graph) == config["graph_sha256"], "graph path/hash mismatch")
         require(args.policy.resolve() == Path(config["walking_policy_path"]).resolve() and
@@ -252,10 +286,16 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
                 config["receding_max_negative_frame_step_m"] ==
                 abs(controls["receding_min_increment_tolerance_m"]),
                 "P8-V2 moving/geometry contract changed")
-        for rel in (config_rel, "config/p8_v2_final_protocol_v1.json",
-                    "scripts/p8_03_batch.py", "scripts/p8_03_trial.py", "scripts/p8_03_score.py",
-                    "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
-                    "microduck_connectome/p8_03_geometry.py"):
+        source_files = [config_rel, "config/p8_v2_final_protocol_v1.json",
+                        "scripts/p8_03_batch.py", "scripts/p8_03_trial.py", "scripts/p8_03_score.py",
+                        "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
+                        "microduck_connectome/p8_03_geometry.py"]
+        if timing_probe and getattr(args, "timing_probe_version", "v1") == "v3":
+            source_files.extend(("scripts/p8_03_timing_score.py",
+                                 "scripts/p8_02_r1_trial.py",
+                                 "microduck_connectome/p8_03_causal_timing.py",
+                                 "microduck_connectome/robotd_diagnostic.py"))
+        for rel in source_files:
             require((root / rel).read_bytes() == subprocess.check_output(
                 ["git", "-C", str(root), "show", f"HEAD:{rel}"]),
                 f"uncommitted source bytes: {rel}")
@@ -296,6 +336,18 @@ def preflight(args) -> tuple[dict, dict, list[dict], dict]:
         record["checks"] = ["clean_reviewed_source", "committed_source_bytes", "upstream_heads",
                             "graph_policy_hash", "fixed_matrix", "unused_output", "port_state_probe"]
         record["hashes"].update({"graph": sha(args.graph), "policy": sha(args.policy)})
+        if timing_probe and getattr(args, "timing_probe_version", "v1") == "v3":
+            record["provenance"] = {
+                "connectome_source_head": args.reviewed_head,
+                "origin_main_base": config["fetched_origin_main_base"],
+                "microduck_original_sha": config["microduck_commit"],
+                "microduck_candidate_sha": config["microduck_candidate_sha"],
+                "microduck_patch_sha256": config["microduck_patch_sha256"],
+                "graph_sha256": config["graph_sha256"],
+                "policy_sha256": config["walking_policy_sha256"],
+                "config_sha256": sha(config_path),
+                "simulator_rng_seeded": False}
+            record["provenance"].update(upstream_identity)
         record["result"] = "PASS"
         return master, config, rows, record
     except BaseException as error:
@@ -330,6 +382,7 @@ def run(args) -> dict:
                 "PATH": str(args.microduck.parent / "rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin")
                         + os.pathsep + env["PATH"]})
     interrupted = False
+    stop_remaining = False
     error = None
     try:
         for index, row in enumerate(rows):
@@ -437,8 +490,17 @@ def run(args) -> dict:
                 else:
                     item["status"] = "ARMED_COMPLETE" if attempt["armed"] else "PREARM_UNCLASSIFIED"
                 checkpoint(output, journal)
+                if (timing_probe and getattr(args, "timing_probe_version", "v1") == "v3"
+                        and item["status"] == "ARMED_COMPLETE"):
+                    from scripts.p8_03_timing_score import _score_trial
+                    provisional = _score_trial(folder, row, config)
+                    atomic_json(folder / "provisional-timing-score.json", provisional)
+                    if provisional["result"] != "PASS":
+                        item["status"] = "TIMING_FAIL"
+                        stop_remaining = True
+                        checkpoint(output, journal)
                 break
-            if interrupted or item["status"] != "ARMED_COMPLETE":
+            if interrupted or stop_remaining or item["status"] != "ARMED_COMPLETE":
                 break
     except BaseException as exc:
         interrupted = True
