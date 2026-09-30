@@ -235,3 +235,24 @@ def test_writer_fsync_failure_fails_closed(tmp_path, monkeypatch):
     with pytest.raises(RobotdProtocolError, match="diagnostic stream"):
         recorder.start()
     assert recorder._error is not None
+
+
+def test_quiet_reader_cannot_hide_overdue_checkpoint(tmp_path, monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+    import microduck_connectome.robotd_diagnostic as recorder_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000,
+                        raising=False)
+    real_fsync = os.fsync
+    def delayed_fsync(fd):
+        time.sleep(.12)
+        real_fsync(fd)
+    monkeypatch.setattr(recorder_module.os, "fsync", delayed_fsync)
+    recorder = RobotdDiagnosticRecorder(
+        RobotdClient("/test", timeout_s=.5, connector=lambda *_: BlockingStream()),
+        tmp_path / "overdue.jsonl",
+    )
+    with pytest.raises(RobotdProtocolError, match="checkpoint overdue"):
+        recorder.start()
+    assert recorder._error is not None

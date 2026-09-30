@@ -869,11 +869,29 @@ def run(args) -> int:
         if timing_motion is not None:
             arm_pose_anchor = None
             arm_motion_confirmation = None
-            def final_arm_check():
-                nonlocal arm_pose_anchor, arm_motion_confirmation
-                now_ns = time.monotonic_ns()
+            release_snapshot = None
+            def validate_arm_freshness(snap, now_ns):
                 if causal_v3:
                     diagnostic.assert_healthy()
+                confirmation = recent_moving_pose(snap["rows"], now_ns)
+                if (snap["fault_reason"] is not None or
+                        snap["last_move_ack_ns"] is None or
+                        now_ns - snap["last_move_ack_ns"] > 40_000_000 or
+                        now_ns - fresh_state_ns > 100_000_000 or
+                        confirmation is None or
+                        arm_pose_anchor is None or
+                        now_ns - arm_pose_anchor["source_timestamp_ns"] > 100_000_000 or
+                        now_ns - health_prearm_ns >
+                        execution["settled_gate"]["max_prearm_health_age_ms"] * 1e6):
+                    raise RuntimeError("prearm movement or health stale at release")
+                return confirmation
+            def final_arm_check():
+                nonlocal arm_pose_anchor, arm_motion_confirmation, release_snapshot
+                if causal_v3:
+                    diagnostic.assert_healthy()
+                    diagnostic_rows = diagnostic.durable_rows()
+                else:
+                    diagnostic_rows = None
                 snap = timing_motion.snapshot()
                 if causal_v3:
                     latest_poses = [
@@ -881,26 +899,21 @@ def run(args) -> int:
                          "request_ns": row["value"]["request_ns"],
                          "x_m": row["value"]["pose"]["x_m"],
                          "y_m": row["value"]["pose"]["y_m"],
-                         "raw_body_packet": row["value"]["raw_body_packet"]}
+                        "raw_body_packet": row["value"]["raw_body_packet"]}
                         for row in snap["rows"] if row["kind"] == "pose_observation"]
+                    now_ns = time.monotonic_ns()
                     evaluate_causal_arm(
                         args.timing_ledger.with_name("diagnostic.jsonl"), latest_poses,
                         pre_move_tick=pre_move_tick, arm_ns=now_ns,
-                        gate=move_gate, durable_rows=diagnostic.durable_rows())
-                arm_motion_confirmation = recent_moving_pose(snap["rows"], now_ns)
+                        gate=move_gate, durable_rows=diagnostic_rows)
                 poses_at_arm = [row for row in snap["rows"]
                                 if row["kind"] == "pose_observation"]
                 arm_pose_anchor = poses_at_arm[-1] if poses_at_arm else None
-                if (snap["fault_reason"] is not None or
-                        snap["last_move_ack_ns"] is None or
-                        now_ns - snap["last_move_ack_ns"] > 40_000_000 or
-                        now_ns - fresh_state_ns > 100_000_000 or
-                        arm_motion_confirmation is None or
-                        arm_pose_anchor is None or
-                        now_ns - arm_pose_anchor["source_timestamp_ns"] > 100_000_000 or
-                        now_ns - health_prearm_ns >
-                        execution["settled_gate"]["max_prearm_health_age_ms"] * 1e6):
-                    raise RuntimeError("prearm movement or health stale at release")
+                release_snapshot = snap
+                arm_motion_confirmation = validate_arm_freshness(
+                    snap, time.monotonic_ns())
+            def final_arm_freshness(now_ns):
+                validate_arm_freshness(release_snapshot, now_ns)
             def align_fixture_to_arm(actual_arm_ns):
                 # Pre-arm priming must not advance the receding geometry clock.
                 # The latest independently observed moving pose is the arm
@@ -917,7 +930,8 @@ def run(args) -> int:
                                "moving_confirmed_ns": arm_motion_confirmation["confirmed_ns"],
                                "latest_pose_speed_mps": arm_motion_confirmation[
                                    "latest_speed_mps"]})
-            arm_ns = timing_motion.release_arm(final_arm_check, align_fixture_to_arm)
+            arm_ns = timing_motion.release_arm(
+                final_arm_check, align_fixture_to_arm, final_arm_freshness)
         else:
             arm_ns = time.monotonic_ns()
         jsonl_write(args.progress, [{"state": "NEURAL_OBSERVATION_ARMED",

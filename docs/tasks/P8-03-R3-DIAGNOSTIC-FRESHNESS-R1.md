@@ -120,6 +120,9 @@ durable barriers before their callers proceed. A successful probe drains and
 fsyncs every row on close. Abnormal termination may lose the bounded
 uncommitted suffix; only the fsynced prefix is recoverable, and incomplete
 evidence is FAIL. The writer does not silently drop or coalesce frames.
+Each barrier checks elapsed time while waiting and at completion, so a
+quiet reader cannot hide an overdue fsync. The final ARM gate checks ACK,
+state, pose, and health freshness again immediately before release.
 
 This contract measures a queue limit and fail-closed detection boundary.
 No software can guarantee a 100 ms fsync completion if storage hangs. Such

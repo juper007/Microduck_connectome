@@ -379,7 +379,8 @@ class MotionTimingCoordinator:
             self._arm_ns = arm_ns
 
     def release_arm(self, prepare_callback: Callable[[], None],
-                    at_arm: Callable[[int], None] | None = None) -> int:
+                    at_arm: Callable[[int], None] | None = None,
+                    final_check: Callable[[int], None] | None = None) -> int:
         """Atomically validate and release arm between genuine move RPCs.
 
         The caller must persist the durable ARMED marker first. A slow
@@ -395,6 +396,8 @@ class MotionTimingCoordinator:
                 arm_ns = self.clock_ns()
                 if at_arm is not None:
                     at_arm(arm_ns)
+                if final_check is not None:
+                    final_check(self.clock_ns())
                 self.gate.release(arm_ns)
                 return arm_ns
             except BaseException as error:

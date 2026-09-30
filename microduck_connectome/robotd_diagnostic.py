@@ -184,10 +184,17 @@ class RobotdDiagnosticRecorder:
         """Durably fence all records enqueued before this call."""
         done = threading.Event()
         self._enqueue({"kind": "diagnostic.checkpoint"}, done=done)
+        started_ns = time.monotonic_ns()
         while not done.wait(0.01):
-            if self._error is not None or self._writer_thread is None or not self._writer_thread.is_alive():
-                self.assert_healthy()
+            self.assert_healthy()
+            self._require_checkpoint_deadline(started_ns)
+        self._require_checkpoint_deadline(started_ns)
         self.assert_healthy()
+
+    def _require_checkpoint_deadline(self, started_ns: int) -> None:
+        if time.monotonic_ns() - started_ns > self.MAX_UNCOMMITTED_NS:
+            self._error = RobotdProtocolError("diagnostic evidence checkpoint overdue")
+            raise self._error
 
     def durable_rows(self) -> list[dict[str, Any]]:
         """Return only a fully fsynced, complete JSONL prefix."""
@@ -203,8 +210,11 @@ class RobotdDiagnosticRecorder:
     def _sync_record(self, record: dict[str, Any]) -> None:
         done = threading.Event()
         self._enqueue(record, done=done)
+        started_ns = time.monotonic_ns()
         while not done.wait(0.01):
             self.assert_healthy()
+            self._require_checkpoint_deadline(started_ns)
+        self._require_checkpoint_deadline(started_ns)
         self.assert_healthy()
 
     def _fsync(self) -> tuple[int, int]:
