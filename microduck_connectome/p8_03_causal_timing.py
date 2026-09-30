@@ -24,14 +24,16 @@ def _uint(value, name):
 
 
 def evaluate_causal_arm(path: Path, poses: list[dict], *, pre_move_tick: int,
-                        arm_ns: int, gate: dict, scored_end_ns: int | None = None) -> dict:
+                        arm_ns: int, gate: dict, scored_end_ns: int | None = None,
+                        durable_rows: list[dict] | None = None) -> dict:
     """Validate causal acquisition and optionally the scored state stream."""
     _uint(pre_move_tick, "pre-move tick")
     _uint(arm_ns, "arm timestamp")
     if scored_end_ns is not None and scored_end_ns != arm_ns + 1_000_000_000:
         raise CausalTimingError("scored window must be exactly 1000 ms")
-    rows = [json.loads(line) for line in Path(path).read_text().splitlines()
-            if line.strip()]
+    rows = (durable_rows if durable_rows is not None else
+            [json.loads(line) for line in Path(path).read_text().splitlines()
+             if line.strip()])
     if any(row.get("kind") == "diagnostic.failure" for row in rows):
         raise CausalTimingError("diagnostic stream failed")
     requests, acks, states = {}, {}, []
@@ -71,7 +73,7 @@ def evaluate_causal_arm(path: Path, poses: list[dict], *, pre_move_tick: int,
             received = _uint(row.get("received_at_ns"), "state receive time")
             if (previous_tick is not None and tick != previous_tick + 1 or
                     previous_generation is not None and generation < previous_generation or
-                    previous_source is not None and source <= previous_source or
+                    previous_source is not None and source < previous_source or
                     source == 0 or received < source or
                     received - source > gate["maximum_state_age_ms"] * 1e6):
                 raise CausalTimingError("tick, generation, or source freshness gap")

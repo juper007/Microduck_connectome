@@ -33,6 +33,16 @@ def test_causal_arm_uses_first_consumed_generation_and_qualified_pose(tmp_path):
     assert proof["prearm_command_count"] >= 75
 
 
+def test_fresh_coasted_source_time_is_valid_but_stale_coast_fails(tmp_path):
+    rows, poses = fixture()
+    states = [row for row in rows if row["kind"] == "robot.state"]
+    states[2]["state"]["t_ns"] = states[1]["state"]["t_ns"]
+    assert check(tmp_path, rows, poses)["result"] == "PASS"
+    states[2]["received_at_ns"] = states[2]["state"]["t_ns"] + 100_000_001
+    with pytest.raises(CausalTimingError, match="freshness"):
+        check(tmp_path, rows, poses)
+
+
 @pytest.mark.parametrize("change,reason", [
     ("deadman", "deadman"), ("tick_gap", "tick"),
     ("generation_regression", "generation"), ("stopped_body", "moving"),

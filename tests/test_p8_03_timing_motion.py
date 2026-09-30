@@ -271,6 +271,25 @@ class MotionTimingTests(unittest.TestCase):
         finally:
             coordinator.stop()
 
+    def test_final_freshness_check_runs_after_arm_alignment(self):
+        coordinator, clock, gate, _, faults = self.make_coordinator()
+        try:
+            coordinator.start()
+            self.assertTrue(coordinator.wait_ready(.5))
+            before = clock.now()
+            def delayed_alignment(_arm_ns):
+                clock.advance(100_000_000)
+            def check_release(now_ns):
+                if now_ns - before > 40_000_000:
+                    raise RuntimeError("prearm evidence stale at release")
+            with self.assertRaisesRegex(RuntimeError, "stale at release"):
+                coordinator.release_arm(lambda: None, delayed_alignment, check_release)
+            self.assertTrue(gate.aborted)
+            self.assertIsNone(gate.arm_ns)
+            self.assertTrue(faults[0].startswith("arm_prepare_failed"))
+        finally:
+            coordinator.stop()
+
     def test_late_ack_has_durable_start_end_and_failed_attempt_row(self):
         clock = ManualClock()
         gate = Gate()

@@ -1,4 +1,6 @@
 import json
+import os
+from contextlib import suppress
 import threading
 import time
 
@@ -108,7 +110,8 @@ def test_diagnostic_recorder_fails_closed_on_gap(tmp_path, monkeypatch):
         with pytest.raises(RobotdProtocolError, match="diagnostic stream"):
             recorder.assert_healthy()
     finally:
-        recorder.close()
+        with suppress(RobotdProtocolError):
+            recorder.close()
     rows = [json.loads(line) for line in (tmp_path / "gap.jsonl").read_text().splitlines()]
     assert [row["state"]["control_tick_sequence"] for row in rows
             if row["kind"] == "robot.state"] == [1, 3]
@@ -133,7 +136,8 @@ def test_malformed_delivered_state_keeps_raw_evidence(tmp_path, monkeypatch):
         with pytest.raises(RobotdProtocolError, match="diagnostic stream"):
             recorder.assert_healthy()
     finally:
-        recorder.close()
+        with suppress(RobotdProtocolError):
+            recorder.close()
     rows = [json.loads(line) for line in (tmp_path / "malformed.jsonl").read_text().splitlines()]
     assert len([row for row in rows if row["kind"] == "robotd.wire"]) == 2
     assert len([row for row in rows if row["kind"] == "robot.state"]) == 1
@@ -165,3 +169,90 @@ def test_recorder_retains_deadman_tick_followed_by_clean_applied_motion(tmp_path
     assert states[1]["policy"] == "walk"
     assert states[1]["move"]["limited_by"] == []
     assert states[1]["move"]["applied"][0] > 0.0
+
+
+def test_slow_fsync_does_not_block_state_reader(tmp_path, monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+    import microduck_connectome.robotd_diagnostic as recorder_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000,
+                        raising=False)
+    entered, release = threading.Event(), threading.Event()
+    real_fsync = os.fsync
+
+    def slow_fsync(fd):
+        entered.set()
+        assert release.wait(1)
+        real_fsync(fd)
+
+    monkeypatch.setattr(recorder_module.os, "fsync", slow_fsync)
+    recorder = RobotdDiagnosticRecorder(
+        RobotdClient("/test", timeout_s=0.5, connector=lambda *_: BlockingStream()),
+        tmp_path / "slow.jsonl",
+    )
+    outcome = []
+    starter = threading.Thread(target=lambda: outcome.append(recorder.start()))
+    starter.start()
+    assert entered.wait(1)
+    deadline = time.monotonic() + .5
+    while recorder.enqueued_records < 4 and time.monotonic() < deadline:
+        time.sleep(.001)
+    assert recorder.enqueued_records >= 4  # both raw and parsed frames before fsync
+    release.set()
+    starter.join(1)
+    assert not starter.is_alive()
+    recorder.close()
+    rows = [json.loads(line) for line in (tmp_path / "slow.jsonl").read_text().splitlines()]
+    assert [r["state"]["control_tick_sequence"] for r in rows
+            if r["kind"] == "robot.state"] == [1, 2]
+    assert recorder.enqueued_records == recorder.written_records == recorder.synced_records
+
+
+def test_bounded_queue_overflow_fails_closed(tmp_path):
+    recorder = RobotdDiagnosticRecorder(RobotdClient("/test"), tmp_path / "overflow.jsonl")
+    recorder._queue = __import__("queue").Queue(maxsize=1)
+    recorder.assert_healthy = lambda: None
+    recorder._enqueue({"kind": "robotd.wire", "wire_bytes": b"first"})
+    with pytest.raises(RobotdProtocolError, match="queue overflow"):
+        recorder._enqueue({"kind": "robotd.wire", "wire_bytes": b"second"})
+    assert recorder._error is not None
+
+
+def test_writer_fsync_failure_fails_closed(tmp_path, monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+    import microduck_connectome.robotd_diagnostic as recorder_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000,
+                        raising=False)
+    monkeypatch.setattr(recorder_module.os, "fsync",
+                        lambda _: (_ for _ in ()).throw(OSError("fsync failure")))
+    recorder = RobotdDiagnosticRecorder(
+        RobotdClient("/test", timeout_s=.5, connector=lambda *_: BlockingStream()),
+        tmp_path / "writer-failure.jsonl",
+    )
+    with pytest.raises(RobotdProtocolError, match="diagnostic stream"):
+        recorder.start()
+    assert recorder._error is not None
+
+
+def test_quiet_reader_cannot_hide_overdue_checkpoint(tmp_path, monkeypatch):
+    import microduck_connectome.robotd_client as client_module
+    import microduck_connectome.robotd_diagnostic as recorder_module
+
+    monkeypatch.setattr(client_module.time, "CLOCK_MONOTONIC", 1, raising=False)
+    monkeypatch.setattr(client_module.time, "clock_gettime_ns", lambda _: 1_300_000_000,
+                        raising=False)
+    real_fsync = os.fsync
+    def delayed_fsync(fd):
+        time.sleep(.12)
+        real_fsync(fd)
+    monkeypatch.setattr(recorder_module.os, "fsync", delayed_fsync)
+    recorder = RobotdDiagnosticRecorder(
+        RobotdClient("/test", timeout_s=.5, connector=lambda *_: BlockingStream()),
+        tmp_path / "overdue.jsonl",
+    )
+    with pytest.raises(RobotdProtocolError, match="checkpoint overdue"):
+        recorder.start()
+    assert recorder._error is not None
