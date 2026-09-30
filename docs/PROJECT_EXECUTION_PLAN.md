@@ -66,6 +66,30 @@ Owns environment, configuration, CI, deterministic seeds, artifact logging, and 
 
 ---
 
+## MVP fast path — interactive motion demo
+
+The research plan below remains authoritative for scientific validation, but development now has a deliberately smaller vertical slice for fast iteration.
+
+**MVP objective:** visibly drive MicroDuck in MuJoCo using the real MaleCNS-derived controller path:
+
+```text
+Perception → SensoryMapper → MaleCNS graph/runtime → DNa02/DNp01
+           → steering/escape → safety/watchdog → robotd → RL motion
+```
+
+**MVP gate:**
+
+- left and right visual targets produce non-zero opposite yaw responses,
+- looming produces a DNp01-derived escape/stop,
+- robot-facing output still passes through the existing SafetyClamp, ControllerWatchdog, RobotMotionAdapter, and official `robotd`,
+- the result is observable in MuJoCo and terminal telemetry.
+
+The MVP gate intentionally excludes shuffled/random baselines, statistical trial counts, Wilson intervals, evidence manifests, nanosecond causality attribution, and P8 completion claims. Those remain in the research-validation phases and are not weakened by an MVP PASS.
+
+See `docs/CONNECTOME_MOTION_MVP.md`.
+
+---
+
 # 4. Phase plan
 
 ## Phase 0 — Scope, repository, and reproducible environment
