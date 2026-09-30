@@ -6,6 +6,9 @@ import pytest
 
 from microduck_connectome.p8_03_causal_timing import (
     CausalTimingError, evaluate_causal_arm)
+from scripts.p8_03_timing_score import (
+    _body_motion_continuous, _distinct_visual_slots,
+    _scored_generations_consumed)
 from test_p8_03_causal_precondition_v2 import START, GATE, fixture
 
 
@@ -98,3 +101,34 @@ def test_scored_gap_and_missing_barrier_fail(tmp_path):
     rows.remove(states[-10])
     with pytest.raises(CausalTimingError, match="tick"):
         check(tmp_path, rows, poses, end=ARM + 1_000_000_000)
+
+
+def test_visual_frames_must_occupy_each_distinct_slot():
+    frames = [{"timestamp_ns": ARM + i * 50_000_000} for i in range(20)]
+    assert _distinct_visual_slots(frames, ARM)
+    frames[1]["timestamp_ns"] = frames[0]["timestamp_ns"] + 1
+    assert not _distinct_visual_slots(frames, ARM)
+
+
+def test_each_scored_ack_generation_requires_scored_state_consumption():
+    motion = [{"result": {"accepted_move_generation": i + 1},
+               "move_ack_ns": ARM + i * 20_000_000} for i in range(50)]
+    rows = [{"kind": "robot.move.ack", "received_at_ns": row["move_ack_ns"],
+             "wire": json.dumps({"result": row["result"]})}
+            for row in motion]
+    rows.extend({"kind": "robot.state",
+                 "state": {"t_ns": row["move_ack_ns"] + 1,
+                           "consumed_move_generation": row["result"]["accepted_move_generation"]}}
+                for row in motion)
+    assert _scored_generations_consumed(motion, rows, ARM, ARM + 1_000_000_000)
+    rows[-1]["state"]["consumed_move_generation"] = 49
+    assert not _scored_generations_consumed(motion, rows, ARM, ARM + 1_000_000_000)
+
+
+def test_causal_body_continuity_rejects_one_stopped_interval():
+    poses = [(ARM + i * 20_000_000, i * .001, 0.) for i in range(50)]
+    gate = {"minimum_pose_speed_mps": .02,
+            "minimum_trunk_displacement_m": .01}
+    assert _body_motion_continuous(poses, gate, causal=True)
+    poses[25] = (poses[25][0], poses[24][1], 0.)
+    assert not _body_motion_continuous(poses, gate, causal=True)

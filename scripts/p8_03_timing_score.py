@@ -66,6 +66,53 @@ def _stream(rows: list[dict], start: int, end: int) -> dict:
                               default=None)}
 
 
+def _distinct_visual_slots(rows: list[dict], arm_ns: int) -> bool:
+    """Require one genuine output in every half-open 50 ms visual slot."""
+    if len(rows) != 20:
+        return False
+    slots = [(row.get("timestamp_ns") - arm_ns) // VISUAL_PERIOD_NS
+             for row in rows if type(row.get("timestamp_ns")) is int and
+             arm_ns <= row["timestamp_ns"] < arm_ns + WINDOW_NS]
+    return len(slots) == 20 and set(slots) == set(range(20))
+
+
+def _scored_generations_consumed(motion: list[dict], diagnostic_rows: list[dict],
+                                 start: int, end: int) -> bool:
+    accepted = {}
+    for row in diagnostic_rows:
+        if row.get("kind") == "robot.move.ack":
+            response = json.loads(row["wire"])
+            accepted[response["result"]["accepted_move_generation"]] = row["received_at_ns"]
+    generations = [row["result"]["accepted_move_generation"] for row in motion]
+    consumed = {row["state"]["consumed_move_generation"] for row in diagnostic_rows
+                if row.get("kind") == "robot.state" and
+                start <= row["state"]["t_ns"] < end}
+    return (len(generations) == 50 and len(set(generations)) == 50 and
+            all(accepted.get(generation) == row["move_ack_ns"]
+                for generation, row in zip(generations, motion)) and
+            set(generations) <= consumed)
+
+
+def _body_motion_continuous(poses: list[tuple[int, float, float]],
+                            moving_gate: dict, *, causal: bool) -> bool:
+    if len(poses) < 40:
+        return False
+    poses = sorted(poses)
+    displacement = math.hypot(poses[-1][1] - poses[0][1],
+                              poses[-1][2] - poses[0][2])
+    speeds = [math.hypot(b[1] - a[1], b[2] - a[2]) / ((b[0] - a[0]) / 1e9)
+              for a, b in zip(poses, poses[1:]) if b[0] > a[0]]
+    minimum_speed = moving_gate["minimum_pose_speed_mps"]
+    if causal:
+        return (len(speeds) == len(poses) - 1 and
+                displacement >= moving_gate["minimum_trunk_displacement_m"] and
+                all(speed >= minimum_speed for speed in speeds))
+    return (len(speeds) >= 39 and
+            displacement >= moving_gate["minimum_trunk_displacement_m"] and
+            sum(speed >= minimum_speed for speed in speeds) >= math.ceil(.8 * len(speeds)) and
+            all(speed >= minimum_speed for speed in speeds[-2:]))
+
+
 def _slots(rows: list[dict], *, domain: str, arm_ns: int, count: int,
            period_ns: int, errors: list[str]) -> list[dict]:
     selected = [row for row in rows if row.get("kind") == "scheduled_tick"
@@ -554,6 +601,9 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                      and type(row.get("timestamp_ns")) is int and start <= row["timestamp_ns"] < end]
     if len(visual) != 20 or len(visual_events) != 20 or len({row.get("frame_id") for row in visual}) != 20:
         errors.append("visual_frames_incomplete_or_duplicate")
+    if v3 and (not _distinct_visual_slots(visual, start) or
+               not _distinct_visual_slots(visual_events, start)):
+        errors.append("visual_slots_missing_or_duplicate")
     if (visual and (visual[0]["timestamp_ns"] - start > VISUAL_PERIOD_NS or
                     end - visual[-1]["timestamp_ns"] > 100_000_000)):
         errors.append("visual_boundary_gap")
@@ -686,16 +736,8 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     if v3 and (folder / "diagnostic.jsonl").is_file():
         try:
             diagnostic_rows = _read_jsonl(folder / "diagnostic.jsonl")
-            accepted = {}
-            for row in diagnostic_rows:
-                if row.get("kind") == "robot.move.ack":
-                    response = json.loads(row["wire"])
-                    result_wire = response["result"]
-                    accepted[result_wire["accepted_move_generation"]] = row["received_at_ns"]
             scored_generations = [row["result"]["accepted_move_generation"] for row in motion]
-            if (len(set(scored_generations)) != 50 or
-                    any(accepted.get(row["result"]["accepted_move_generation"]) !=
-                        row["move_ack_ns"] for row in motion)):
+            if not _scored_generations_consumed(motion, diagnostic_rows, start, end):
                 errors.append("scored_move_generation_ack_lineage_invalid")
             result["scored_move_generations"] = scored_generations
         except (KeyError, TypeError, ValueError, IndexError):
@@ -779,16 +821,7 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
             break
         poses.append((row["timestamp_ns"], pose["x_m"], pose["y_m"]))
     if len(poses) >= 40:
-        poses.sort()
-        displacement = math.hypot(poses[-1][1] - poses[0][1],
-                                  poses[-1][2] - poses[0][2])
-        speeds = [math.hypot(b[1] - a[1], b[2] - a[2]) / ((b[0] - a[0]) / 1e9)
-                  for a, b in zip(poses, poses[1:]) if b[0] > a[0]]
-        if (len(speeds) < 39 or displacement < config["moving_gate"]["minimum_trunk_displacement_m"]
-                or sum(speed >= config["moving_gate"]["minimum_pose_speed_mps"]
-                       for speed in speeds) < math.ceil(.8 * len(speeds)) or
-                any(speed < config["moving_gate"]["minimum_pose_speed_mps"]
-                    for speed in speeds[-2:])):
+        if not _body_motion_continuous(poses, config["moving_gate"], causal=v3):
             errors.append("body_motion_not_continuous")
     metrics = {"visual": _stream(visual_events, start, end),
                "neural": _stream(neural_events, start, end),
