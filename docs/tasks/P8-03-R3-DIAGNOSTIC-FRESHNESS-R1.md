@@ -107,6 +107,9 @@ Every delivered wire is enqueued; every parsed frame retains
 `reader_observed_ns`. A stale frame is retained and fails immediately.
 Coasted equal `t_ns` is allowed only while its source age remains at most
 100 ms; tick gaps, generation regressions, and source time regressions fail.
+The live causal evaluator and offline scorer apply the same coast rule.
+Every live gate reads a checkpointed, complete durable prefix; the reader
+continues consuming states while a gate waits for that checkpoint.
 
 The queue has 256 slots; one writer preserves enqueue order. It checkpoints
 at 16 records or 20 ms. At most 272 records (256 queued plus up to 16 written)

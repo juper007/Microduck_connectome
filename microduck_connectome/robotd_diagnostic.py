@@ -48,6 +48,7 @@ class RobotdDiagnosticRecorder:
         self.enqueued_records = 0
         self.written_records = 0
         self.synced_records = 0
+        self._synced_bytes = 0
         self.writer_timings_ns: list[dict[str, int]] = []
         self.callback_durations_ns: list[int] = []
 
@@ -188,6 +189,17 @@ class RobotdDiagnosticRecorder:
                 self.assert_healthy()
         self.assert_healthy()
 
+    def durable_rows(self) -> list[dict[str, Any]]:
+        """Return only a fully fsynced, complete JSONL prefix."""
+        self.checkpoint()
+        with self._progress_lock:
+            end = self._synced_bytes
+        with self.path.open("rb") as source:
+            data = source.read(end)
+        if not data.endswith(b"\n"):
+            raise RobotdProtocolError("diagnostic durable prefix is incomplete")
+        return [json.loads(line) for line in data.splitlines()]
+
     def _sync_record(self, record: dict[str, Any]) -> None:
         done = threading.Event()
         self._enqueue(record, done=done)
@@ -203,6 +215,7 @@ class RobotdDiagnosticRecorder:
         os.fsync(self._file.fileno())
         with self._progress_lock:
             self.synced_records = self.written_records
+            self._synced_bytes = self._file.tell()
             while self._uncommitted and self._uncommitted[0][0] <= self.synced_records:
                 self._uncommitted.popleft()
         return flush_end - flush_start, time.monotonic_ns() - flush_end

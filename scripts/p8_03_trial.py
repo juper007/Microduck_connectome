@@ -488,9 +488,7 @@ def run(args) -> int:
         causal_v3 = getattr(args, "timing_probe_version", "v1") == "v3"
         if causal_v3:
             diagnostic.assert_healthy()
-            diagnostic.checkpoint()
-            raw_diagnostic = [json.loads(line) for line in
-                              args.timing_ledger.with_name("diagnostic.jsonl").read_text().splitlines()]
+            raw_diagnostic = diagnostic.durable_rows()
             pre_move_tick = max(row["state"]["control_tick_sequence"] for row in
                                 raw_diagnostic if row.get("kind") == "robot.state")
             motion_journal = DurableMotionJournal(
@@ -562,7 +560,7 @@ def run(args) -> int:
             causal_precondition = evaluate_causal_arm(
                 args.timing_ledger.with_name("diagnostic.jsonl"), poses,
                 pre_move_tick=pre_move_tick, arm_ns=time.monotonic_ns(),
-                gate=move_gate)
+                gate=move_gate, durable_rows=diagnostic.durable_rows())
             precondition_rows[-1]["applied_velocity"] = [
                 causal_precondition["endpoint_applied_vx_mps"], 0.0, 0.0]
             json_write(args.timing_ledger.with_name("causal-precondition.json"),
@@ -856,7 +854,7 @@ def run(args) -> int:
             causal_precondition = evaluate_causal_arm(
                 args.timing_ledger.with_name("diagnostic.jsonl"), final_prearm_poses,
                 pre_move_tick=pre_move_tick, arm_ns=candidate_arm_ns,
-                gate=move_gate)
+                gate=move_gate, durable_rows=diagnostic.durable_rows())
             json_write(args.timing_ledger.with_name("causal-precondition.json"),
                        causal_precondition)
         marker = {"schema_version": "p8-03-local-arm-v1",
@@ -888,7 +886,7 @@ def run(args) -> int:
                     evaluate_causal_arm(
                         args.timing_ledger.with_name("diagnostic.jsonl"), latest_poses,
                         pre_move_tick=pre_move_tick, arm_ns=now_ns,
-                        gate=move_gate)
+                        gate=move_gate, durable_rows=diagnostic.durable_rows())
                 arm_motion_confirmation = recent_moving_pose(snap["rows"], now_ns)
                 poses_at_arm = [row for row in snap["rows"]
                                 if row["kind"] == "pose_observation"]
@@ -1045,10 +1043,7 @@ def run(args) -> int:
                     barrier_deadline = time.monotonic() + .2
                     while time.monotonic() < barrier_deadline:
                         diagnostic.assert_healthy()
-                        diagnostic_rows = [
-                            json.loads(line) for line in
-                            args.timing_ledger.with_name("diagnostic.jsonl").read_text().splitlines()
-                            if line.strip()]
+                        diagnostic_rows = diagnostic.durable_rows()
                         if any(row.get("kind") == "robot.state" and
                                row["state"].get("t_ns", 0) >= arm_ns + 1_000_000_000
                                for row in diagnostic_rows):
