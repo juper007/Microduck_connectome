@@ -73,7 +73,7 @@ def validate_probe_config(config: dict, baseline: dict) -> list[dict]:
         allowed.update({"decision_pr", "decision_reviewed_head",
                         "reference_semantic_change", "causal_pr96_head",
                         "microduck_candidate_sha", "microduck_patch_sha256",
-                        "microduck_path", "sim_executable"})
+                        "source_path", "microduck_path", "sim_executable"})
         require(set(config) == set(baseline) | {
             "causal_pr96_head", "microduck_candidate_sha", "microduck_patch_sha256"},
             "causal timing config field set changed")
@@ -93,6 +93,7 @@ def validate_probe_config(config: dict, baseline: dict) -> list[dict]:
     for key in set(config) - allowed:
         require(config[key] == baseline[key], f"frozen probe material changed: {key}")
     require(config["body_port"] != baseline["body_port"] and
+            (not v3 or config["source_path"] != baseline["source_path"]) and
             config["state_dir"] != baseline["state_dir"] and
             config["package_output"] != baseline["package_output"] and
             config["development_output"] != baseline["development_output"] and
