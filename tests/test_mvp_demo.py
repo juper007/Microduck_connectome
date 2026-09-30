@@ -1,4 +1,7 @@
+import io
+from contextlib import redirect_stdout
 from types import SimpleNamespace
+import unittest
 
 from microduck_connectome.mvp_demo import DemoObserver
 
@@ -24,29 +27,40 @@ def _output(vyaw=0.0, stop=False):
     }
 
 
-def test_demo_observer_passes_on_opposite_turns_and_neural_escape(capsys):
-    observer = DemoObserver()
-    observer(_update("left", left=0.8), _output(vyaw=0.2), "move")
-    observer(_update("right", right=0.8), _output(vyaw=-0.2), "move")
-    observer(
-        _update("stop", escape=0.7, stop=True),
-        _output(stop=True),
-        "robot_stop_refreshed",
-    )
+class DemoObserverTests(unittest.TestCase):
+    def test_passes_on_opposite_turns_and_neural_escape(self):
+        observer = DemoObserver()
+        output = io.StringIO()
+        with redirect_stdout(output):
+            observer(_update("left", left=0.8), _output(vyaw=0.2), "move")
+            observer(_update("right", right=0.8), _output(vyaw=-0.2), "move")
+            observer(
+                _update("stop", escape=0.7, stop=True),
+                _output(stop=True),
+                "robot_stop_refreshed",
+            )
 
-    summary = observer.summary()
-    assert summary["demo_result"] == "PASS"
-    assert summary["opposite_left_right_turns"] is True
-    assert summary["connectome_escape_stop_seen"] is True
-    assert "neural_escape" in capsys.readouterr().out
+        summary = observer.summary()
+        self.assertEqual(summary["demo_result"], "PASS")
+        self.assertTrue(summary["opposite_left_right_turns"])
+        self.assertTrue(summary["connectome_escape_stop_seen"])
+        self.assertIn("neural_escape", output.getvalue())
+
+    def test_shutdown_stop_is_not_counted_as_neural_escape(self):
+        observer = DemoObserver()
+        with redirect_stdout(io.StringIO()):
+            observer(_update("left"), _output(vyaw=0.2), "move")
+            observer(_update("right"), _output(vyaw=-0.2), "move")
+            observer(
+                _update("stop", escape=0.0, stop=False),
+                _output(stop=True),
+                "robot_stop_refreshed",
+            )
+
+        summary = observer.summary()
+        self.assertEqual(summary["demo_result"], "INCOMPLETE")
+        self.assertFalse(summary["connectome_escape_stop_seen"])
 
 
-def test_demo_observer_does_not_count_shutdown_stop_as_neural_escape():
-    observer = DemoObserver()
-    observer(_update("left"), _output(vyaw=0.2), "move")
-    observer(_update("right"), _output(vyaw=-0.2), "move")
-    observer(_update("stop", escape=0.0, stop=False), _output(stop=True), "robot_stop_refreshed")
-
-    summary = observer.summary()
-    assert summary["demo_result"] == "INCOMPLETE"
-    assert summary["connectome_escape_stop_seen"] is False
+if __name__ == "__main__":
+    unittest.main()
