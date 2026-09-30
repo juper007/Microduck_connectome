@@ -29,9 +29,11 @@ from microduck_connectome.neural_stop_arbiter import MotionLatched, NeuralStopMo
 from microduck_connectome.neural_stop_scheduler import NeuralStopRefreshScheduler
 from microduck_connectome.p8_03_timing_gate import ReadyStartGate
 from microduck_connectome.p8_03_timing_scheduler import ReadyTimingScheduler
+from microduck_connectome.p8_03_causal_timing import evaluate_causal_arm
 from microduck_connectome.fault_stop import FaultStopLatch
 from microduck_connectome.p8_03_geometry import relative_trial
 from microduck_connectome.robotd_client import RobotdClient
+from microduck_connectome.robotd_diagnostic import RobotdDiagnosticRecorder
 from microduck_connectome.watchdog import ControllerWatchdog
 from scripts.p6_motion_fixture import JsonLines
 from scripts.p6_telemetry_runtime_fixture import RobotStateSampler
@@ -67,10 +69,10 @@ def motion_journal_evidence(path: Path, *, coordinator_reached: bool) -> dict:
 def timing_execution_rel(args) -> str:
     if not getattr(args, "timing_probe", False):
         if getattr(args, "timing_probe_version", "v1") != "v1":
-            raise ValueError("v2 requires timing probe mode")
+            raise ValueError("versioned timing probe requires timing probe mode")
         return "config/p8_03_local_reference_v1_r1.json"
     version = getattr(args, "timing_probe_version", "v1")
-    if version not in ("v1", "v2"):
+    if version not in ("v1", "v2", "v3"):
         raise ValueError("unsupported timing probe version")
     return f"config/p8_03_timing_probe_{version}.json"
 
@@ -133,10 +135,16 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
         raise RuntimeError("source must be clean at reviewed HEAD")
     if root != Path(execution["source_path"]).resolve():
         raise RuntimeError("source checkout path differs from frozen execution config")
-    for rel in (execution_rel, "config/p8_v2_final_protocol_v1.json",
-                "scripts/p8_03_trial.py", "scripts/p8_03_batch.py", "scripts/p8_03_score.py",
-                "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
-                "microduck_connectome/p8_03_geometry.py"):
+    source_files = [execution_rel, "config/p8_v2_final_protocol_v1.json",
+                    "scripts/p8_03_trial.py", "scripts/p8_03_batch.py", "scripts/p8_03_score.py",
+                    "scripts/p8_03_finalize.py", "scripts/p8_03_local_reference.py",
+                    "microduck_connectome/p8_03_geometry.py"]
+    if getattr(args, "timing_probe_version", "v1") == "v3":
+        source_files.extend(("scripts/p8_03_timing_score.py",
+                             "scripts/p8_02_r1_trial.py",
+                             "microduck_connectome/p8_03_causal_timing.py",
+                             "microduck_connectome/robotd_diagnostic.py"))
+    for rel in source_files:
         if (root / rel).read_bytes() != subprocess.check_output(
                 ["git", "-C", str(root), "show", f"HEAD:{rel}"]):
             raise RuntimeError(f"uncommitted frozen source bytes: {rel}")
@@ -160,8 +168,11 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
             raise RuntimeError("timing probe requires D stage and timing ledger")
         outputs += (args.timing_ledger,
                     args.timing_ledger.with_name("moving-acquisition-journal.jsonl"))
-        if getattr(args, "timing_probe_version", "v1") == "v2":
+        if getattr(args, "timing_probe_version", "v1") in ("v2", "v3"):
             outputs += (args.timing_ledger.with_name("motion-request-journal.jsonl"),)
+        if getattr(args, "timing_probe_version", "v1") == "v3":
+            outputs += (args.timing_ledger.with_name("diagnostic.jsonl"),
+                        args.timing_ledger.with_name("causal-precondition.json"))
     if any(p.resolve().parent != folder.resolve() for p in outputs):
         raise RuntimeError("raw output must use frozen attempt directory")
     if any(p.exists() for p in (args.events, args.ledger, args.visual, args.summary,
@@ -169,7 +180,7 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
                                 getattr(args, "timing_probe", False) else ())):
         raise RuntimeError("raw output path already exists")
     if (getattr(args, "timing_probe", False) and
-            getattr(args, "timing_probe_version", "v1") == "v2"
+            getattr(args, "timing_probe_version", "v1") in ("v2", "v3")
             and args.timing_ledger.with_name("motion-request-journal.jsonl").exists()):
         raise RuntimeError("raw motion journal path already exists")
     if (getattr(args, "timing_probe", False) and
@@ -202,11 +213,28 @@ def verify(args) -> tuple[dict, dict, dict, dict, dict, str]:
                            selected["graph_manifest_sha256"])):
         if sha(root / rel) != expected:
             raise RuntimeError(f"frozen material hash mismatch: {rel}")
-    for source, expected in ((args.microduck, execution["microduck_commit"]),
+    expected_microduck = (execution["microduck_candidate_sha"]
+                          if getattr(args, "timing_probe_version", "v1") == "v3"
+                          else execution["microduck_commit"])
+    for source, expected in ((args.microduck, expected_microduck),
                              (args.microduck_rl, execution["microduck_rl_commit"])):
         if subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"],
                                    text=True).strip() != expected:
             raise RuntimeError("upstream commit mismatch")
+    if getattr(args, "timing_probe_version", "v1") == "v3":
+        candidate_tree = subprocess.check_output(
+            ["git", "-C", str(args.microduck), "rev-parse",
+             execution["microduck_candidate_sha"] + "^{tree}"],
+            text=True).strip()
+        if (candidate_tree != subprocess.check_output(
+                ["git", "-C", str(args.microduck), "write-tree"],
+                text=True).strip() or
+                subprocess.check_output(
+                    ["git", "-C", str(args.microduck), "status", "--porcelain"],
+                    text=True).strip() or
+                sha(root / "patches/microduck/p8-03-robotd-diagnostic-metadata.patch") !=
+                execution["microduck_patch_sha256"]):
+            raise RuntimeError("unreviewed upstream candidate or patch bytes")
     if sha(Path(execution["graph_path"])) != execution["graph_sha256"]:
         raise RuntimeError("graph artifact hash mismatch")
     if sha(Path(execution["walking_policy_path"])) != execution["walking_policy_sha256"]:
@@ -241,6 +269,10 @@ def run(args) -> int:
     sampler = None
     pose_reader = None
     state_lineage = None
+    diagnostic = None
+    pre_move_tick = None
+    timing_motion = None
+    causal_precondition = None
     acquisition_active = [False]
     acquisition_observations: list[dict] = []
     try:
@@ -253,8 +285,17 @@ def run(args) -> int:
         adapter = RobotMotionAdapter(robot, root / "config/motion_adapter_v1.json")
         publisher = IsolatedStopPublisher(adapter)
         move_client = JsonLines(args.socket)
-        move_client.request("hello", {"api_version": 31})
-        if getattr(args, "timing_probe", False):
+        hello = move_client.request("hello", {"api_version": 31})
+        if getattr(args, "timing_probe_version", "v1") == "v3":
+            if hello.get("api_version") != 32:
+                raise RuntimeError("diagnostic robotd API v32 required")
+            diagnostic = RobotdDiagnosticRecorder(
+                RobotdClient(args.socket, timeout_s=2.0),
+                args.timing_ledger.with_name("diagnostic.jsonl"))
+            diagnostic.start()
+            move_client.diagnostic_recorder = diagnostic
+        if (getattr(args, "timing_probe", False) and
+                getattr(args, "timing_probe_version", "v1") != "v3"):
             state_lineage = DurableStateLineage(
                 args.timing_ledger.with_name("moving-acquisition-journal.jsonl"))
         def record_state(observation: dict) -> None:
@@ -290,6 +331,7 @@ def run(args) -> int:
                        "capture_ns": reset["capture_ns"],
                        "reset_id": reset["reset_id"], "attempt": reset["attempt"]})
         arm_ns = None
+        timing_snapshot = None
         scheduler_result = None
         stop_acks: list[int] = []
         published: dict[int, tuple[int, int]] = {}
@@ -390,7 +432,7 @@ def run(args) -> int:
                 robot.stop()
             except BaseException:
                 pass
-        for resource in (move_client, sampler, pose_reader, robot):
+        for resource in (move_client, sampler, pose_reader, diagnostic, robot):
             if resource is not None:
                 try:
                     resource.close()
@@ -455,14 +497,96 @@ def run(args) -> int:
                 int((gate["settle_window_s"] - .06) * 1e9)):
             raise RuntimeError("reference transition telemetry incomplete")
         poses = []
-        if state_lineage is not None:
+        causal_v3 = getattr(args, "timing_probe_version", "v1") == "v3"
+        if causal_v3:
+            diagnostic.assert_healthy()
+            raw_diagnostic = [json.loads(line) for line in
+                              args.timing_ledger.with_name("diagnostic.jsonl").read_text().splitlines()]
+            pre_move_tick = max(row["state"]["control_tick_sequence"] for row in
+                                raw_diagnostic if row.get("kind") == "robot.state")
+            motion_journal = DurableMotionJournal(
+                args.timing_ledger.with_name("motion-request-journal.jsonl"))
+
+            def causal_motion_fault(reason):
+                motion_errors.append(reason)
+                watchdog.latch_fault("motion_refresh_fault")
+                arbiter.latch("fault_motion_refresh_fault")
+                timing_gate.abort()
+
+            def causal_state(ack_ns):
+                state, received_ns = sampler.after(ack_ns)
+                return {"timestamp_ns": received_ns,
+                        "requested_velocity": state["move"]["requested"],
+                        "applied_velocity": state["move"]["applied"],
+                        "limited_by": state["move"].get("limited_by", []),
+                        "robot_t_ns": state.get("t_ns"), "policy": state.get("policy"),
+                        "safety": state.get("safety"),
+                        "consumed_move_generation": state.get("consumed_move_generation"),
+                        "control_tick_sequence": state.get("control_tick_sequence")}
+
+            def causal_pose(_ack_ns):
+                with pose_lock:
+                    measured = pose_reader.read()
+                    source = pose_reader.source(measured)
+                return {"timestamp_ns": source["response_ns"],
+                        "request_ns": source["request_ns"], "pose": dict(measured),
+                        "raw_body_packet": source["raw_packet"]}
+
+            def causal_move():
+                trace = timing_motion.current_request_trace()
+                trace["arbiter_lock_wait_start_ns"] = time.monotonic_ns()
+                return arbiter.move(lambda: acknowledged_precondition_move(
+                    move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
+                    vyaw=pre["vyaw_radps"], trace=trace))
+
+            timing_motion = MotionTimingCoordinator(
+                send_move=causal_move, observe_state=causal_state,
+                observe_pose=causal_pose, fault=causal_motion_fault,
+                gate=timing_gate, journal=motion_journal,
+                request_id_hint=lambda: move_client.next_id)
+            timing_motion.start()
+            if not timing_motion.wait_ready(3):
+                raise RuntimeError("causal motion workers not READY")
+            # Fixed acquisition target; no per-ID retry or adaptive retuning.
+            acquisition_deadline = time.monotonic() + 3.0
+            while True:
+                snap = timing_motion.snapshot()
+                if snap["fault_reason"] is not None:
+                    raise RuntimeError(f"causal motion fault: {snap['fault_reason']}")
+                refresh = [row for row in snap["rows"] if
+                           row["kind"] == "motion_refresh" and row["phase"] == "prearm"]
+                if len(refresh) >= 95:
+                    break
+                if time.monotonic() >= acquisition_deadline:
+                    raise RuntimeError("causal acquisition missed 95 real ACKs")
+                time.sleep(.005)
+            poses = [{"timestamp_ns": row["source_timestamp_ns"],
+                      "request_ns": row["value"]["request_ns"],
+                      "x_m": row["value"]["pose"]["x_m"],
+                      "y_m": row["value"]["pose"]["y_m"],
+                      "raw_body_packet": row["value"]["raw_body_packet"]}
+                     for row in snap["rows"] if row["kind"] == "pose_observation"]
+            precondition_rows = [{"kind": "precondition_motion",
+                                  "timestamp_ns": row["move_ack_ns"],
+                                  "robot_move_ack": row["result"]}
+                                 for row in refresh]
+            causal_precondition = evaluate_causal_arm(
+                args.timing_ledger.with_name("diagnostic.jsonl"), poses,
+                pre_move_tick=pre_move_tick, arm_ns=time.monotonic_ns(),
+                gate=move_gate)
+            precondition_rows[-1]["applied_velocity"] = [
+                causal_precondition["endpoint_applied_vx_mps"], 0.0, 0.0]
+            json_write(args.timing_ledger.with_name("causal-precondition.json"),
+                       causal_precondition)
+        if state_lineage is not None and not causal_v3:
             with sampler.condition:
                 state_lineage.append({"kind": "moving_acquisition_start",
                                       "timestamp_ns": time.monotonic_ns(),
                                       "planned_motion_count": round(pre["duration_s"] * 1000 /
                                                                     pre["command_period_ms"])})
                 acquisition_active[0] = True
-        for i in range(round(pre["duration_s"] * 1000 / pre["command_period_ms"])):
+        for i in range(0 if causal_v3 else
+                       round(pre["duration_s"] * 1000 / pre["command_period_ms"])):
             tick = time.monotonic_ns()
             pre_move_state = sampler.snapshot() if state_lineage is not None else None
             request_id = move_client.next_id if state_lineage is not None else None
@@ -540,7 +664,11 @@ def run(args) -> int:
         displacement = math.hypot(poses[-1]["x_m"] - poses[0]["x_m"],
                                   poses[-1]["y_m"] - poses[0]["y_m"])
         last_applied = precondition_rows[-1]["applied_velocity"][0]
-        if (confirmed is None or confirmed <= reset["capture_ns"]
+        if causal_v3:
+            confirmed = causal_precondition["qualified_sustain_ns"]
+            displacement = causal_precondition["postqualification_displacement_m"]
+            last_applied = causal_precondition["endpoint_applied_vx_mps"]
+        if (not causal_v3 and (confirmed is None or confirmed <= reset["capture_ns"]
                 or displacement < move_gate["minimum_trunk_displacement_m"]
                 or last_applied < move_gate["minimum_fresh_applied_vx_mps"]
                 or acquisition_contaminated(observed_acquisition)
@@ -555,7 +683,7 @@ def run(args) -> int:
                 or precondition_deadman_after_motion(
                     [{"robot_state": {"limited_by": r["limited_by"],
                                       "robot_t_ns": r["robot_t_ns"]}} for r in precondition_rows],
-                    confirmed)):
+                    confirmed))):
             raise RuntimeError("measured moving-body precondition failed")
         if state_lineage is not None:
             with sampler.condition:
@@ -584,13 +712,11 @@ def run(args) -> int:
             raise RuntimeError("health or local reference invalid before arm")
         events.append({"kind": "prearm_health", "timestamp_ns": health_prearm_ns,
                        "health": health_prearm})
-        timing_motion = None
-        timing_snapshot = None
         if timing_gate is not None:
-            ack_probe_v2 = getattr(args, "timing_probe_version", "v1") == "v2"
+            ack_probe_v2 = getattr(args, "timing_probe_version", "v1") in ("v2", "v3")
             motion_journal = (DurableMotionJournal(
                 args.timing_ledger.with_name("motion-request-journal.jsonl"))
-                if ack_probe_v2 else None)
+                if ack_probe_v2 and not causal_v3 else None)
             def probe_fault(reason):
                 motion_errors.append(reason)
                 watchdog.latch_fault("motion_refresh_fault")
@@ -623,15 +749,17 @@ def run(args) -> int:
                     move_client, vx=pre["vx_mps"], vy=pre["vy_mps"],
                     vyaw=pre["vyaw_radps"], trace=trace))
 
-            timing_motion = MotionTimingCoordinator(
-                send_move=send_probe_move,
-                observe_state=probe_state, observe_pose=probe_pose,
-                fault=probe_fault, gate=timing_gate, journal=motion_journal,
-                request_id_hint=(lambda: move_client.next_id) if ack_probe_v2 else None)
-            timing_motion.start()
+            if not causal_v3:
+                timing_motion = MotionTimingCoordinator(
+                    send_move=send_probe_move,
+                    observe_state=probe_state, observe_pose=probe_pose,
+                    fault=probe_fault, gate=timing_gate, journal=motion_journal,
+                    request_id_hint=(lambda: move_client.next_id) if ack_probe_v2 else None)
+                timing_motion.start()
             if not timing_motion.wait_ready(3):
                 raise RuntimeError("prearm motion coordinator not READY")
-            first_continuation_ack = timing_motion.snapshot()["first_move_ack_ns"]
+            first_continuation_ack = timing_motion.snapshot()[
+                "last_move_ack_ns" if causal_v3 else "first_move_ack_ns"]
             if (first_continuation_ack is None or
                     first_continuation_ack - precondition_rows[-1]["timestamp_ns"] >
                     move_gate["maximum_state_age_ms"] * 1e6):
@@ -726,6 +854,22 @@ def run(args) -> int:
         if ((candidate_arm_ns - health_prearm_ns) / 1e6 >
                 execution["settled_gate"]["max_prearm_health_age_ms"]):
             raise RuntimeError("prearm health stale")
+        if causal_v3:
+            diagnostic.assert_healthy()
+            final_prearm_poses = [
+                {"timestamp_ns": row["source_timestamp_ns"],
+                 "request_ns": row["value"]["request_ns"],
+                 "x_m": row["value"]["pose"]["x_m"],
+                 "y_m": row["value"]["pose"]["y_m"],
+                 "raw_body_packet": row["value"]["raw_body_packet"]}
+                for row in timing_motion.snapshot()["rows"]
+                if row["kind"] == "pose_observation"]
+            causal_precondition = evaluate_causal_arm(
+                args.timing_ledger.with_name("diagnostic.jsonl"), final_prearm_poses,
+                pre_move_tick=pre_move_tick, arm_ns=candidate_arm_ns,
+                gate=move_gate)
+            json_write(args.timing_ledger.with_name("causal-precondition.json"),
+                       causal_precondition)
         marker = {"schema_version": "p8-03-local-arm-v1",
                   "task": "P8-03-LOCAL-REFERENCE-PROTOCOL-V1",
                   "reset_id": planned["reset_id"], "ordinal": planned["ordinal"],
@@ -741,7 +885,21 @@ def run(args) -> int:
             def final_arm_check():
                 nonlocal arm_pose_anchor, arm_motion_confirmation
                 now_ns = time.monotonic_ns()
+                if causal_v3:
+                    diagnostic.assert_healthy()
                 snap = timing_motion.snapshot()
+                if causal_v3:
+                    latest_poses = [
+                        {"timestamp_ns": row["source_timestamp_ns"],
+                         "request_ns": row["value"]["request_ns"],
+                         "x_m": row["value"]["pose"]["x_m"],
+                         "y_m": row["value"]["pose"]["y_m"],
+                         "raw_body_packet": row["value"]["raw_body_packet"]}
+                        for row in snap["rows"] if row["kind"] == "pose_observation"]
+                    evaluate_causal_arm(
+                        args.timing_ledger.with_name("diagnostic.jsonl"), latest_poses,
+                        pre_move_tick=pre_move_tick, arm_ns=now_ns,
+                        gate=move_gate)
                 arm_motion_confirmation = recent_moving_pose(snap["rows"], now_ns)
                 poses_at_arm = [row for row in snap["rows"]
                                 if row["kind"] == "pose_observation"]
@@ -892,6 +1050,31 @@ def run(args) -> int:
                        "healthy": health_after.get("healthy") is True})
         move_client.close()
         sampler.close()
+        if diagnostic is not None:
+            try:
+                if arm_ns is not None:
+                    barrier_deadline = time.monotonic() + .2
+                    while time.monotonic() < barrier_deadline:
+                        diagnostic.assert_healthy()
+                        diagnostic_rows = [
+                            json.loads(line) for line in
+                            args.timing_ledger.with_name("diagnostic.jsonl").read_text().splitlines()
+                            if line.strip()]
+                        if any(row.get("kind") == "robot.state" and
+                               row["state"].get("t_ns", 0) >= arm_ns + 1_000_000_000
+                               for row in diagnostic_rows):
+                            break
+                        time.sleep(.005)
+                    else:
+                        raise RuntimeError("post-window diagnostic barrier missing")
+            except BaseException as error:
+                events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
+                               "error": f"diagnostic_barrier:{type(error).__name__}:{error}"})
+            try:
+                diagnostic.close()
+            except BaseException as error:
+                events.append({"kind": "fixture_error", "timestamp_ns": time.monotonic_ns(),
+                               "error": f"diagnostic_close:{type(error).__name__}:{error}"})
         if state_lineage is not None:
             state_lineage.close()
         pose_reader.close()
@@ -962,13 +1145,19 @@ def run(args) -> int:
         lineage_path = args.timing_ledger.with_name("moving-acquisition-journal.jsonl")
         if lineage_path.is_file():
             summary["moving_acquisition_journal_sha256"] = sha(lineage_path)
-        if getattr(args, "timing_probe_version", "v1") == "v2":
+        if getattr(args, "timing_probe_version", "v1") in ("v2", "v3"):
             journal_path = args.timing_ledger.with_name("motion-request-journal.jsonl")
             coordinator_reached = locals().get("timing_motion") is not None
             summary["motion_coordinator_reached"] = coordinator_reached
             summary["motion_journal"] = motion_journal_evidence(
                 journal_path, coordinator_reached=coordinator_reached)
             summary["motion_request_journal_sha256"] = summary["motion_journal"]["sha256"]
+        if getattr(args, "timing_probe_version", "v1") == "v3":
+            diagnostic_path = args.timing_ledger.with_name("diagnostic.jsonl")
+            causal_path = args.timing_ledger.with_name("causal-precondition.json")
+            summary["diagnostic_sha256"] = sha(diagnostic_path) if diagnostic_path.is_file() else None
+            summary["causal_precondition_sha256"] = sha(causal_path) if causal_path.is_file() else None
+            summary["pre_move_tick"] = pre_move_tick
         summary["timing_motion"] = {key: value for key, value in
                                     (locals().get("timing_snapshot") or {}).items()
                                     if key != "rows"}
@@ -992,7 +1181,7 @@ def main() -> None:
     ap.add_argument("--microduck-rl", type=Path, required=True)
     ap.add_argument("--source-head", required=True)
     ap.add_argument("--timing-probe", action="store_true")
-    ap.add_argument("--timing-probe-version", choices=("v1", "v2"), default="v1")
+    ap.add_argument("--timing-probe-version", choices=("v1", "v2", "v3"), default="v1")
     ap.add_argument("--timing-ledger", type=Path)
     for name in ("policy_readback", "local_reference", "armed_marker", "progress", "events", "ledger",
                  "visual", "summary"):

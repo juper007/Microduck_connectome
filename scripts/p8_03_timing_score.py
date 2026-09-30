@@ -13,6 +13,8 @@ from microduck_connectome.control_contracts import (ControlContractError,
 from microduck_connectome.g8_r5d_metrics import first_sustained, pose_speeds
 from microduck_connectome.looming_scenario import load_config, pixels_sha256
 from microduck_connectome.p8_03_geometry import relative_trial
+from microduck_connectome.p8_03_causal_timing import (
+    CausalTimingError, evaluate_causal_arm)
 from scripts.p8_03_local_reference import body_pose
 
 
@@ -20,7 +22,8 @@ PERIOD_NS = 20_000_000
 VISUAL_PERIOD_NS = 50_000_000
 WINDOW_NS = 1_000_000_000
 PROBE_IDS = {"p8-03-timing-probe-v1": ("TPR2-001", "TPR2-002", "TPR2-003"),
-             "p8-03-timing-probe-v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003")}
+             "p8-03-timing-probe-v2": ("TPR2A-001", "TPR2A-002", "TPR2A-003"),
+             "p8-03-timing-probe-v3": ("CTP3-001", "CTP3-002", "CTP3-003")}
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -191,7 +194,9 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     result = {"reset_id": ident, "result": "FAIL", "failure_causes": errors}
     names = {"events": "events.jsonl", "neural": "neural-ledger.jsonl",
               "visual": "visual-frames.jsonl", "timing": "timing-ledger.jsonl"}
-    v2 = config.get("schema_version") == "p8-03-timing-probe-v2"
+    v3 = config.get("schema_version") == "p8-03-timing-probe-v3"
+    v2 = config.get("schema_version") in ("p8-03-timing-probe-v2",
+                                          "p8-03-timing-probe-v3")
     try:
         rows = {name: _read_jsonl(folder / filename) for name, filename in names.items()}
         summary = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
@@ -355,7 +360,44 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
                     and type(row.get("timestamp_ns")) is int and row["timestamp_ns"] < start]
     expected_precondition = round(config["moving_gate"]["duration_s"] * 1000 /
                                   config["moving_gate"]["command_period_ms"])
-    if len(precondition) != expected_precondition:
+    if v3:
+        diagnostic_path = folder / "diagnostic.jsonl"
+        causal_path = folder / "causal-precondition.json"
+        if (not diagnostic_path.is_file() or not causal_path.is_file() or
+                summary.get("diagnostic_sha256") != _sha(diagnostic_path) or
+                summary.get("causal_precondition_sha256") != _sha(causal_path) or
+                type(summary.get("pre_move_tick")) is not int or
+                len(precondition) < 91 or
+                len({row.get("timestamp_ns") for row in precondition}) != len(precondition)):
+            errors.append("causal_raw_evidence_missing_or_invalid")
+        else:
+            try:
+                saved = json.loads(causal_path.read_text())
+                all_poses = [
+                    {"timestamp_ns": row["source_timestamp_ns"],
+                     "request_ns": row["value"]["request_ns"],
+                     "x_m": row["value"]["pose"]["x_m"],
+                     "y_m": row["value"]["pose"]["y_m"],
+                     "raw_body_packet": row["value"]["raw_body_packet"]}
+                    for row in rows["timing"] if row.get("kind") == "pose_observation"]
+                prearm_proof = evaluate_causal_arm(
+                    diagnostic_path, all_poses,
+                    pre_move_tick=summary["pre_move_tick"],
+                    arm_ns=saved["arm_ns"], gate=config["moving_gate"])
+                final_proof = evaluate_causal_arm(
+                    diagnostic_path, all_poses,
+                    pre_move_tick=summary["pre_move_tick"],
+                    arm_ns=start, gate=config["moving_gate"],
+                    scored_end_ns=end)
+                if (saved != prearm_proof or
+                        final_proof["first_causal_tick"] != saved["first_causal_tick"] or
+                        final_proof["first_qualifying_tick"] != saved["first_qualifying_tick"] or
+                        not saved["arm_ns"] < start):
+                    raise CausalTimingError("causal pre-arm proof changed or mismatched")
+                result["causal_precondition"] = final_proof
+            except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
+                errors.append(f"causal_precondition_invalid:{type(error).__name__}")
+    elif len(precondition) != expected_precondition:
         errors.append("precondition_raw_count_invalid")
     else:
         try:
@@ -594,10 +636,15 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     prearm_motion = [row for row in timing if row.get("kind") == "motion_refresh"
                      and row.get("phase") == "prearm" and
                      type(row.get("move_ack_ns")) is int and row["move_ack_ns"] < start]
-    if (precondition and prearm_motion and
+    if (not v3 and precondition and prearm_motion and
             not 0 <= prearm_motion[0]["move_ack_ns"] - precondition[-1]["timestamp_ns"] <=
             config["moving_gate"]["maximum_state_age_ms"] * 1e6):
         errors.append("precondition_to_keepalive_gap_invalid")
+    if (v3 and precondition and prearm_motion and
+            (len(prearm_motion) < len(precondition) or
+             precondition[-1]["timestamp_ns"] != prearm_motion[
+                 len(precondition) - 1]["move_ack_ns"])):
+        errors.append("causal_prearm_motion_lineage_invalid")
     arm_handoff = [row for row in timing if row.get("kind") == "motion_arm"]
     if (not prearm_motion or len(arm_handoff) != 1 or
             arm_handoff[0].get("timestamp_ns") != start or
@@ -636,6 +683,23 @@ def _score_trial(folder: Path, spec: dict, config: dict) -> dict:
     if (len(motion) != 50 or len(motion_events) != 50 or
             {row.get("scored_slot") for row in motion} != set(range(50))):
         errors.append("motion_slots_incomplete_or_duplicate")
+    if v3 and (folder / "diagnostic.jsonl").is_file():
+        try:
+            diagnostic_rows = _read_jsonl(folder / "diagnostic.jsonl")
+            accepted = {}
+            for row in diagnostic_rows:
+                if row.get("kind") == "robot.move.ack":
+                    response = json.loads(row["wire"])
+                    result_wire = response["result"]
+                    accepted[result_wire["accepted_move_generation"]] = row["received_at_ns"]
+            scored_generations = [row["result"]["accepted_move_generation"] for row in motion]
+            if (len(set(scored_generations)) != 50 or
+                    any(accepted.get(row["result"]["accepted_move_generation"]) !=
+                        row["move_ack_ns"] for row in motion)):
+                errors.append("scored_move_generation_ack_lineage_invalid")
+            result["scored_move_generations"] = scored_generations
+        except (KeyError, TypeError, ValueError, IndexError):
+            errors.append("scored_move_generation_ack_lineage_invalid")
     for slot, (detail, event) in enumerate(zip(motion, motion_events)):
         deadline = start + slot * PERIOD_NS
         if (detail.get("scored_slot") != slot or

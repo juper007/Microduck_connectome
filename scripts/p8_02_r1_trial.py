@@ -385,6 +385,9 @@ def acknowledged_precondition_move(client, *, vx, vy, vyaw, trace=None):
                      first_response_byte_observable=True)
     try:
         encoded = (json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode()
+        diagnostic = getattr(client, "diagnostic_recorder", None)
+        if diagnostic is not None:
+            diagnostic.record_move_request(encoded, sent_at_ns=call_ns)
         if trace is not None:
             trace["socket_write_start_ns"] = time.monotonic_ns()
         client.file.write(encoded)
@@ -412,6 +415,8 @@ def acknowledged_precondition_move(client, *, vx, vy, vyaw, trace=None):
                     raise RuntimeError("unexpected robot.move response id on dedicated socket")
                 continue
             ack_ns = time.monotonic_ns()
+            if diagnostic is not None:
+                diagnostic.record_move_ack(raw, received_at_ns=ack_ns)
             if trace is not None:
                 trace["ack_ns"] = ack_ns
             if "error" in reply:
