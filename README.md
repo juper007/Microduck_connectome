@@ -44,6 +44,27 @@ MicroDuck
 
 The existing MicroDuck P5/P6 contracts remain unchanged. The robot-neutral `TaskIntent` and SO-101 adapter are introduced as the later P11 cross-embodiment extension.
 
+## Fast path: Connectome Motion MVP
+
+For day-to-day development, the project now has a separate **interactive MVP track** whose goal is simply to make the real MaleCNS-derived controller visibly drive MicroDuck in MuJoCo.
+
+```text
+target / looming → sensory mapping → MaleCNS graph/runtime
+                 → DNa02 / DNp01 → steering / escape
+                 → safety + watchdog → robotd → MicroDuck RL
+```
+
+Run it on Thor after `duck-sim` and `robotd` are healthy:
+
+```bash
+uv run python -m microduck_connectome.mvp_demo --check-only
+uv run python -m microduck_connectome.mvp_demo
+```
+
+The MVP checks for opposite left/right yaw responses and a connectome-derived looming escape stop. It is intentionally **not** a scientific phase gate: P8 timing, causality, baselines, statistics, evidence manifests, and independent validation remain unchanged in the research track.
+
+See [`docs/CONNECTOME_MOTION_MVP.md`](docs/CONNECTOME_MOTION_MVP.md).
+
 ## Execution sequence
 
 1. Freeze dataset/runtime versions and establish reproducible environment.
@@ -69,6 +90,7 @@ Agent work uses lazy context loading and compact task packets so large-model con
 ## Documentation
 
 - [`docs/PROJECT_EXECUTION_PLAN.md`](docs/PROJECT_EXECUTION_PLAN.md) — end-to-end execution plan
+- [`docs/CONNECTOME_MOTION_MVP.md`](docs/CONNECTOME_MOTION_MVP.md) — minimal Thor/MuJoCo connectome-motion demo path
 - [`docs/PM_AGENT_HIRING_PLAN.md`](docs/PM_AGENT_HIRING_PLAN.md) — practical agent team, hiring capabilities, and Codex skill mapping
 - [`docs/AGENT_ROLES.md`](docs/AGENT_ROLES.md) — detailed responsibility catalog and handoffs
 - [`docs/TASK_BREAKDOWN.md`](docs/TASK_BREAKDOWN.md) — detailed task/WBS plan
@@ -95,7 +117,7 @@ Agent work uses lazy context loading and compact task packets so large-model con
 
 ## Current status
 
-The repository has progressed beyond the original Phase 0 bootstrap marker. The current `main` branch includes the P6-05 end-to-end telemetry integration. P6-06 fault/recovery work exists on a separate task branch and G6 is not yet declared complete. P11 SO-101 support is a planned extension defined in [`docs/SO101_INTEGRATION_PLAN.md`](docs/SO101_INTEGRATION_PLAN.md).
+The repository has progressed into the P8 research-validation track; current `main` includes the P8-02 R1 durable-evidence recovery, while later P8-03 diagnostic work remains separate until its own review/merge gates pass. The Connectome Motion MVP is a parallel interactive path for quickly seeing the real MaleCNS controller drive MicroDuck without weakening or replacing any P8 requirement. P11 SO-101 support remains a planned extension defined in [`docs/SO101_INTEGRATION_PLAN.md`](docs/SO101_INTEGRATION_PLAN.md).
 
 Historical Phase 0 bootstrap material remains in [`docs/PHASE0_SETUP.md`](docs/PHASE0_SETUP.md).
 
